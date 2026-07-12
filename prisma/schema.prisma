@@ -1,0 +1,92 @@
+datasource db {
+  provider = "postgresql"
+}
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+model User {
+  id               String           @id @default(uuid())
+  email            String           @unique
+  passwordHash     String?
+  name             String?
+  sex              String?          // Male, Female, Other
+  phone            String?
+  height           String?
+  weight           String?
+  waistSize        String?
+  braSize          String?          // Only visible/editable if female
+  shoeSize         String?
+  hatSize          String?
+  gloveSize        String?
+  clothingSize     String?
+  workLife         String?          // Description of work/daily life
+  inspirationNotes String?          // Inspirations list
+  mfaEnabled       Boolean          @default(false)
+  mfaSecret        String?          // TOTP secret key
+  createdAt        DateTime         @default(now())
+  updatedAt        DateTime         @updatedAt
+  wardrobeItems    WardrobeItem[]
+  recommendations  Recommendation[]
+}
+
+model WardrobeItem {
+  id          String   @id @default(uuid())
+  userId      String
+  user        User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  imageUrl    String   // Path or URL to compressed WebP image
+  category    String   // e.g. "Outerwear", "Tops", "Bottoms", "Shoes", "Accessories"
+  color       String[] // Extracted color palette (stored as string array)
+  brand       String?
+  styleNotes  String?  // Description of cut, fabric, texture
+  detectedTags String[] // e.g. ["tweed", "structural", "asymmetric"]
+  createdAt   DateTime @default(now())
+}
+
+model FeedSource {
+  id        String   @id @default(uuid())
+  name      String
+  url       String   @unique
+  type      String   // "rss" | "youtube" | "substack"
+  isMuted   Boolean  @default(false)
+  createdAt DateTime @default(now())
+}
+
+model TrendArticle {
+  id          String   @id @default(uuid())
+  sourceUrl   String   @unique
+  sourceName  String
+  title       String
+  content     String   // Clean text extracted from feed
+  publishedAt DateTime
+  extractedTrends String[] // e.g. ["boucle jackets", "oversized leather"]
+  createdAt   DateTime @default(now())
+}
+
+model Recommendation {
+  id          String   @id @default(uuid())
+  userId      String
+  user        User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  title       String   // e.g. "Classic Chanel meets McQueen Grunge"
+  narrative   String   // Text explanation of the outfit styling choices
+  createdAt   DateTime @default(now())
+  outfitItems RecommendationItem[]
+}
+
+model RecommendationItem {
+  id               String   @id @default(uuid())
+  recommendationId String
+  recommendation   Recommendation @relation(fields: [recommendationId], references: [id], onDelete: Cascade)
+  
+  // Either links to a wardrobe item, or recommends a new purchase item
+  wardrobeItemId   String?
+  
+  // For new purchase recommendations
+  purchaseName     String?
+  purchaseBrand    String?
+  purchaseUrl      String?
+  purchaseImageUrl String?
+  priceEstimate    String?
+  stylingRationale String   // Why this item is paired
+}

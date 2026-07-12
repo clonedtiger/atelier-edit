@@ -1,0 +1,35 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<feed xmlns="http://www.w3.org/2005/Atom" xmlns:apps="http://schemas.google.com/apps/2006">
+  <title>Mail Filters</title>
+  
+  <!-- Filter 1: Archive and Mark as Read Sponsored or Sales Content -->
+  <entry>
+    <category term="filter"></category>
+    <title>Mail Filter</title>
+    <apps:property name="to" value="user+style@gmail.com"/>
+    <apps:property name="hasTheWord" value='"[Sponsor]" OR "Promo Code" OR "Sale Alert" OR "Discount" OR "Promotion" OR "Save 20%" OR "Free Shipping" OR "Special Offer"'/>
+    <apps:property name="shouldArchive" value="true"/>
+    <apps:property name="shouldMarkAsRead" value="true"/>
+  </entry>
+
+  <!-- Filter 2: Star and Label High-Priority Aesthetic Content -->
+  <entry>
+    <category term="filter"></category>
+    <title>Mail Filter</title>
+    <apps:property name="to" value="user+style@gmail.com"/>
+    <apps:property name="hasTheWord" value='McQueen OR Chanel OR "Cora Jacket" OR tweed OR "structural tailoring" OR "asymmetric"'/>
+    <apps:property name="label" value="High-Priority Fashion"/>
+    <apps:property name="shouldStar" value="true"/>
+  </entry>
+
+  <!-- Filter 3: Forward Cured Feed Newsletters to RSS Ingestion (Template) -->
+  <entry>
+    <category term="filter"></category>
+    <title>Mail Filter</title>
+    <apps:property name="to" value="user+style@gmail.com"/>
+    <!-- Note: You will need to replace the forwardTo value below with your actual secret Feedbin/Inoreader email ingestion address -->
+    <apps:property name="forwardTo" value="YOUR_SECRET_INGESTION_ADDRESS@inoreader.com"/>
+    <apps:property name="shouldArchive" value="true"/>
+    <apps:property name="shouldMarkAsRead" value="true"/>
+  </entry>
+</feed>

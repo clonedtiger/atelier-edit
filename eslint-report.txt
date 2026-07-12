@@ -1,0 +1,146 @@
+
+/Users/keithmisson/Documents/code/fashion-feed/src/app/api/recommendations/generate/route.ts
+  1:10  warning  'NextRequest' is defined but never used  @typescript-eslint/no-unused-vars
+  2:10  warning  'prisma' is defined but never used       @typescript-eslint/no-unused-vars
+
+/Users/keithmisson/Documents/code/fashion-feed/src/app/api/recommendations/route.ts
+  1:10  warning  'NextRequest' is defined but never used  @typescript-eslint/no-unused-vars
+
+/Users/keithmisson/Documents/code/fashion-feed/src/app/api/seed/route.ts
+  1:10  warning  'NextRequest' is defined but never used  @typescript-eslint/no-unused-vars
+
+/Users/keithmisson/Documents/code/fashion-feed/src/app/api/wardrobe/route.ts
+  1:10  warning  'NextRequest' is defined but never used  @typescript-eslint/no-unused-vars
+
+/Users/keithmisson/Documents/code/fashion-feed/src/app/page.tsx
+   158:9   error    Error: Cannot access variable before it is declared
+
+`fetchRecommendations` is accessed before it is declared, which prevents the earlier access from updating when this value changes over time.
+
+/Users/keithmisson/Documents/code/fashion-feed/src/app/page.tsx:158:9
+  156 |       const res = await fetch('/api/feed/sync', { method: 'POST' });
+  157 |       if (res.ok) {
+> 158 |         fetchRecommendations();
+      |         ^^^^^^^^^^^^^^^^^^^^ `fetchRecommendations` accessed before it is declared
+  159 |       }
+  160 |     } catch (err) {
+  161 |       console.error('Silent feed sync error:', err);
+
+/Users/keithmisson/Documents/code/fashion-feed/src/app/page.tsx:224:3
+  222 |   };
+  223 |
+> 224 |   const fetchRecommendations = async () => {
+      |   ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+> 225 |     setLoadingRecommendations(true);
+      | ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+> 226 |     try {
+      …
+      | ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+> 236 |     }
+      | ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+> 237 |   };
+      | ^^^^^ `fetchRecommendations` is declared here
+  238 |
+  239 |   const fetchFeeds = async () => {
+  240 |     setLoadingFeeds(true);  react-hooks/immutability
+   167:5   error    Error: Cannot access variable before it is declared
+
+`checkSession` is accessed before it is declared, which prevents the earlier access from updating when this value changes over time.
+
+/Users/keithmisson/Documents/code/fashion-feed/src/app/page.tsx:167:5
+  165 |   // Load initial data
+  166 |   useEffect(() => {
+> 167 |     checkSession();
+      |     ^^^^^^^^^^^^ `checkSession` accessed before it is declared
+  168 |     fetchWardrobe();
+  169 |     fetchRecommendations();
+  170 |     fetchFeeds();
+
+/Users/keithmisson/Documents/code/fashion-feed/src/app/page.tsx:173:3
+  171 |   }, []);
+  172 |
+> 173 |   const checkSession = async () => {
+      |   ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+> 174 |     setLoadingMe(true);
+      | ^^^^^^^^^^^^^^^^^^^^^^^
+> 175 |     try {
+      …
+      | ^^^^^^^^^^^^^^^^^^^^^^^
+> 191 |     }
+      | ^^^^^^^^^^^^^^^^^^^^^^^
+> 192 |   };
+      | ^^^^^ `checkSession` is declared here
+  193 |
+  194 |   const populateProfileFields = (u: UserProfile) => {
+  195 |     setProfName(u.name || '');                                                                                                                                                      react-hooks/immutability
+   168:5   error    Error: Cannot access variable before it is declared
+
+`fetchWardrobe` is accessed before it is declared, which prevents the earlier access from updating when this value changes over time.
+
+/Users/keithmisson/Documents/code/fashion-feed/src/app/page.tsx:168:5
+  166 |   useEffect(() => {
+  167 |     checkSession();
+> 168 |     fetchWardrobe();
+      |     ^^^^^^^^^^^^^ `fetchWardrobe` accessed before it is declared
+  169 |     fetchRecommendations();
+  170 |     fetchFeeds();
+  171 |   }, []);
+
+/Users/keithmisson/Documents/code/fashion-feed/src/app/page.tsx:209:3
+  207 |   };
+  208 |
+> 209 |   const fetchWardrobe = async () => {
+      |   ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+> 210 |     setLoadingWardrobe(true);
+      | ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+> 211 |     try {
+      …
+      | ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+> 221 |     }
+      | ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+> 222 |   };
+      | ^^^^^ `fetchWardrobe` is declared here
+  223 |
+  224 |   const fetchRecommendations = async () => {
+  225 |     setLoadingRecommendations(true);                                                                                                                                             react-hooks/immutability
+   170:5   error    Error: Cannot access variable before it is declared
+
+`fetchFeeds` is accessed before it is declared, which prevents the earlier access from updating when this value changes over time.
+
+/Users/keithmisson/Documents/code/fashion-feed/src/app/page.tsx:170:5
+  168 |     fetchWardrobe();
+  169 |     fetchRecommendations();
+> 170 |     fetchFeeds();
+      |     ^^^^^^^^^^ `fetchFeeds` accessed before it is declared
+  171 |   }, []);
+  172 |
+  173 |   const checkSession = async () => {
+
+/Users/keithmisson/Documents/code/fashion-feed/src/app/page.tsx:239:3
+  237 |   };
+  238 |
+> 239 |   const fetchFeeds = async () => {
+      |   ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+> 240 |     setLoadingFeeds(true);
+      | ^^^^^^^^^^^^^^^^^^^^^^^^^^
+> 241 |     try {
+      …
+      | ^^^^^^^^^^^^^^^^^^^^^^^^^^
+> 251 |     }
+      | ^^^^^^^^^^^^^^^^^^^^^^^^^^
+> 252 |   };
+      | ^^^^^ `fetchFeeds` is declared here
+  253 |
+  254 |   // Client-side image compressor (converts to WebP canvas blob)
+  255 |   const compressImage = (file: File): Promise<Blob> => {                                                                                                                                      react-hooks/immutability
+   171:6   warning  React Hook useEffect has a missing dependency: 'checkSession'. Either include it or remove the dependency array                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                           react-hooks/exhaustive-deps
+   350:19  error    Unexpected any. Specify a different type                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                  @typescript-eslint/no-explicit-any
+   696:19  error    Unexpected any. Specify a different type                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                  @typescript-eslint/no-explicit-any
+   836:31  warning  Using `<img>` could result in slower LCP and higher bandwidth. Consider using `<Image />` from `next/image` or a custom image loader to automatically optimize images. This may incur additional usage or cost from your provider. See: https://nextjs.org/docs/messages/no-img-element                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                   @next/next/no-img-element
+   847:31  warning  Using `<img>` could result in slower LCP and higher bandwidth. Consider using `<Image />` from `next/image` or a custom image loader to automatically optimize images. This may incur additional usage or cost from your provider. See: https://nextjs.org/docs/messages/no-img-element                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                   @next/next/no-img-element
+   986:29  warning  Using `<img>` could result in slower LCP and higher bandwidth. Consider using `<Image />` from `next/image` or a custom image loader to automatically optimize images. This may incur additional usage or cost from your provider. See: https://nextjs.org/docs/messages/no-img-element                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                   @next/next/no-img-element
+  1082:27  warning  Using `<img>` could result in slower LCP and higher bandwidth. Consider using `<Image />` from `next/image` or a custom image loader to automatically optimize images. This may incur additional usage or cost from your provider. See: https://nextjs.org/docs/messages/no-img-element                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                   @next/next/no-img-element
+  1182:31  warning  Using `<img>` could result in slower LCP and higher bandwidth. Consider using `<Image />` from `next/image` or a custom image loader to automatically optimize images. This may incur additional usage or cost from your provider. See: https://nextjs.org/docs/messages/no-img-element                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                   @next/next/no-img-element
+
+✖ 17 problems (6 errors, 11 warnings)
+
