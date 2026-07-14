@@ -1,10 +1,9 @@
 import { NextRequest, NextResponse } from 'next/server';
-import fs from 'fs';
-import path from 'path';
 import sharp from 'sharp';
 import { prisma } from '@/lib/db';
 import { analyzeWardrobeImage } from '@/lib/gemini';
 import { getSession } from '@/lib/session';
+import { uploadImage } from '@/lib/storage';
 
 async function getActiveUserId() {
   const session = await getSession();
@@ -38,14 +37,6 @@ export async function POST(req: NextRequest) {
 
     // 1. Process & Compress image via Sharp to WebP
     const filename = `${Date.now()}-${file.name.replace(/\.[^/.]+$/, '')}.webp`;
-    const uploadDir = path.join(process.cwd(), 'public', 'uploads');
-    
-    // Ensure the uploads directory exists
-    if (!fs.existsSync(uploadDir)) {
-      fs.mkdirSync(uploadDir, { recursive: true });
-    }
-
-    const filepath = path.join(uploadDir, filename);
 
     // Resize to max 1080px wide and convert to WebP with 80% quality
     const compressedBuffer = await sharp(buffer)
@@ -53,9 +44,8 @@ export async function POST(req: NextRequest) {
       .webp({ quality: 80 })
       .toBuffer();
 
-    // Save to filesystem
-    await fs.promises.writeFile(filepath, compressedBuffer);
-    const imageUrl = `/uploads/${filename}`;
+    // Save image using storage service (handles GCS/local fallback)
+    const imageUrl = await uploadImage(compressedBuffer, filename);
 
     // 2. Convert to base64 for Gemini Vision API analysis
     const base64Data = compressedBuffer.toString('base64');
