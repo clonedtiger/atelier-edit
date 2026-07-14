@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { prisma } from '@/lib/db';
-import { getSession } from '@/lib/session';
+import { getSession, clearSessionCookie } from '@/lib/session';
+import { updateActiveSession } from '@/lib/analytics';
 
 export async function GET() {
   try {
@@ -15,6 +16,8 @@ export async function GET() {
         id: true,
         email: true,
         name: true,
+        role: true,
+        suspended: true,
         sex: true,
         phone: true,
         height: true,
@@ -34,6 +37,16 @@ export async function GET() {
     if (!user) {
       return NextResponse.json({ authenticated: false });
     }
+
+    // Immediately kick out suspended users
+    if (user.suspended) {
+      console.log(`User ${user.email} is suspended. Clearing session...`);
+      await clearSessionCookie();
+      return NextResponse.json({ authenticated: false, error: 'Account suspended' });
+    }
+
+    // Update session duration and active time
+    await updateActiveSession(user.id);
 
     return NextResponse.json({ authenticated: true, user });
   } catch (error) {

@@ -4,6 +4,7 @@ import { prisma } from '@/lib/db';
 import { analyzeWardrobeImage } from '@/lib/gemini';
 import { getSession } from '@/lib/session';
 import { uploadImage } from '@/lib/storage';
+import { logUserActivity } from '@/lib/analytics';
 
 async function getActiveUserId() {
   const session = await getSession();
@@ -29,6 +30,15 @@ export async function POST(req: NextRequest) {
     const userId = await getActiveUserId();
     if (!userId) {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+    }
+
+    const user = await prisma.user.findUnique({
+      where: { id: userId },
+      select: { suspended: true },
+    });
+
+    if (!user || user.suspended) {
+      return NextResponse.json({ error: 'Unauthorized or account suspended' }, { status: 403 });
     }
 
     // Read the file as a buffer
@@ -67,6 +77,9 @@ export async function POST(req: NextRequest) {
         detectedTags: tags.detectedTags,
       },
     });
+
+    // Track analytics activity
+    await logUserActivity(userId, 'UPLOAD_IMAGE');
 
     return NextResponse.json(wardrobeItem, { status: 201 });
   } catch (error) {

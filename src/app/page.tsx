@@ -21,6 +21,8 @@ interface UserProfile {
   workLife: string | null;
   inspirationNotes: string | null;
   mfaEnabled: boolean;
+  role?: string;
+  suspended?: boolean;
 }
 
 interface WardrobeItem {
@@ -1066,6 +1068,19 @@ export default function AtelierEditDashboard() {
             >
               My Profile
             </button>
+
+            {user && user.role === 'admin' && (
+              <>
+                <span className="nav-divider">|</span>
+                <a
+                  href="/admin"
+                  className="nav-link"
+                  style={{ color: 'var(--accent-gold)' }}
+                >
+                  Admin
+                </a>
+              </>
+            )}
           </nav>
         )}
       </header>

@@ -25,10 +25,14 @@ model User {
   inspirationNotes String?          // Inspirations list
   mfaEnabled       Boolean          @default(false)
   mfaSecret        String?          // TOTP secret key
+  role             String           @default("user")
+  suspended        Boolean          @default(false)
   createdAt        DateTime         @default(now())
   updatedAt        DateTime         @updatedAt
   wardrobeItems    WardrobeItem[]
   recommendations  Recommendation[]
+  sessions         UserSession[]
+  activities       UsageActivity[]
 }
 
 model WardrobeItem {
@@ -89,4 +93,21 @@ model RecommendationItem {
   purchaseImageUrl String?
   priceEstimate    String?
   stylingRationale String   // Why this item is paired
+}
+
+model UserSession {
+  id         String   @id @default(uuid())
+  userId     String
+  user       User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  loginTime  DateTime @default(now())
+  lastActive DateTime @default(now())
+  duration   Int?     // duration in seconds
+}
+
+model UsageActivity {
+  id        String   @id @default(uuid())
+  userId    String
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  action    String   // "LOGIN" | "UPLOAD_IMAGE" | "GENERATE_OUTFIT"
+  timestamp DateTime @default(now())
 }

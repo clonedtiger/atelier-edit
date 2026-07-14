@@ -13,10 +13,13 @@ async function main() {
   // 1. Create default user
   const user = await prisma.user.upsert({
     where: { email: 'wife@fashionfeed.com' },
-    update: {},
+    update: {
+      role: 'admin',
+    },
     create: {
       email: 'wife@fashionfeed.com',
       name: 'Wife',
+      role: 'admin',
     },
   });
   console.log(`Default User created: ${user.email}`);

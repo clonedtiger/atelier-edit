@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from 'next/server';
 import bcrypt from 'bcryptjs';
 import { prisma } from '@/lib/db';
 import { setSessionCookie } from '@/lib/session';
+import { logUserActivity, startUserSession } from '@/lib/analytics';
 
 export async function POST(req: NextRequest) {
   try {
@@ -26,6 +27,11 @@ export async function POST(req: NextRequest) {
       return NextResponse.json({ error: 'Invalid email or password' }, { status: 401 });
     }
 
+    // Block suspended accounts
+    if (user.suspended) {
+      return NextResponse.json({ error: 'Your account has been suspended. Please contact support.' }, { status: 403 });
+    }
+
     // Check if MFA is required
     if (user.mfaEnabled) {
       return NextResponse.json({
@@ -37,6 +43,10 @@ export async function POST(req: NextRequest) {
 
     // Create session cookie directly
     await setSessionCookie({ userId: user.id });
+
+    // Track analytics session & login activity
+    await logUserActivity(user.id, 'LOGIN');
+    await startUserSession(user.id);
 
     return NextResponse.json({
       success: true,
