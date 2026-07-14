@@ -1605,13 +1605,34 @@ export default function AtelierEditDashboard() {
                             )
                           ) : (
                             item.purchaseImageUrl && (
-                              <Image
-                                src={item.purchaseImageUrl}
-                                alt={item.purchaseName || 'Acquisition target'}
-                                fill
-                                sizes="(max-width: 768px) 100vw, 33vw"
-                                style={{ objectFit: 'cover' }}
-                              />
+                              <div style={{ position: 'relative', width: '100%', height: '100%' }}>
+                                <Image
+                                  src={item.purchaseImageUrl}
+                                  alt={item.purchaseName || 'Acquisition target'}
+                                  fill
+                                  sizes="(max-width: 768px) 100vw, 33vw"
+                                  style={{ objectFit: 'cover' }}
+                                />
+                                {item.purchaseImageUrl.includes('unsplash.com') && (
+                                  <div style={{
+                                    position: 'absolute',
+                                    bottom: '6px',
+                                    left: '6px',
+                                    background: 'rgba(0, 0, 0, 0.65)',
+                                    color: '#fff',
+                                    fontSize: '0.55rem',
+                                    padding: '0.15rem 0.35rem',
+                                    borderRadius: '2px',
+                                    letterSpacing: '0.05em',
+                                    textTransform: 'uppercase',
+                                    pointerEvents: 'none',
+                                    fontWeight: 'bold',
+                                    zIndex: 10
+                                  }}>
+                                    For illustration only
+                                  </div>
+                                )}
+                              </div>
                             )
                           )}
                           
