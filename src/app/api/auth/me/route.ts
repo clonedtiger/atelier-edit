@@ -77,6 +77,7 @@ export async function POST(req: NextRequest) {
       clothingSize,
       workLife,
       inspirationNotes,
+      password,
     } = body;
 
     // Build update payload
@@ -94,6 +95,7 @@ export async function POST(req: NextRequest) {
       clothingSize?: string;
       workLife?: string;
       inspirationNotes?: string;
+      passwordHash?: string;
     } = {};
 
     if (name !== undefined) updateData.name = name;
@@ -116,6 +118,15 @@ export async function POST(req: NextRequest) {
     if (clothingSize !== undefined) updateData.clothingSize = clothingSize;
     if (workLife !== undefined) updateData.workLife = workLife;
     if (inspirationNotes !== undefined) updateData.inspirationNotes = inspirationNotes;
+
+    // Handle profile password change
+    if (password) {
+      if (password.trim().length < 6) {
+        return NextResponse.json({ error: 'Password must be at least 6 characters long' }, { status: 400 });
+      }
+      const bcrypt = await import('bcryptjs');
+      updateData.passwordHash = await bcrypt.default.hash(password, 10);
+    }
 
     const updatedUser = await prisma.user.update({
       where: { id: session.userId },

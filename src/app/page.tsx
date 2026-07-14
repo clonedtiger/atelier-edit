@@ -113,7 +113,12 @@ export default function AtelierEditDashboard() {
   const [newFeedType, setNewFeedType] = useState('rss');
 
   // Auth Inputs
-  const [authMode, setAuthMode] = useState<'login' | 'signup' | 'mfa'>('login');
+  const [authMode, setAuthMode] = useState<'login' | 'signup' | 'mfa' | 'forgot'>('login');
+  const [recoveryIdentity, setRecoveryIdentity] = useState('');
+  const [recoveryStep, setRecoveryStep] = useState<'request' | 'verify'>('request');
+  const [recoveryCode, setRecoveryCode] = useState('');
+  const [recoveryPassword, setRecoveryPassword] = useState('');
+  const [isSendingRecovery, setIsSendingRecovery] = useState(false);
   const [authEmail, setAuthEmail] = useState('');
   const [authPassword, setAuthPassword] = useState('');
   const [authName, setAuthName] = useState('');
@@ -129,6 +134,18 @@ export default function AtelierEditDashboard() {
   const [profBra, setProfBra] = useState('');
   const [profWorkLife, setProfWorkLife] = useState('');
   const [profInspirations, setProfInspirations] = useState('');
+  const [profPassword, setProfPassword] = useState('');
+
+  // Wardrobe duplicates & inline edit states
+  const [duplicateGroups, setDuplicateGroups] = useState<Array<{ hash: string; items: WardrobeItem[] }>>([]);
+  const [isScanningDuplicates, setIsScanningDuplicates] = useState(false);
+  const [showDuplicatesScan, setShowDuplicatesScan] = useState(false);
+  const [editingGarment, setEditingGarment] = useState<WardrobeItem | null>(null);
+  const [editGarmentBrand, setEditGarmentBrand] = useState('');
+  const [editGarmentCategory, setEditGarmentCategory] = useState('');
+  const [editGarmentNotes, setEditGarmentNotes] = useState('');
+  const [editGarmentTags, setEditGarmentTags] = useState('');
+  const [isSavingGarmentEdit, setIsSavingGarmentEdit] = useState(false);
 
   // Sizing sub-states for international measurements
   const [heightUnit, setHeightUnit] = useState<'cm' | 'ftin'>('cm');
@@ -780,6 +797,161 @@ export default function AtelierEditDashboard() {
     }
   };
 
+  const handleForgotPasswordRequest = async (e: React.FormEvent) => {
+    e.preventDefault();
+    setIsSendingRecovery(true);
+    try {
+      const res = await fetch('/api/auth/forgot-password', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ identity: recoveryIdentity }),
+      });
+      const data = await res.json();
+      if (res.ok) {
+        showToast(data.message);
+        setRecoveryStep('verify');
+      } else {
+        showToast(data.error || 'Request failed', 'error');
+      }
+    } catch (err) {
+      console.error(err);
+      showToast('Network error during reset request', 'error');
+    } finally {
+      setIsSendingRecovery(false);
+    }
+  };
+
+  const handleResetPasswordSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (recoveryPassword.trim().length < 6) {
+      showToast('Password must be at least 6 characters long', 'error');
+      return;
+    }
+    setIsSendingRecovery(true);
+    try {
+      const res = await fetch('/api/auth/reset-password', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          identity: recoveryIdentity,
+          code: recoveryCode,
+          newPassword: recoveryPassword,
+        }),
+      });
+      const data = await res.json();
+      if (res.ok) {
+        showToast(data.message);
+        setAuthMode('login');
+        setRecoveryIdentity('');
+        setRecoveryCode('');
+        setRecoveryPassword('');
+        setRecoveryStep('request');
+      } else {
+        showToast(data.error || 'Reset failed', 'error');
+      }
+    } catch (err) {
+      console.error(err);
+      showToast('Network error during password reset', 'error');
+    } finally {
+      setIsSendingRecovery(false);
+    }
+  };
+
+  const handleScanDuplicates = async () => {
+    setIsScanningDuplicates(true);
+    try {
+      const res = await fetch('/api/wardrobe/duplicates');
+      const data = await res.json();
+      if (res.ok && data.success) {
+        setDuplicateGroups(data.groups);
+        setShowDuplicatesScan(true);
+        if (data.count === 0) {
+          showToast('No duplicate clothing items detected!');
+        } else {
+          showToast(`Found ${data.count} duplicate groups!`);
+        }
+      } else {
+        showToast(data.error || 'Duplicate scan failed', 'error');
+      }
+    } catch (err) {
+      console.error(err);
+      showToast('Error scanning duplicates', 'error');
+    } finally {
+      setIsScanningDuplicates(false);
+    }
+  };
+
+  const handleMergeDuplicates = async (keepId: string, deleteIds: string[]) => {
+    try {
+      const res = await fetch('/api/wardrobe/duplicates/merge', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ keepId, deleteIds }),
+      });
+      const data = await res.json();
+      if (res.ok && data.success) {
+        showToast(data.message);
+        handleScanDuplicates();
+        fetchWardrobe();
+        fetchRecommendations();
+      } else {
+        showToast(data.error || 'Merge duplicates failed', 'error');
+      }
+    } catch (err) {
+      console.error(err);
+      showToast('Error merging duplicates', 'error');
+    }
+  };
+
+  const handleEditGarmentClick = (item: WardrobeItem) => {
+    setEditingGarment(item);
+    setEditGarmentBrand(item.brand || '');
+    setEditGarmentCategory(item.category);
+    setEditGarmentNotes(item.styleNotes || '');
+    setEditGarmentTags(item.detectedTags.join(', '));
+  };
+
+  const handleSaveInlineGarmentEdit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!editingGarment) return;
+
+    setIsSavingGarmentEdit(true);
+    try {
+      const tagArr = editGarmentTags
+        .split(',')
+        .map(t => t.trim())
+        .filter(t => t.length > 0);
+
+      const itemsToUpdate = [{
+        id: editingGarment.id,
+        brand: editGarmentBrand,
+        category: editGarmentCategory,
+        styleNotes: editGarmentNotes,
+        detectedTags: tagArr,
+      }];
+
+      const res = await fetch('/api/wardrobe/bulk', {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ items: itemsToUpdate }),
+      });
+
+      if (res.ok) {
+        showToast('Garment details saved successfully!');
+        setEditingGarment(null);
+        fetchWardrobe();
+      } else {
+        const errData = await res.json();
+        showToast(`Failed to save: ${errData.error}`, 'error');
+      }
+    } catch (err) {
+      console.error(err);
+      showToast('Error saving modifications', 'error');
+    } finally {
+      setIsSavingGarmentEdit(false);
+    }
+  };
+
   const handleLogout = async () => {
     try {
       const res = await fetch('/api/auth/logout', { method: 'POST' });
@@ -845,11 +1017,13 @@ export default function AtelierEditDashboard() {
           clothingSize: serializedClothing,
           workLife: profWorkLife,
           inspirationNotes: profInspirations,
+          password: profPassword || undefined,
         }),
       });
 
       if (res.ok) {
         showToast('Style and Sizing Profile saved successfully!');
+        setProfPassword('');
         checkSession(); 
       } else {
         const data = await res.json();
@@ -1140,6 +1314,17 @@ export default function AtelierEditDashboard() {
                   <button type="submit" className="accent-button">
                     LOG IN
                   </button>
+
+                  <div style={{ textAlign: 'center', marginTop: '1rem' }}>
+                    <button
+                      type="button"
+                      onClick={() => { setAuthMode('forgot'); setRecoveryStep('request'); }}
+                      className="nav-action"
+                      style={{ fontSize: '0.8rem', color: 'var(--accent-gold)', background: 'none', border: 'none', cursor: 'pointer', textDecoration: 'underline' }}
+                    >
+                      Forgot Password?
+                    </button>
+                  </div>
                 </form>
               )}
 
@@ -1229,6 +1414,88 @@ export default function AtelierEditDashboard() {
                     VERIFY & LOG IN
                   </button>
                 </form>
+              )}
+
+              {authMode === 'forgot' && (
+                <div className="form-group-stack">
+                  <h3 className="auth-form-title">Recover Password</h3>
+                  
+                  {recoveryStep === 'request' ? (
+                    <form onSubmit={handleForgotPasswordRequest} className="form-group-stack">
+                      <p style={{ fontSize: '0.8rem', color: 'var(--text-muted)', marginBottom: '1rem' }}>
+                        Enter your registered email or phone number to receive a security verification code.
+                      </p>
+                      
+                      <div className="form-field">
+                        <label>Email or Phone Number</label>
+                        <input
+                          type="text"
+                          required
+                          value={recoveryIdentity}
+                          onChange={(e) => setRecoveryIdentity(e.target.value)}
+                          placeholder="e.g. clara@fashion.com or +123456789"
+                        />
+                      </div>
+
+                      <button type="submit" className="accent-button" disabled={isSendingRecovery}>
+                        {isSendingRecovery ? 'SENDING CODE...' : 'SEND RECOVERY CODE'}
+                      </button>
+                    </form>
+                  ) : (
+                    <form onSubmit={handleResetPasswordSubmit} className="form-group-stack">
+                      <p style={{ fontSize: '0.8rem', color: 'var(--text-muted)', marginBottom: '1rem' }}>
+                        A verification code was dispatched to your contact identity. Enter it below along with your new password.
+                      </p>
+
+                      <div className="form-field">
+                        <label>Identity (Email or Phone)</label>
+                        <input
+                          type="text"
+                          readOnly
+                          value={recoveryIdentity}
+                          style={{ opacity: 0.7 }}
+                        />
+                      </div>
+
+                      <div className="form-field">
+                        <label>6-Digit Verification Code</label>
+                        <input
+                          type="text"
+                          required
+                          value={recoveryCode}
+                          onChange={(e) => setRecoveryCode(e.target.value)}
+                          placeholder="e.g. 123456"
+                        />
+                      </div>
+
+                      <div className="form-field">
+                        <label>New Password</label>
+                        <input
+                          type="password"
+                          required
+                          value={recoveryPassword}
+                          onChange={(e) => setRecoveryPassword(e.target.value)}
+                          placeholder="Minimum 6 characters"
+                        />
+                      </div>
+
+                      <button type="submit" className="accent-button" disabled={isSendingRecovery}>
+                        {isSendingRecovery ? 'SAVING...' : 'RESET PASSWORD'}
+                      </button>
+                    </form>
+                  )}
+
+                  <div style={{ textAlign: 'center', marginTop: '1.5rem', borderTop: '1px solid var(--border-color)', paddingTop: '1rem' }}>
+                    <button
+                      type="button"
+                      onClick={() => setAuthMode('login')}
+                      className="nav-action"
+                      style={{ fontSize: '0.8rem', background: 'none', border: 'none', cursor: 'pointer', textDecoration: 'underline' }}
+                    >
+                      Return to Sign In
+                    </button>
+                  </div>
+                </div>
               )}
             </div>
           </div>
@@ -1500,7 +1767,7 @@ export default function AtelierEditDashboard() {
             
             {/* Spreadsheet vs Grid View toggles and bulk tools */}
             <div className="batch-editor-toggle-row">
-              <div>
+              <div style={{ display: 'flex', gap: '1.5rem', alignItems: 'center' }}>
                 <button 
                   onClick={() => setIsSpreadsheetMode(!isSpreadsheetMode)}
                   className="nav-action"
@@ -1508,7 +1775,91 @@ export default function AtelierEditDashboard() {
                 >
                   {isSpreadsheetMode ? '← Switch to Grid Lookbook View' : 'Spreadsheet View (Bulk Editor)'}
                 </button>
+
+                <button
+                  type="button"
+                  onClick={handleScanDuplicates}
+                  disabled={isScanningDuplicates}
+                  className="nav-action"
+                  style={{ textDecoration: 'underline', color: 'var(--accent-gold)', fontWeight: 800 }}
+                >
+                  {isScanningDuplicates ? 'Scanning wardrobe...' : '🔍 Scan for Duplicates'}
+                </button>
               </div>
+
+              {/* Duplicates scan panel */}
+              {showDuplicatesScan && (
+                <div className="lookbook-panel" style={{ width: '100%', padding: '1.5rem', border: '1px solid var(--accent-gold)', marginTop: '1rem', gridColumn: '1 / -1' }}>
+                  <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1.5rem' }}>
+                    <div>
+                      <h3 style={{ fontSize: '1.25rem', color: 'var(--accent-gold)' }}>Duplicate Garments Scanner</h3>
+                      <p style={{ fontSize: '0.8rem', color: 'var(--text-muted)' }}>We detected identical uploads in your wardrobe. Review groups below and merge them to keep only one copy.</p>
+                    </div>
+                    <button
+                      type="button"
+                      onClick={() => setShowDuplicatesScan(false)}
+                      className="nav-action"
+                      style={{ fontSize: '0.8rem', textDecoration: 'underline' }}
+                    >
+                      Close scanner
+                    </button>
+                  </div>
+
+                  {duplicateGroups.length === 0 ? (
+                    <p style={{ fontSize: '0.85rem', color: '#22c55e', fontWeight: 600, textAlign: 'center', padding: '1.5rem' }}>
+                      ✓ Perfect! No duplicate clothing images found.
+                    </p>
+                  ) : (
+                    <div style={{ display: 'flex', flexDirection: 'column', gap: '1.5rem' }}>
+                      {duplicateGroups.map((group, gIdx) => (
+                        <div key={gIdx} style={{ background: 'rgba(255,255,255,0.02)', padding: '1rem', borderRadius: '4px', border: '1px solid var(--border-color)' }}>
+                          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1rem' }}>
+                            <span style={{ fontSize: '0.75rem', color: 'var(--text-muted)', textTransform: 'uppercase', letterSpacing: '0.05em' }}>
+                              Duplicate Group #{gIdx + 1}
+                            </span>
+                            <span style={{ fontSize: '0.75rem', color: 'var(--accent-gold)' }}>
+                              {group.items.length} copies found
+                            </span>
+                          </div>
+
+                          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(200px, 1fr))', gap: '1rem' }}>
+                            {group.items.map((item: WardrobeItem) => (
+                              <div key={item.id} style={{ display: 'flex', flexDirection: 'column', gap: '0.5rem', padding: '0.5rem', background: 'rgba(0,0,0,0.1)', border: '1px solid rgba(255,255,255,0.03)', borderRadius: '3px' }}>
+                                <div style={{ position: 'relative', width: '100%', height: '120px' }}>
+                                  <Image
+                                    src={item.imageUrl}
+                                    alt="Duplicate piece"
+                                    fill
+                                    style={{ objectFit: 'cover', borderRadius: '2px' }}
+                                    unoptimized
+                                  />
+                                </div>
+                                <div style={{ fontSize: '0.75rem', fontWeight: 'bold' }}>
+                                  {item.brand || 'No Brand'} - {item.category}
+                                </div>
+                                <div style={{ fontSize: '0.7rem', color: 'var(--text-muted)', textOverflow: 'ellipsis', overflow: 'hidden', whiteSpace: 'nowrap' }}>
+                                  {item.styleNotes || 'No notes.'}
+                                </div>
+                                <button
+                                  type="button"
+                                  onClick={() => {
+                                    const deleteIds = group.items.filter((i: WardrobeItem) => i.id !== item.id).map((i: WardrobeItem) => i.id);
+                                    handleMergeDuplicates(item.id, deleteIds);
+                                  }}
+                                  className="accent-button"
+                                  style={{ fontSize: '0.7rem', padding: '0.35rem 0.5rem', width: '100%', marginTop: 'auto' }}
+                                >
+                                  Keep this, delete others
+                                </button>
+                              </div>
+                            ))}
+                          </div>
+                        </div>
+                      ))}
+                    </div>
+                  )}
+                </div>
+              )}
 
               {isSpreadsheetMode && selectedItemIds.length > 0 && (
                 <div className="bulk-actions-toolbar" style={{ marginBottom: 0, padding: '0.5rem 1rem' }}>
@@ -1688,7 +2039,7 @@ export default function AtelierEditDashboard() {
                           </div>
 
                           {item.color.length > 0 && (
-                            <div className="card-palette">
+                            <div className="card-palette" style={{ marginBottom: '0.75rem' }}>
                               <span>Palette:</span>
                               <div className="color-swatch-wrapper">
                                 {item.color.map((colorName, idx) => (
@@ -1704,6 +2055,17 @@ export default function AtelierEditDashboard() {
                               </div>
                             </div>
                           )}
+
+                          <div style={{ display: 'flex', justifyContent: 'flex-end', borderTop: '1px solid var(--border-color)', paddingTop: '0.5rem', marginTop: '0.5rem' }}>
+                            <button
+                              type="button"
+                              onClick={() => handleEditGarmentClick(item)}
+                              className="nav-action"
+                              style={{ fontSize: '0.7rem', padding: '0.2rem 0.5rem', textTransform: 'uppercase', letterSpacing: '0.05em' }}
+                            >
+                              Edit details
+                            </button>
+                          </div>
                         </div>
 
                       </div>
@@ -2319,6 +2681,17 @@ export default function AtelierEditDashboard() {
                           rows={4}
                         />
                       </div>
+
+                      {/* Secure Password Update inside profile */}
+                      <div className="form-field" style={{ maxWidth: '400px', marginTop: '1.5rem', borderTop: '1px solid var(--border-color)', paddingTop: '1.5rem' }}>
+                        <label>Change Password (Leave blank to keep current)</label>
+                        <input
+                          type="password"
+                          value={profPassword}
+                          onChange={(e) => setProfPassword(e.target.value)}
+                          placeholder="Enter new password (min 6 characters)"
+                        />
+                      </div>
                     </div>
 
                     {/* Save profile */}
@@ -2386,6 +2759,115 @@ export default function AtelierEditDashboard() {
       <footer className="editorial-footer">
         <p>© 2026 Atelier Edit. All styling rights reserved.</p>
       </footer>
+
+      {/* Inline Garment Edit Modal */}
+      {editingGarment && (
+        <div style={{
+          position: 'fixed',
+          top: 0,
+          left: 0,
+          right: 0,
+          bottom: 0,
+          background: 'rgba(0,0,0,0.85)',
+          display: 'flex',
+          alignItems: 'center',
+          justifyContent: 'center',
+          zIndex: 99999
+        }}>
+          <div className="lookbook-panel" style={{
+            padding: '2rem',
+            width: '100%',
+            maxWidth: '500px',
+            maxHeight: '90vh',
+            overflowY: 'auto'
+          }}>
+            <h3 style={{ fontSize: '1.25rem', marginBottom: '1rem', borderBottom: '1px solid var(--border-color)', paddingBottom: '0.5rem', color: 'var(--accent-gold)' }}>
+              Edit Garment Details
+            </h3>
+
+            <div style={{ display: 'flex', justifyContent: 'center', marginBottom: '1.5rem' }}>
+              <div style={{ position: 'relative', width: '120px', height: '150px', border: '1px solid var(--border-color)', borderRadius: '4px', overflow: 'hidden' }}>
+                <Image
+                  src={editingGarment.imageUrl}
+                  alt="Garment Preview"
+                  fill
+                  style={{ objectFit: 'cover' }}
+                />
+              </div>
+            </div>
+
+            <form onSubmit={handleSaveInlineGarmentEdit} className="form-group-stack">
+              <div className="form-field">
+                <label>Category</label>
+                <select
+                  value={editGarmentCategory}
+                  onChange={(e) => setEditGarmentCategory(e.target.value)}
+                >
+                  <option value="Outerwear">Outerwear</option>
+                  <option value="Tops">Tops</option>
+                  <option value="Bottoms">Bottoms</option>
+                  <option value="Shoes">Shoes</option>
+                  <option value="Accessories">Accessories</option>
+                  <option value="Dresses">Dresses</option>
+                  <option value="Knitwear">Knitwear</option>
+                  <option value="Makeup">Makeup</option>
+                  <option value="Jewelry">Jewelry</option>
+                </select>
+              </div>
+
+              <div className="form-field">
+                <label>Brand / Designer</label>
+                <input
+                  type="text"
+                  value={editGarmentBrand}
+                  onChange={(e) => setEditGarmentBrand(e.target.value)}
+                  placeholder="e.g. McQueen, Balenciaga"
+                />
+              </div>
+
+              <div className="form-field">
+                <label>Style & Fit Notes</label>
+                <textarea
+                  value={editGarmentNotes}
+                  onChange={(e) => setEditGarmentNotes(e.target.value)}
+                  placeholder="Describe fabric weight, fit details, drape style..."
+                  rows={3}
+                />
+              </div>
+
+              <div className="form-field">
+                <label>Keywords / Tags (Comma-separated)</label>
+                <input
+                  type="text"
+                  value={editGarmentTags}
+                  onChange={(e) => setEditGarmentTags(e.target.value)}
+                  placeholder="e.g. silk, oversized, vintage"
+                />
+              </div>
+
+              <div style={{ display: 'flex', gap: '1rem', justifyContent: 'flex-end', marginTop: '1.5rem', borderTop: '1px solid var(--border-color)', paddingTop: '1rem' }}>
+                <button
+                  type="button"
+                  onClick={() => setEditingGarment(null)}
+                  className="btn-secondary"
+                  style={{ padding: '0.5rem 1rem' }}
+                  disabled={isSavingGarmentEdit}
+                >
+                  Cancel
+                </button>
+                <button
+                  type="submit"
+                  className="accent-button"
+                  style={{ width: 'auto', padding: '0.5rem 1.5rem' }}
+                  disabled={isSavingGarmentEdit}
+                >
+                  {isSavingGarmentEdit ? 'Saving...' : 'Save details'}
+                </button>
+              </div>
+            </form>
+          </div>
+        </div>
+      )}
 
       {toast && (
         <div className={`toast-notification ${toast.type}`}>
