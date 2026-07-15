@@ -133,7 +133,8 @@ export async function generateOutfitRecommendations(
     workLife?: string | null;
     inspirationNotes?: string | null;
   },
-  vibe?: string
+  vibe?: string,
+  inspirations?: Array<{ notes: string | null; tags: string[] }>
 ): Promise<RecommendedOutfit[]> {
   const wardrobeSummary = wardrobe.map(item => (
     `ID: ${item.id} | Category: ${item.category} | Colors: ${item.color.join(', ')} | Tags: ${item.detectedTags.join(', ')} | Notes: ${item.styleNotes || 'None'}`
@@ -165,6 +166,15 @@ export async function generateOutfitRecommendations(
     `
     : '';
 
+  const inspirationsSummary = inspirations && inspirations.length > 0
+    ? `
+    CLIENT'S UPLOADED VISUAL INSPIRATIONS (Aesthetic boards, magazine street snaps, artwork style concepts they love):
+    ${inspirations.map((ins, i) => `Inspiration #${i + 1}: Notes: ${ins.notes || 'None'} | Tags: ${ins.tags.join(', ')}`).join('\n')}
+    
+    You should incorporate these visual elements, patterns, textures, colors, or vibes directly into the generated outfits to align matches with their visual board.
+    `
+    : '';
+
   const prompt = `
     You are a personal fashion editor styling a client. Her aesthetic is a curated crossover between Chanel's structured elegance (tweeds, double-breasted, bouclé, sophisticated cuts) and Alexander McQueen's rebellious edge (leather, heavy hardware, asymmetry, corsetry, tailoring with a dark twist).
 
@@ -176,6 +186,7 @@ export async function generateOutfitRecommendations(
 
     ${profileSummary}
     ${vibeInstructions}
+    ${inspirationsSummary}
 
     Your task is to generate exactly 3 outfit recommendations that blend her existing wardrobe with current trends, tailored specifically to her profile.
     For each outfit, you must:
@@ -224,3 +235,55 @@ export async function generateOutfitRecommendations(
     throw new Error('Gemini recommendation synthesis failed');
   }
 }
+
+export interface TaggedInspiration {
+  notes: string;
+  tags: string[];
+}
+
+/**
+ * Analyzes an inspiration image (street style, magazine snap, artwork, mood board, etc.) and extracts its aesthetic vibe.
+ */
+export async function analyzeInspirationImage(base64Data: string, mimeType: string): Promise<TaggedInspiration> {
+  const prompt = `
+    Analyze this fashion inspiration image. It could be a photo of a person, street style, a magazine cutout, artwork, pattern texture, or a text reference.
+    Identify the style vibe, mood, aesthetic, fabrics, textures, color notes, and pairing ideas.
+    You must output a JSON object adhering exactly to this structure:
+    {
+      "notes": "A description of the style inspiration (e.g. relaxed minimalist styling in warm beige, high-contrast McQueen leather look with hardware)",
+      "tags": ["tag1", "tag2", ...] // Key visual tags (e.g. minimalist, grunge, boucle, hardware, beige, draping, structured)
+    }
+  `;
+
+  try {
+    const response = await getAi().models.generateContent({
+      model: MODEL_NAME,
+      contents: [
+        {
+          inlineData: {
+            data: base64Data,
+            mimeType: mimeType
+          }
+        },
+        prompt
+      ],
+      config: {
+        responseMimeType: 'application/json',
+      }
+    });
+
+    const text = response.text || '';
+    const parsed = JSON.parse(text);
+    return {
+      notes: parsed.notes || 'Visual fashion inspiration',
+      tags: parsed.tags || []
+    };
+  } catch (error) {
+    console.error('Error analyzing inspiration image with Gemini:', error);
+    return {
+      notes: 'Visual fashion inspiration',
+      tags: ['inspiration']
+    };
+  }
+}
+

@@ -1,8 +1,7 @@
 import { NextResponse } from 'next/server';
-import fs from 'fs';
-import path from 'path';
 import { prisma } from '@/lib/db';
 import { getSession } from '@/lib/session';
+import { deleteImage } from '@/lib/storage';
 
 async function getActiveUserId() {
   const session = await getSession();
@@ -46,19 +45,8 @@ export async function POST(req: Request) {
         data: { wardrobeItemId: keepId },
       });
 
-      // 2. Delete local physical WebP file if present
-      if (item.imageUrl.startsWith('/uploads/')) {
-        try {
-          const filename = item.imageUrl.replace('/uploads/', '');
-          const filepath = path.join(process.cwd(), 'public', 'uploads', filename);
-          if (fs.existsSync(filepath)) {
-            fs.unlinkSync(filepath);
-            console.log(`Deleted duplicate physical file: ${filepath}`);
-          }
-        } catch (err) {
-          console.error(`Failed to delete physical file for ${item.imageUrl}:`, err);
-        }
-      }
+      // 2. Delete physical file (local or GCS)
+      await deleteImage(item.imageUrl);
 
       // 3. Delete the wardrobe item from DB
       await prisma.wardrobeItem.delete({

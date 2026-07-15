@@ -246,14 +246,24 @@ export async function generateRecommendationsForUser(userId: string, vibe?: stri
   });
   const trendsList = Array.from(trendsSet);
 
-  console.log(`Loaded ${wardrobe.length} wardrobe items and ${trendsList.length} unique trends.`);
+  // 2b. Fetch visual inspirations
+  const inspirations = await prisma.inspirationImage.findMany({
+    where: { userId },
+    select: {
+      notes: true,
+      tags: true,
+    },
+  });
+
+  console.log(`Loaded ${wardrobe.length} wardrobe items, ${trendsList.length} trends, and ${inspirations.length} visual inspirations.`);
 
   // 3. Ask Gemini to create outfits, passing user measurements
   const recommendedOutfits = await generateOutfitRecommendations(
     wardrobe, 
     trendsList, 
     user || undefined,
-    vibe
+    vibe,
+    inspirations
   );
   console.log(`Generated ${recommendedOutfits.length} outfit recommendations from Gemini.`);
 

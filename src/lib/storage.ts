@@ -60,3 +60,37 @@ export async function uploadImage(buffer: Buffer, filename: string): Promise<str
   
   return `/uploads/${filename}`;
 }
+
+/**
+ * Deletes a stored image. Handles GCS file deletion or local file deletion.
+ */
+export async function deleteImage(imageUrl: string): Promise<void> {
+  const bucketName = process.env.GCS_BUCKET_NAME;
+
+  if (bucketName && imageUrl.startsWith(`https://storage.googleapis.com/${bucketName}/`)) {
+    try {
+      const filename = imageUrl.replace(`https://storage.googleapis.com/${bucketName}/`, '');
+      console.log(`Deleting ${filename} from GCS bucket ${bucketName}...`);
+      const storage = getStorageClient();
+      await storage.bucket(bucketName).file(filename).delete();
+      return;
+    } catch (err) {
+      console.error('Failed to delete from Google Cloud Storage:', err);
+    }
+  }
+
+  // Local filesystem deletion fallback
+  if (imageUrl.startsWith('/uploads/')) {
+    try {
+      const filename = imageUrl.replace('/uploads/', '');
+      const filepath = path.join(process.cwd(), 'public', 'uploads', filename);
+      if (fs.existsSync(filepath)) {
+        fs.unlinkSync(filepath);
+        console.log(`Deleted local file: ${filepath}`);
+      }
+    } catch (err) {
+      console.error(`Failed to delete local file for ${imageUrl}:`, err);
+    }
+  }
+}
+

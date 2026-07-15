@@ -35,6 +35,7 @@ model User {
   recommendations  Recommendation[]
   sessions         UserSession[]
   activities       UsageActivity[]
+  inspirations     InspirationImage[]
 }
 
 model WardrobeItem {
@@ -112,4 +113,14 @@ model UsageActivity {
   user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
   action    String   // "LOGIN" | "UPLOAD_IMAGE" | "GENERATE_OUTFIT"
   timestamp DateTime @default(now())
+}
+
+model InspirationImage {
+  id        String   @id @default(uuid())
+  userId    String
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  imageUrl  String   // Path or URL to compressed WebP image
+  notes     String?  // Summary of the style aesthetic / textures / vibe
+  tags      String[] // Aesthetic keywords / tags
+  createdAt DateTime @default(now())
 }

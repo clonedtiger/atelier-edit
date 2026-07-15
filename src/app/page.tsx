@@ -36,6 +36,14 @@ interface WardrobeItem {
   createdAt: string;
 }
 
+interface InspirationImage {
+  id: string;
+  imageUrl: string;
+  notes: string | null;
+  tags: string[];
+  createdAt: string;
+}
+
 interface RecommendationItem {
   id: string;
   wardrobeItemId: string | null;
@@ -146,6 +154,14 @@ export default function AtelierEditDashboard() {
   const [editGarmentNotes, setEditGarmentNotes] = useState('');
   const [editGarmentTags, setEditGarmentTags] = useState('');
   const [isSavingGarmentEdit, setIsSavingGarmentEdit] = useState(false);
+
+  // Inspirations board state
+  const [inspirations, setInspirations] = useState<InspirationImage[]>([]);
+  const [loadingInspirations, setLoadingInspirations] = useState(false);
+  const [isUploadingInspiration, setIsUploadingInspiration] = useState(false);
+  const [insCustomNotes, setInsCustomNotes] = useState('');
+  const [inspirationFiles, setInspirationFiles] = useState<File[]>([]);
+  const [inspirationPreviewUrls, setInspirationPreviewUrls] = useState<string[]>([]);
 
   // Sizing sub-states for international measurements
   const [heightUnit, setHeightUnit] = useState<'cm' | 'ftin'>('cm');
@@ -365,6 +381,21 @@ export default function AtelierEditDashboard() {
     }
   }, []);
 
+  const fetchInspirations = useCallback(async () => {
+    setLoadingInspirations(true);
+    try {
+      const res = await fetch('/api/inspirations');
+      if (res.ok) {
+        const data = await res.json();
+        setInspirations(data);
+      }
+    } catch (err) {
+      console.error(err);
+    } finally {
+      setLoadingInspirations(false);
+    }
+  }, []);
+
   const fetchWhatsNew = useCallback(async (force = false) => {
     setLoadingWhatsNew(true);
     try {
@@ -421,9 +452,10 @@ export default function AtelierEditDashboard() {
       fetchRecommendations();
       fetchFeeds();
       fetchWhatsNew();
+      fetchInspirations();
     }, 0);
     return () => clearTimeout(timer);
-  }, [checkSession, fetchWardrobe, fetchRecommendations, fetchFeeds, fetchWhatsNew]);
+  }, [checkSession, fetchWardrobe, fetchRecommendations, fetchFeeds, fetchWhatsNew, fetchInspirations]);
 
   // Client-side image compressor (converts to WebP canvas blob)
   const compressImage = (file: File): Promise<Blob> => {
@@ -527,6 +559,77 @@ export default function AtelierEditDashboard() {
       showToast(`Error during batch ingestion: ${errMsg}`, 'error');
     } finally {
       setIsUploading(false);
+    }
+  };
+
+  const handleInspirationFileSelect = (e: React.ChangeEvent<HTMLInputElement>) => {
+    if (e.target.files) {
+      const filesArr = Array.from(e.target.files);
+      setInspirationFiles(filesArr);
+      const urls = filesArr.map((f) => URL.createObjectURL(f));
+      setInspirationPreviewUrls(urls);
+    }
+  };
+
+  const handleUploadInspirationSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (inspirationFiles.length === 0) return;
+
+    setIsUploadingInspiration(true);
+
+    try {
+      let successCount = 0;
+      for (let i = 0; i < inspirationFiles.length; i++) {
+        const file = inspirationFiles[i];
+        
+        const compressedBlob = await compressImage(file);
+        const formData = new FormData();
+        formData.append('image', compressedBlob, `inspiration-${Date.now()}-${i}.webp`);
+        if (insCustomNotes) formData.append('notes', insCustomNotes);
+
+        const res = await fetch('/api/inspirations', {
+          method: 'POST',
+          body: formData,
+        });
+
+        if (res.ok) {
+          successCount++;
+        } else {
+          const errData = await res.json();
+          console.error(`Upload error for inspiration ${file.name}:`, errData.error);
+        }
+      }
+
+      showToast(`Ingested ${successCount} inspiration photos.`);
+      setInspirationFiles([]);
+      setInspirationPreviewUrls([]);
+      setInsCustomNotes('');
+      setCompressionStatus(null);
+      fetchInspirations();
+    } catch (err) {
+      console.error(err);
+      const errMsg = err instanceof Error ? err.message : 'Unknown error';
+      showToast(`Error during inspiration ingestion: ${errMsg}`, 'error');
+    } finally {
+      setIsUploadingInspiration(false);
+    }
+  };
+
+  const handleDeleteInspiration = async (id: string) => {
+    if (!confirm('Are you sure you want to remove this inspiration from your visual board?')) return;
+    try {
+      const res = await fetch(`/api/inspirations/${id}`, {
+        method: 'DELETE',
+      });
+      if (res.ok) {
+        showToast('Inspiration deleted successfully.');
+        setInspirations((prev) => prev.filter((ins) => ins.id !== id));
+      } else {
+        showToast('Failed to delete inspiration.', 'error');
+      }
+    } catch (err) {
+      console.error('Delete error:', err);
+      showToast('Error deleting inspiration.', 'error');
     }
   };
 
@@ -2211,8 +2314,10 @@ export default function AtelierEditDashboard() {
         {activeTab === 'trends' && (
           <div className="ingest-layout-grid">
             
-            {/* Add Feed column */}
-            <div>
+            {/* Left Column: RSS/Trend feeds configuration */}
+            <div style={{ display: 'flex', flexDirection: 'column', gap: '2rem' }}>
+              
+              {/* Add Feed Source */}
               <div className="lookbook-panel" style={{ padding: '1.5rem' }}>
                 <h3 style={{ fontSize: '1.35rem', marginBottom: '1.25rem', borderBottom: '1px solid var(--border-color)', paddingBottom: '0.5rem' }}>
                   Add Feed Source
@@ -2258,10 +2363,8 @@ export default function AtelierEditDashboard() {
                   </button>
                 </form>
               </div>
-            </div>
 
-            {/* List channels column */}
-            <div>
+              {/* List channels */}
               <div className="lookbook-panel" style={{ padding: '1.5rem' }}>
                 <h3 style={{ fontSize: '1.35rem', marginBottom: '1.25rem', borderBottom: '1px solid var(--border-color)', paddingBottom: '0.5rem' }}>
                   Inspiration Sources
@@ -2279,7 +2382,6 @@ export default function AtelierEditDashboard() {
                   <div style={{ display: 'flex', flexDirection: 'column' }}>
                     {feeds.map((feed) => (
                       <div key={feed.id} className="ingest-item-row">
-                        
                         <div className="ingest-item-meta">
                           <div className="ingest-item-header">
                             <span className={`ingest-item-title ${feed.isMuted ? 'muted' : ''}`}>
@@ -2307,7 +2409,132 @@ export default function AtelierEditDashboard() {
                             Delete
                           </button>
                         </div>
+                      </div>
+                    ))}
+                  </div>
+                )}
+              </div>
 
+            </div>
+
+            {/* Right Column: Visual Inspiration Board Uploads & Grid Gallery */}
+            <div>
+              <div className="lookbook-panel" style={{ padding: '1.5rem' }}>
+                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', borderBottom: '1px solid var(--border-color)', paddingBottom: '0.5rem', marginBottom: '1.25rem' }}>
+                  <div>
+                    <h3 style={{ fontSize: '1.35rem' }}>Visual Inspiration Board</h3>
+                    <p style={{ fontSize: '0.75rem', color: 'var(--text-muted)', marginTop: '2px' }}>
+                      Upload snapshots of street style, magazines, artworks, or textures. The AI Stylist active-scans this board to steer outfit recommendation directives.
+                    </p>
+                  </div>
+                </div>
+
+                {/* Upload Zone */}
+                <form onSubmit={handleUploadInspirationSubmit} style={{ border: '1px dashed var(--border-color)', padding: '1.25rem', borderRadius: '4px', background: 'rgba(255,255,255,0.01)', marginBottom: '1.5rem' }}>
+                  <div style={{ display: 'flex', gap: '1rem', alignItems: 'center', flexWrap: 'wrap' }}>
+                    <div style={{ flex: '1', minWidth: '200px' }}>
+                      <label style={{ display: 'block', fontSize: '0.75rem', marginBottom: '4px', textTransform: 'uppercase', letterSpacing: '0.05em' }}>Select Inspiration Images</label>
+                      <input
+                        type="file"
+                        id="inspiration-file-input"
+                        accept="image/*"
+                        multiple
+                        onChange={handleInspirationFileSelect}
+                        style={{ fontSize: '0.8rem' }}
+                      />
+                    </div>
+                    <div style={{ flex: '1.5', minWidth: '250px' }}>
+                      <label style={{ display: 'block', fontSize: '0.75rem', marginBottom: '4px', textTransform: 'uppercase', letterSpacing: '0.05em' }}>Notes / Context (Optional)</label>
+                      <input
+                        type="text"
+                        value={insCustomNotes}
+                        onChange={(e) => setInsCustomNotes(e.target.value)}
+                        placeholder="e.g. Minimalist layering vibe, tailored McQueen collar texture"
+                        style={{ fontSize: '0.8rem', padding: '0.45rem', width: '100%' }}
+                      />
+                    </div>
+                    <button
+                      type="submit"
+                      disabled={isUploadingInspiration || inspirationFiles.length === 0}
+                      className="accent-button"
+                      style={{ padding: '0.55rem 1rem', width: 'auto', marginTop: '1.25rem' }}
+                    >
+                      {isUploadingInspiration ? 'INGESTING...' : 'UPLOAD INSPIRATION'}
+                    </button>
+                  </div>
+
+                  {inspirationPreviewUrls.length > 0 && (
+                    <div style={{ display: 'flex', gap: '0.5rem', flexWrap: 'wrap', marginTop: '1rem', borderTop: '1px solid rgba(255,255,255,0.05)', paddingTop: '0.75rem' }}>
+                      {inspirationPreviewUrls.map((url, idx) => (
+                        <div key={idx} style={{ position: 'relative', width: '60px', height: '60px', border: '1px solid var(--border-color)', borderRadius: '3px', overflow: 'hidden' }}>
+                          <Image src={url} alt="preview" fill style={{ objectFit: 'cover' }} unoptimized />
+                        </div>
+                      ))}
+                    </div>
+                  )}
+                </form>
+
+                {/* Gallery List */}
+                {loadingInspirations ? (
+                  <div style={{ textAlign: 'center', padding: '3rem 0', color: 'var(--text-muted)', fontSize: '0.8rem' }}>
+                    Loading visual board...
+                  </div>
+                ) : inspirations.length === 0 ? (
+                  <div style={{ textAlign: 'center', padding: '4rem 2rem', border: '1px dashed rgba(255,255,255,0.05)', background: 'rgba(0,0,0,0.1)', borderRadius: '4px', color: 'var(--text-muted)' }}>
+                    <p style={{ fontSize: '0.85rem', fontWeight: 'bold' }}>Visual Board Empty</p>
+                    <p style={{ fontSize: '0.75rem', marginTop: '4px' }}>Upload street outfits or magazine snapshots above to customize lookbook styling directives.</p>
+                  </div>
+                ) : (
+                  <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(180px, 1fr))', gap: '1rem' }}>
+                    {inspirations.map((ins) => (
+                      <div key={ins.id} className="garment-card" style={{ display: 'flex', flexDirection: 'column', height: 'auto', padding: '0.5rem', background: 'rgba(255,255,255,0.02)', border: '1px solid var(--border-color)' }}>
+                        <div style={{ position: 'relative', width: '100%', height: '140px', borderRadius: '3px', overflow: 'hidden' }}>
+                          <Image
+                            src={ins.imageUrl}
+                            alt="Visual Inspiration"
+                            fill
+                            style={{ objectFit: 'cover' }}
+                            unoptimized
+                          />
+                          <button
+                            onClick={() => handleDeleteInspiration(ins.id)}
+                            style={{
+                              position: 'absolute',
+                              top: '5px',
+                              right: '5px',
+                              background: 'rgba(220, 38, 38, 0.85)',
+                              color: '#fff',
+                              border: 'none',
+                              borderRadius: '3px',
+                              width: '24px',
+                              height: '24px',
+                              cursor: 'pointer',
+                              display: 'flex',
+                              alignItems: 'center',
+                              justifyContent: 'center',
+                              fontSize: '0.75rem',
+                              fontWeight: 'bold',
+                              zIndex: 5
+                            }}
+                            title="Delete inspiration"
+                          >
+                            ✕
+                          </button>
+                        </div>
+                        <div style={{ padding: '0.4rem 0.25rem 0.25rem 0.25rem', flex: '1', display: 'flex', flexDirection: 'column', gap: '0.25rem' }}>
+                          <p style={{ fontSize: '0.75rem', lineHeight: '1.25', margin: 0, color: 'var(--text-muted)' }}>
+                            {ins.notes || 'Visual Vibe'}
+                          </p>
+                          {ins.tags.length > 0 && (
+                            <div style={{ display: 'flex', flexWrap: 'wrap', gap: '3px', marginTop: 'auto', paddingTop: '0.4rem' }}>
+                              {ins.tags.map((t, tIdx) => (
+                                <span key={tIdx} style={{ fontSize: '0.55rem', padding: '1px 4px', background: 'rgba(212, 175, 55, 0.1)', color: 'var(--accent-gold)', borderRadius: '2px', textTransform: 'uppercase', letterSpacing: '0.02em' }}>
+                                  {t}
+                                </span>
+                              ))}
+                            </div>
+                          )}
+                        </div>
                       </div>
                     ))}
                   </div>
