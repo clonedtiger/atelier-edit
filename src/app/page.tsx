@@ -3005,7 +3005,7 @@ export default function AtelierEditDashboard() {
 
       {/* Editorial Footer */}
       <footer className="editorial-footer">
-        <p>© 2026 Atelier Edit. All styling rights reserved.</p>
+        <p>© misson 2026 | Atelier Edit. All styling rights reserved.</p>
       </footer>
 
       {/* Inline Garment Edit Modal */}

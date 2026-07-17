@@ -477,6 +477,13 @@ export default function AdminPortal() {
         </div>
       </main>
 
+      {/* Editorial Footer */}
+      <footer className="editorial-footer" style={{ marginTop: '3rem', padding: '2rem 0', borderTop: '1px solid var(--border)' }}>
+        <p style={{ color: 'var(--text-muted)', fontSize: '0.75rem', textAlign: 'center', letterSpacing: '0.1em', textTransform: 'uppercase' }}>
+          © misson 2026 | Atelier Edit. All styling rights reserved.
+        </p>
+      </footer>
+
       {/* Password Reset Modal Dialog */}
       {resettingUser && (
         <div style={{
