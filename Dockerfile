@@ -23,6 +23,7 @@ RUN npm run build
 
 # Stage 4: Production runner
 FROM base AS runner
+RUN apk add --no-cache libc6-compat openssl
 WORKDIR /app
 
 ENV NODE_ENV production
@@ -45,8 +46,8 @@ COPY --from=builder --chown=nextjs:nodejs /app/entrypoint.sh ./entrypoint.sh
 COPY --from=builder --chown=nextjs:nodejs /app/node_modules/prisma ./node_modules/prisma
 COPY --from=builder --chown=nextjs:nodejs /app/node_modules/@prisma ./node_modules/@prisma
 
-# Make startup entrypoint executable
-RUN chmod +x ./entrypoint.sh
+# Make startup entrypoint executable and strip carriage returns if checked in as CRLF
+RUN sed -i 's/\r$//' ./entrypoint.sh && chmod +x ./entrypoint.sh
 
 USER nextjs
 
@@ -54,4 +55,4 @@ EXPOSE 3000
 ENV PORT 3000
 ENV HOSTNAME "0.0.0.0"
 
-ENTRYPOINT ["./entrypoint.sh"]
+ENTRYPOINT ["sh", "./entrypoint.sh"]
