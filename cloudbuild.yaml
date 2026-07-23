@@ -59,7 +59,7 @@ steps:
       # Link Secret Manager secrets directly to container environment variables
       '--set-secrets', 'DATABASE_URL=DATABASE_URL:latest,GEMINI_API_KEY=GEMINI_API_KEY:latest,TAVILY_API_KEY=TAVILY_API_KEY:latest,NEXTAUTH_SECRET=NEXTAUTH_SECRET:latest',
       # Inject public non-sensitive configuration parameters
-      '--set-env-vars', 'NODE_ENV=production,PORT=3000'
+      '--set-env-vars', 'NODE_ENV=production'
     ]
     id: 'deploy-to-cloud-run'
 
