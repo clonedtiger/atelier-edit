@@ -6,6 +6,11 @@ steps:
     id: 'install-deps'
 
   - name: 'node:20'
+    entrypoint: 'npx'
+    args: ['prisma', 'generate']
+    id: 'generate-prisma'
+
+  - name: 'node:20'
     entrypoint: 'npm'
     args: ['run', 'test']
     id: 'run-tests'
