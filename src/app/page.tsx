@@ -406,7 +406,7 @@ export default function AtelierEditDashboard() {
       if (res.ok) {
         const data = await res.json();
         setWhatsNewPosts(data.posts || []);
-      } else {
+      } else if (res.status !== 401) {
         showToast('Failed to load style stream.', 'error');
       }
     } catch (err) {
