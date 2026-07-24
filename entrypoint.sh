@@ -4,7 +4,7 @@
 set -e
 
 echo "Applying database schema checks and push..."
-node node_modules/prisma/build/index.js db push --skip-generate --accept-destructive-db-changes
+node node_modules/prisma/build/index.js db push --accept-data-loss
 
 echo "Starting Next.js application server..."
 exec node server.js
