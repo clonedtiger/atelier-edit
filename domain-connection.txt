@@ -1,0 +1,57 @@
+====================================================================
+  CONNECTING FASTHOSTS (UK) CUSTOM DOMAIN TO GOOGLE CLOUD RUN
+====================================================================
+
+STEP 1: ADD CUSTOM DOMAIN MAPPING IN GOOGLE CLOUD CONSOLE
+--------------------------------------------------------------------
+1. Log into the Google Cloud Console: https://console.cloud.google.com/
+2. In the top search bar, search for "Cloud Run" and select it.
+3. Near the top of the services list, click the button labeled "MANAGE CUSTOM DOMAINS".
+4. Click "ADD MAPPING".
+5. Select your service: "atelier-edit".
+6. Select or type your custom domain name (e.g. yourdomain.co.uk or www.yourdomain.co.uk).
+7. Click "CONTINUE".
+
+* Note on Domain Verification:
+  If Google requests domain ownership verification first:
+  - Copy the provided TXT record string (e.g. google-site-verification=...).
+  - You will paste this TXT record into Fasthosts DNS settings in Step 2.
+
+8. Google Cloud Run will display the exact DNS records to configure:
+   - 4 x A Records (IPv4 addresses for root '@')
+   - 4 x AAAA Records (IPv6 addresses for root '@')
+   - 1 x CNAME Record (Host 'www' pointing to 'ghs.googlehosted.com.')
+
+
+STEP 2: CONFIGURE DNS RECORDS IN FASTHOSTS (UK) CONTROL PANEL
+--------------------------------------------------------------------
+1. Log into your Fasthosts Control Panel: https://www.fasthosts.co.uk/
+2. Navigate to "Domain Names" and select your purchased domain.
+3. Click "DNS Control" (or "Manage DNS / Advanced DNS Settings").
+4. Delete any default Fasthosts holding or parking A records.
+5. Add the DNS records provided by Google Cloud Run:
+
+   [A Records - Root Domain (@)]
+   - Host / Name: @ (or leave blank for root domain)
+   - Type: A
+   - Value: (Enter each of the 4 IP addresses provided by Google)
+
+   [CNAME Record - www Subdomain]
+   - Host / Name: www
+   - Type: CNAME
+   - Value / Target: ghs.googlehosted.com.
+
+   [TXT Record - Ownership Verification (If requested)]
+   - Host / Name: @ (or leave blank)
+   - Type: TXT
+   - Value: google-site-verification=...
+
+6. Click "Save Changes" in the Fasthosts DNS panel.
+
+
+STEP 3: AUTOMATIC SSL CERTIFICATE PROVISIONING (HTTPS)
+--------------------------------------------------------------------
+- Once DNS records are saved in Fasthosts, DNS propagation usually takes 15 to 30 minutes.
+- Google Cloud Run automatically detects the active DNS records, provisions a free managed SSL/TLS Certificate (HTTPS), and routes secure traffic to your application.
+- Your custom domain (https://yourdomain.co.uk) will go live automatically!
+====================================================================

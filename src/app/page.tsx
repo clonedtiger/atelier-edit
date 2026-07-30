@@ -1390,7 +1390,7 @@ export default function AtelierEditDashboard() {
 
               {authMode === 'login' && (
                 <form onSubmit={handleLogin} className="form-group-stack">
-                  <h3 className="auth-form-title">Atelier Sign In</h3>
+                  <h3 className="auth-form-title">Atelier Edit Sign In</h3>
                   
                   <div className="form-field">
                     <label>Email Address</label>
@@ -1399,7 +1399,7 @@ export default function AtelierEditDashboard() {
                       required
                       value={authEmail}
                       onChange={(e) => setAuthEmail(e.target.value)}
-                      placeholder="e.g. wife@fashion.com"
+                      placeholder="e.g. example@fashion.com"
                     />
                   </div>
 
