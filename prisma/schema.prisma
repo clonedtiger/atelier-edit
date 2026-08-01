@@ -29,6 +29,13 @@ model User {
   suspended        Boolean          @default(false)
   passwordResetCode String?
   passwordResetExpires DateTime?
+
+  // Marketing & GDPR Consent Preferences
+  marketingEmail            Boolean          @default(false)
+  marketingSms              Boolean          @default(false)
+  marketingPartners         Boolean          @default(false)
+  marketingConsentUpdatedAt DateTime?
+
   createdAt        DateTime         @default(now())
   updatedAt        DateTime         @updatedAt
   wardrobeItems    WardrobeItem[]

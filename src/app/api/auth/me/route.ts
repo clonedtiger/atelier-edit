@@ -31,6 +31,10 @@ export async function GET() {
         workLife: true,
         inspirationNotes: true,
         mfaEnabled: true,
+        marketingEmail: true,
+        marketingSms: true,
+        marketingPartners: true,
+        marketingConsentUpdatedAt: true,
       },
     });
 

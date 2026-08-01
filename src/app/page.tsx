@@ -21,6 +21,10 @@ interface UserProfile {
   workLife: string | null;
   inspirationNotes: string | null;
   mfaEnabled: boolean;
+  marketingEmail?: boolean;
+  marketingSms?: boolean;
+  marketingPartners?: boolean;
+  marketingConsentUpdatedAt?: string | null;
   role?: string;
   suspended?: boolean;
 }
@@ -113,6 +117,19 @@ export default function AtelierEditDashboard() {
 
   // Item-Anchored Outfit Generation State
   const [anchorGarment, setAnchorGarment] = useState<WardrobeItem | null>(null);
+
+  // Marketing & GDPR Consent States
+  const [marketingEmail, setMarketingEmail] = useState(false);
+  const [marketingSms, setMarketingSms] = useState(false);
+  const [marketingPartners, setMarketingPartners] = useState(false);
+  const [marketingConsentUpdatedAt, setMarketingConsentUpdatedAt] = useState<string | null>(null);
+  const [isSavingConsent, setIsSavingConsent] = useState(false);
+
+  // GDPR Account Deletion Modal States
+  const [showGdprDeleteModal, setShowGdprDeleteModal] = useState(false);
+  const [gdprConfirmInput, setGdprConfirmInput] = useState('');
+  const [isDeletingAccount, setIsDeletingAccount] = useState(false);
+  const [isExportingData, setIsExportingData] = useState(false);
 
   // Search & Filtering States
   const [searchQuery, setSearchQuery] = useState('');
@@ -337,6 +354,10 @@ export default function AtelierEditDashboard() {
     setProfBra(u.braSize || '');
     setProfWorkLife(u.workLife || '');
     setProfInspirations(u.inspirationNotes || '');
+    setMarketingEmail(Boolean(u.marketingEmail));
+    setMarketingSms(Boolean(u.marketingSms));
+    setMarketingPartners(Boolean(u.marketingPartners));
+    setMarketingConsentUpdatedAt(u.marketingConsentUpdatedAt || null);
   }, []);
 
   const fetchWardrobe = useCallback(async () => {
@@ -1149,6 +1170,88 @@ export default function AtelierEditDashboard() {
     }
   };
 
+  const handleSaveMarketingConsent = async (e: React.FormEvent) => {
+    e.preventDefault();
+    setIsSavingConsent(true);
+    try {
+      const res = await fetch('/api/user/consent', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ marketingEmail, marketingSms, marketingPartners }),
+      });
+      if (res.ok) {
+        const data = await res.json();
+        setMarketingConsentUpdatedAt(data.user.marketingConsentUpdatedAt);
+        showToast('Marketing & privacy consent preferences updated successfully!');
+      } else {
+        const errData = await res.json();
+        showToast(errData.error || 'Failed to update consent preferences', 'error');
+      }
+    } catch (err) {
+      console.error(err);
+      showToast('Error updating consent preferences', 'error');
+    } finally {
+      setIsSavingConsent(false);
+    }
+  };
+
+  const handleExportGdprData = async () => {
+    setIsExportingData(true);
+    try {
+      const res = await fetch('/api/user/gdpr/export');
+      if (res.ok) {
+        const blob = await res.blob();
+        const url = window.URL.createObjectURL(blob);
+        const a = document.createElement('a');
+        a.href = url;
+        a.download = `atelier-edit-gdpr-export-${Date.now()}.json`;
+        document.body.appendChild(a);
+        a.click();
+        a.remove();
+        window.URL.revokeObjectURL(url);
+        showToast('Personal data package downloaded successfully!');
+      } else {
+        showToast('Failed to export data package', 'error');
+      }
+    } catch (err) {
+      console.error(err);
+      showToast('Error exporting data package', 'error');
+    } finally {
+      setIsExportingData(false);
+    }
+  };
+
+  const handleDeleteGdprAccount = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (gdprConfirmInput.trim().toUpperCase() !== 'DELETE') {
+      showToast('You must type "DELETE" to confirm permanent account erasure.', 'error');
+      return;
+    }
+    setIsDeletingAccount(true);
+    try {
+      const res = await fetch('/api/user/gdpr/delete', {
+        method: 'DELETE',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ confirmText: gdprConfirmInput }),
+      });
+      if (res.ok) {
+        showToast('Your account and all associated data have been permanently erased.', 'info');
+        setUser(null);
+        setActiveTab('whats-new');
+        setShowGdprDeleteModal(false);
+        setGdprConfirmInput('');
+      } else {
+        const errData = await res.json();
+        showToast(errData.error || 'Failed to delete account', 'error');
+      }
+    } catch (err) {
+      console.error(err);
+      showToast('Error deleting account', 'error');
+    } finally {
+      setIsDeletingAccount(false);
+    }
+  };
+
   // Feed manager CRUD
   const handleAddFeed = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -1216,25 +1319,25 @@ export default function AtelierEditDashboard() {
   };
 
   const getCroquisPath = () => {
-    // Standardize height
-    let hCm = 175;
+    // Standardize user height
+    let hCm = 170;
     if (heightUnit === 'cm') {
       hCm = Number(heightCm) || 170;
     } else {
       hCm = (Number(heightFt) * 30.48) + (Number(heightIn) * 2.54) || 170;
     }
 
-    // Standardize weight
-    let wKg = 60;
+    // Standardize user weight
+    let wKg = 65;
     if (weightUnit === 'kg') {
-      wKg = Number(weightKg) || 60;
+      wKg = Number(weightKg) || 65;
     } else if (weightUnit === 'lbs') {
-      wKg = Number(weightLbs) * 0.453592 || 60;
+      wKg = Number(weightLbs) * 0.453592 || 65;
     } else {
-      wKg = (Number(weightStValue) * 6.35029) + (Number(weightStLbs) * 0.453592) || 60;
+      wKg = (Number(weightStValue) * 6.35029) + (Number(weightStLbs) * 0.453592) || 65;
     }
 
-    // Standardize waist
+    // Standardize user waist
     let waistInches = 28;
     if (waistUnit === 'in') {
       waistInches = Number(waistVal) || 28;
@@ -1242,66 +1345,69 @@ export default function AtelierEditDashboard() {
       waistInches = Number(waistVal) / 2.54 || 28;
     }
 
-    // Proportions limits for safety (prevent deformed sketch coordinates)
-    const heightScale = Math.min(Math.max(hCm / 175, 0.8), 1.25);
-    const weightScale = Math.min(Math.max(wKg / 65, 0.65), 1.55);
-    const waistScale = Math.min(Math.max(waistInches / 28, 0.7), 1.45);
+    const computeSilhouette = (centerX: number, sex: string, heightValCm: number, weightValKg: number, waistValIn: number) => {
+      const isMale = sex === 'Male';
 
-    const isMale = profSex === 'Male';
+      const heightScale = Math.min(Math.max(heightValCm / 170, 0.75), 1.3);
+      const weightScale = Math.min(Math.max(weightValKg / 65, 0.65), 1.55);
+      const waistScale = Math.min(Math.max(waistValIn / 28, 0.7), 1.45);
 
-    // Proportions
-    const headW = 11 * weightScale;
-    const headH = 17 * heightScale;
-    const headY = 40;
+      const headW = 14 * weightScale;
+      const headH = 20 * heightScale;
+      const footY = 410; // Shared baseline for both feet!
+      const totalBodyHeight = 360 * heightScale;
+      const headY = footY - totalBodyHeight + (headH / 2);
 
-    const shoulderHalf = (isMale ? 28 : 19) * weightScale;
-    const bustHalf = (isMale ? 26 : 18) * weightScale;
-    const waistHalf = (isMale ? 21 : 12) * weightScale * waistScale;
-    const hipHalf = (isMale ? 22 : 24) * weightScale;
-    const kneeHalf = 8 * weightScale;
-    const footHalf = 6 * weightScale;
+      const shoulderHalf = (isMale ? 40 : 28) * weightScale;
+      const bustHalf = (isMale ? 36 : 26) * weightScale;
+      const waistHalf = (isMale ? 28 : 17) * weightScale * waistScale;
+      const hipHalf = (isMale ? 30 : 34) * weightScale;
+      const kneeHalf = 11 * weightScale;
+      const footHalf = 8 * weightScale;
 
-    // Y coordinates scaled
-    const neckY = 75;
-    const shoulderY = 95 * heightScale;
-    const bustY = 125 * heightScale;
-    const waistY = 165 * heightScale;
-    const hipY = 205 * heightScale;
-    const kneeY = 295 * heightScale;
-    const ankleY = 390 * heightScale;
-    const footY = 410 * heightScale;
+      const neckY = headY + (headH / 2) + 8;
+      const shoulderY = neckY + (20 * heightScale);
+      const bustY = shoulderY + (32 * heightScale);
+      const waistY = bustY + (42 * heightScale);
+      const hipY = waistY + (42 * heightScale);
+      const kneeY = hipY + (90 * heightScale);
+      const ankleY = footY - 20;
 
-    // Left side
-    const leftSide = [
-      `M 100,${neckY}`,
-      `C ${100 - shoulderHalf * 0.4},${neckY + 5} ${100 - shoulderHalf * 0.8},${shoulderY - 5} ${100 - shoulderHalf},${shoulderY}`,
-      `C ${100 - shoulderHalf * 1.05},${shoulderY + 10} ${100 - bustHalf * 1.05},${bustY - 10} ${100 - bustHalf},${bustY}`,
-      `C ${100 - bustHalf * 0.95},${bustY + 15} ${100 - waistHalf * 1.1},${waistY - 15} ${100 - waistHalf},${waistY}`,
-      `C ${100 - waistHalf * 0.95},${waistY + 15} ${100 - hipHalf * 1.05},${hipY - 15} ${100 - hipHalf},${hipY}`,
-      `C ${100 - hipHalf},${hipY + 25} ${100 - kneeHalf * 1.2},${kneeY - 25} ${100 - kneeHalf},${kneeY}`,
-      `C ${100 - kneeHalf * 0.8},${kneeY + 25} ${100 - footHalf * 1.1},${ankleY - 15} ${100 - footHalf},${ankleY}`,
-      `L ${100 - footHalf * 0.8},${footY}`
-    ].join(' ');
+      const leftSide = [
+        `M ${centerX},${neckY}`,
+        `C ${centerX - shoulderHalf * 0.4},${neckY + 5} ${centerX - shoulderHalf * 0.8},${shoulderY - 5} ${centerX - shoulderHalf},${shoulderY}`,
+        `C ${centerX - shoulderHalf * 1.05},${shoulderY + 10} ${centerX - bustHalf * 1.05},${bustY - 10} ${centerX - bustHalf},${bustY}`,
+        `C ${centerX - bustHalf * 0.95},${bustY + 15} ${centerX - waistHalf * 1.1},${waistY - 15} ${centerX - waistHalf},${waistY}`,
+        `C ${centerX - waistHalf * 0.95},${waistY + 15} ${centerX - hipHalf * 1.05},${hipY - 15} ${centerX - hipHalf},${hipY}`,
+        `C ${centerX - hipHalf},${hipY + 25} ${centerX - kneeHalf * 1.2},${kneeY - 25} ${centerX - kneeHalf},${kneeY}`,
+        `C ${centerX - kneeHalf * 0.8},${kneeY + 25} ${centerX - footHalf * 1.1},${ankleY - 10} ${centerX - footHalf},${ankleY}`,
+        `L ${centerX - footHalf * 0.8},${footY}`
+      ].join(' ');
 
-    // Right side
-    const rightSide = [
-      `L ${100 + footHalf * 0.8},${footY}`,
-      `L ${100 + footHalf},${ankleY}`,
-      `C ${100 + footHalf * 1.1},${ankleY - 15} ${100 + kneeHalf * 0.8},${kneeY + 25} ${100 + kneeHalf},${kneeY}`,
-      `C ${100 + kneeHalf * 1.2},${kneeY - 25} ${100 + hipHalf},${hipY + 25} ${100 + hipHalf},${hipY}`,
-      `C ${100 + hipHalf * 1.05},${hipY - 15} ${100 + waistHalf * 0.95},${waistY + 15} ${100 + waistHalf},${waistY}`,
-      `C ${100 + waistHalf * 1.1},${waistY - 15} ${100 + bustHalf * 0.95},${bustY + 15} ${100 + bustHalf},${bustY}`,
-      `C ${100 + bustHalf * 1.05},${bustY - 10} ${100 + shoulderHalf * 1.05},${shoulderY + 10} ${100 + shoulderHalf},${shoulderY}`,
-      `C ${100 + shoulderHalf * 0.8},${shoulderY - 5} ${100 + shoulderHalf * 0.4},${neckY + 5} 100,${neckY}`
-    ].join(' ');
+      const rightSide = [
+        `L ${centerX + footHalf * 0.8},${footY}`,
+        `L ${centerX + footHalf},${ankleY}`,
+        `C ${centerX + footHalf * 1.1},${ankleY - 10} ${centerX + kneeHalf * 0.8},${kneeY + 25} ${centerX + kneeHalf},${kneeY}`,
+        `C ${centerX + kneeHalf * 1.2},${kneeY - 25} ${centerX + hipHalf},${hipY + 25} ${centerX + hipHalf},${hipY}`,
+        `C ${centerX + hipHalf * 1.05},${hipY - 15} ${centerX + waistHalf * 0.95},${waistY + 15} ${centerX + waistHalf},${waistY}`,
+        `C ${centerX + waistHalf * 1.1},${waistY - 15} ${centerX + bustHalf * 0.95},${bustY + 15} ${centerX + bustHalf},${bustY}`,
+        `C ${centerX + bustHalf * 1.05},${bustY - 10} ${centerX + shoulderHalf * 1.05},${shoulderY + 10} ${centerX + shoulderHalf},${shoulderY}`,
+        `C ${centerX + shoulderHalf * 0.8},${shoulderY - 5} ${centerX + shoulderHalf * 0.4},${neckY + 5} ${centerX},${neckY}`
+      ].join(' ');
 
-    const outlinePath = `${leftSide} ${rightSide} Z`;
-    const headPath = `M 100,${headY - headH / 2} A ${headW / 2},${headH / 2} 0 1,1 100,${headY + headH / 2} A ${headW / 2},${headH / 2} 0 1,1 100,${headY - headH / 2}`;
-    const leftCollarbone = `M ${100 - shoulderHalf * 0.8},${shoulderY + 5} Q ${100 - shoulderHalf * 0.4},${shoulderY + 8} 100,${shoulderY + 12}`;
-    const rightCollarbone = `M ${100 + shoulderHalf * 0.8},${shoulderY + 5} Q ${100 + shoulderHalf * 0.4},${shoulderY + 8} 100,${shoulderY + 12}`;
-    const centerLine = `M 100,${shoulderY + 15} L 100,${waistY}`;
+      const outlinePath = `${leftSide} ${rightSide} Z`;
+      const headPath = `M ${centerX},${headY - headH / 2} A ${headW / 2},${headH / 2} 0 1,1 ${centerX},${headY + headH / 2} A ${headW / 2},${headH / 2} 0 1,1 ${centerX},${headY - headH / 2}`;
+      const leftCollarbone = `M ${centerX - shoulderHalf * 0.8},${shoulderY + 5} Q ${centerX - shoulderHalf * 0.4},${shoulderY + 8} ${centerX},${shoulderY + 12}`;
+      const rightCollarbone = `M ${centerX + shoulderHalf * 0.8},${shoulderY + 5} Q ${centerX + shoulderHalf * 0.4},${shoulderY + 8} ${centerX},${shoulderY + 12}`;
+      const centerLine = `M ${centerX},${shoulderY + 15} L ${centerX},${waistY}`;
 
-    return { outlinePath, headPath, leftCollarbone, rightCollarbone, centerLine };
+      return { outlinePath, headPath, leftCollarbone, rightCollarbone, centerLine, footY };
+    };
+
+    const userCroquis = computeSilhouette(150, profSex, hCm, wKg, waistInches);
+    const avgCroquis = computeSilhouette(150, profSex, 168, 68, 30);
+
+    return { userCroquis, avgCroquis };
   };
 
   return (
@@ -2600,10 +2706,10 @@ export default function AtelierEditDashboard() {
 
         {/* Account / Sizing Profile tab */}
         {activeTab === 'account' && user && (() => {
-          const { outlinePath, headPath, leftCollarbone, rightCollarbone, centerLine } = getCroquisPath();
+          const { userCroquis, avgCroquis } = getCroquisPath();
           return (
-            <div className="auth-panel-wrapper" style={{ maxWidth: '1100px', margin: '0 auto' }}>
-              <div style={{ display: 'grid', gridTemplateColumns: '1fr 340px', gap: '3rem', alignItems: 'start' }}>
+            <div className="auth-panel-wrapper" style={{ maxWidth: '1200px', margin: '0 auto' }}>
+              <div style={{ display: 'grid', gridTemplateColumns: '1fr 380px', gap: '2.5rem', alignItems: 'start' }}>
                 
                 {/* Left Column: Interactive Stacked Form */}
                 <div className="lookbook-panel" style={{ padding: '2rem' }}>
@@ -3009,41 +3115,177 @@ export default function AtelierEditDashboard() {
 
                 </div>
 
+                {/* Marketing & Communication Preferences Panel */}
+                <div className="lookbook-panel" style={{ padding: '2rem', marginTop: '2rem' }}>
+                  <h3 style={{ fontSize: '1.25rem', marginBottom: '0.5rem', borderBottom: '1px solid var(--border-color)', paddingBottom: '0.5rem' }}>
+                    Marketing &amp; Communication Preferences
+                  </h3>
+                  <p style={{ fontSize: '0.8rem', color: 'var(--text-muted)', marginBottom: '1.5rem' }}>
+                    Choose how you would like to receive personal styling updates, trend digests, and partner offers from Atelier Edit under UK DPA 2018.
+                  </p>
+
+                  <form onSubmit={handleSaveMarketingConsent} className="form-group-stack">
+                    <div style={{ display: 'flex', flexDirection: 'column', gap: '1rem', background: 'rgba(255,255,255,0.02)', padding: '1.25rem', borderRadius: '4px', border: '1px solid var(--border-color)' }}>
+                      
+                      <label style={{ display: 'flex', alignItems: 'center', gap: '0.75rem', cursor: 'pointer', fontSize: '0.85rem' }}>
+                        <input
+                          type="checkbox"
+                          checked={marketingEmail}
+                          onChange={(e) => setMarketingEmail(e.target.checked)}
+                          style={{ width: '18px', height: '18px', accentColor: 'var(--accent-gold)' }}
+                        />
+                        <div>
+                          <strong>📧 Email Newsletters &amp; Editorial Digests</strong>
+                          <span style={{ display: 'block', fontSize: '0.75rem', color: 'var(--text-muted)' }}>
+                            Receive weekly style stream trends, seasonal capsule lookbooks, and haute couture runway breakdowns.
+                          </span>
+                        </div>
+                      </label>
+
+                      <label style={{ display: 'flex', alignItems: 'center', gap: '0.75rem', cursor: 'pointer', fontSize: '0.85rem' }}>
+                        <input
+                          type="checkbox"
+                          checked={marketingSms}
+                          onChange={(e) => setMarketingSms(e.target.checked)}
+                          style={{ width: '18px', height: '18px', accentColor: 'var(--accent-gold)' }}
+                        />
+                        <div>
+                          <strong>📱 Mobile &amp; SMS Notifications</strong>
+                          <span style={{ display: 'block', fontSize: '0.75rem', color: 'var(--text-muted)' }}>
+                            Receive urgent mobile notifications for luxury item drops and instant stylist consultation updates.
+                          </span>
+                        </div>
+                      </label>
+
+                      <label style={{ display: 'flex', alignItems: 'center', gap: '0.75rem', cursor: 'pointer', fontSize: '0.85rem' }}>
+                        <input
+                          type="checkbox"
+                          checked={marketingPartners}
+                          onChange={(e) => setMarketingPartners(e.target.checked)}
+                          style={{ width: '18px', height: '18px', accentColor: 'var(--accent-gold)' }}
+                        />
+                        <div>
+                          <strong>🤝 Carefully Selected Partners &amp; Collaborations</strong>
+                          <span style={{ display: 'block', fontSize: '0.75rem', color: 'var(--text-muted)' }}>
+                            Allow Atelier Edit to share non-sensitive aesthetic recommendations with carefully vetted luxury fashion houses.
+                          </span>
+                        </div>
+                      </label>
+
+                    </div>
+
+                    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginTop: '1rem' }}>
+                      <span style={{ fontSize: '0.7rem', color: 'var(--text-muted)', fontStyle: 'italic' }}>
+                        {marketingConsentUpdatedAt
+                          ? `Preferences last updated: ${new Date(marketingConsentUpdatedAt).toLocaleString()}`
+                          : 'Consent preferences not yet configured.'}
+                      </span>
+
+                      <button type="submit" className="accent-button" disabled={isSavingConsent} style={{ width: 'auto', padding: '0.55rem 1.25rem' }}>
+                        {isSavingConsent ? 'SAVING...' : 'SAVE PREFERENCES'}
+                      </button>
+                    </div>
+                  </form>
+                </div>
+
+                {/* GDPR & Data Privacy Rights Panel (UK DPA 2018) */}
+                <div className="lookbook-panel" style={{ padding: '2rem', marginTop: '2rem' }}>
+                  <h3 style={{ fontSize: '1.25rem', marginBottom: '0.5rem', borderBottom: '1px solid var(--border-color)', paddingBottom: '0.5rem', color: 'var(--accent-gold)' }}>
+                    Data Privacy &amp; GDPR Rights (UK DPA 2018)
+                  </h3>
+                  <p style={{ fontSize: '0.8rem', color: 'var(--text-muted)', marginBottom: '1.5rem' }}>
+                    Under General Data Protection Regulation (GDPR) and UK Data Protection Act 2018, you retain total ownership of your data.
+                  </p>
+
+                  <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(280px, 1fr))', gap: '1.5rem' }}>
+                    
+                    {/* Data Access Request Export */}
+                    <div style={{ background: 'rgba(255,255,255,0.02)', padding: '1.25rem', borderRadius: '4px', border: '1px solid var(--border-color)', display: 'flex', flexDirection: 'column' }}>
+                      <h4 style={{ fontSize: '0.95rem', marginBottom: '0.5rem' }}>📦 Data Portability &amp; Export (Article 20)</h4>
+                      <p style={{ fontSize: '0.75rem', color: 'var(--text-muted)', flex: 1, marginBottom: '1rem' }}>
+                        Download a machine-readable JSON data package containing your profile, physical measurements, wardrobe items, visual inspiration boards, generated lookbooks, and consent logs.
+                      </p>
+                      <button
+                        type="button"
+                        onClick={handleExportGdprData}
+                        disabled={isExportingData}
+                        className="accent-button"
+                        style={{ fontSize: '0.75rem', padding: '0.5rem 1rem' }}
+                      >
+                        {isExportingData ? 'EXPORTING PACKAGE...' : '📥 DOWNLOAD MY DATA PACKAGE'}
+                      </button>
+                    </div>
+
+                    {/* Right to be Forgotten */}
+                    <div style={{ background: 'rgba(239, 68, 68, 0.05)', padding: '1.25rem', borderRadius: '4px', border: '1px solid rgba(239, 68, 68, 0.3)', display: 'flex', flexDirection: 'column' }}>
+                      <h4 style={{ fontSize: '0.95rem', marginBottom: '0.5rem', color: '#ef4444' }}>🗑️ Right to be Forgotten (Article 17)</h4>
+                      <p style={{ fontSize: '0.75rem', color: 'var(--text-muted)', flex: 1, marginBottom: '1rem' }}>
+                        Permanently purge your account, uploaded clothing photos from Google Cloud Storage, lookbooks, and session history from Atelier Edit databases. This action is immediate and non-reversible.
+                      </p>
+                      <button
+                        type="button"
+                        onClick={() => setShowGdprDeleteModal(true)}
+                        className="delete-action-btn"
+                        style={{ fontSize: '0.75rem', padding: '0.5rem 1rem', width: '100%', textTransform: 'uppercase', letterSpacing: '0.05em' }}
+                      >
+                        PERMANENTLY DELETE ACCOUNT &amp; ERASE DATA
+                      </button>
+                    </div>
+
+                  </div>
+                </div>
+
                 {/* Right Column: Haute Couture Designer Sketch Card */}
                 <div className="lookbook-panel croquis-sticky-card" style={{ padding: '2rem', textAlign: 'center', position: 'sticky', top: '2rem', display: 'flex', flexDirection: 'column', alignItems: 'center', backgroundColor: '#FAF8F4', border: '1px solid var(--border-color)', borderRadius: '4px' }}>
                   <h4 style={{ fontSize: '0.8rem', textTransform: 'uppercase', letterSpacing: '0.2em', marginBottom: '1.5rem', color: 'var(--accent)', borderBottom: '1px solid var(--border-color)', width: '100%', paddingBottom: '0.75rem' }}>
                     Haute Couture Croquis
                   </h4>
                   
-                  <div className="croquis-canvas" style={{ display: 'flex', justifyContent: 'center', alignItems: 'center', height: '440px', width: '100%', overflow: 'hidden' }}>
-                    <svg width="220" height="440" viewBox="0 0 200 450" style={{ filter: 'drop-shadow(0px 8px 16px rgba(0, 0, 0, 0.03))' }}>
+                  <div className="croquis-canvas" style={{ display: 'flex', justifyContent: 'center', alignItems: 'center', height: '460px', width: '100%', overflow: 'hidden' }}>
+                    <svg width="340" height="460" viewBox="0 0 300 450" style={{ filter: 'drop-shadow(0px 8px 16px rgba(0, 0, 0, 0.03))' }}>
                       {/* Grid overlay for designer's draft sketch journal effect */}
-                      <line x1="100" y1="10" x2="100" y2="440" stroke="#E6E3DB" strokeWidth="0.5" strokeDasharray="3 6" />
-                      <line x1="20" y1="225" x2="180" y2="225" stroke="#E6E3DB" strokeWidth="0.5" strokeDasharray="3 6" />
+                      <line x1="150" y1="10" x2="150" y2="440" stroke="#E6E3DB" strokeWidth="0.5" strokeDasharray="3 6" />
+                      <line x1="20" y1="225" x2="280" y2="225" stroke="#E6E3DB" strokeWidth="0.5" strokeDasharray="3 6" />
 
                       {/* Chic gesture draft curve */}
-                      <path d="M 103,20 Q 96,225 101,430" stroke="rgba(122, 122, 122, 0.15)" strokeWidth="0.8" fill="none" strokeDasharray="1 3" />
+                      <path d="M 153,20 Q 146,225 151,430" stroke="rgba(122, 122, 122, 0.15)" strokeWidth="0.8" fill="none" strokeDasharray="1 3" />
                       
-                      {/* Head */}
-                      <path d={headPath} stroke="#1A1A1A" strokeWidth="1.2" fill="none" />
-                      
-                      {/* Dynamic Body Contour */}
-                      <path d={outlinePath} stroke="#1A1A1A" strokeWidth="1.6" fill="none" strokeLinecap="round" strokeLinejoin="round" />
-                      
-                      {/* Hand-drawn style highlights */}
-                      <path d={leftCollarbone} stroke="#7A7A7A" strokeWidth="0.8" fill="none" opacity="0.8" />
-                      <path d={rightCollarbone} stroke="#7A7A7A" strokeWidth="0.8" fill="none" opacity="0.8" />
-                      <path d={centerLine} stroke="#7A7A7A" strokeWidth="0.6" fill="none" opacity="0.4" strokeDasharray="2 2" />
+                      {/* 1. AVERAGE PERSON BENCHMARK SILHOUETTE (BACKGROUND - LIGHTER COLOUR) */}
+                      <g opacity="0.65">
+                        <path d={avgCroquis.headPath} stroke="#B5AFA6" strokeWidth="1.2" fill="rgba(230, 225, 215, 0.3)" strokeDasharray="3 3" />
+                        <path d={avgCroquis.outlinePath} stroke="#B5AFA6" strokeWidth="1.5" fill="rgba(230, 225, 215, 0.3)" strokeDasharray="4 3" strokeLinecap="round" strokeLinejoin="round" />
+                        <path d={avgCroquis.leftCollarbone} stroke="#C5BFB6" strokeWidth="0.8" fill="none" opacity="0.6" />
+                        <path d={avgCroquis.rightCollarbone} stroke="#C5BFB6" strokeWidth="0.8" fill="none" opacity="0.6" />
+                      </g>
+
+                      {/* 2. USER PERSONAL SILHOUETTE (FOREGROUND - CRISP DARKER HAUTE COUTURE) */}
+                      <g>
+                        <path d={userCroquis.headPath} stroke="#1A1A1A" strokeWidth="1.6" fill="none" />
+                        <path d={userCroquis.outlinePath} stroke="#1A1A1A" strokeWidth="2.0" fill="none" strokeLinecap="round" strokeLinejoin="round" />
+                        <path d={userCroquis.leftCollarbone} stroke="#7A7A7A" strokeWidth="1.0" fill="none" opacity="0.8" />
+                        <path d={userCroquis.rightCollarbone} stroke="#7A7A7A" strokeWidth="1.0" fill="none" opacity="0.8" />
+                        <path d={userCroquis.centerLine} stroke="#7A7A7A" strokeWidth="0.8" fill="none" opacity="0.5" strokeDasharray="2 2" />
+                      </g>
+
+                      {/* Shared Ground Reference Line for Feet Level (Both Feet Aligned at Y = 410) */}
+                      <line x1="20" y1="410" x2="280" y2="410" stroke="#9E988D" strokeWidth="1.2" strokeDasharray="4 2" />
+                      <text x="150" y="425" textAnchor="middle" fontSize="9" fill="#888075" letterSpacing="0.05em" fontFamily="sans-serif">
+                        SHARED FOOT BASELINE LEVEL
+                      </text>
                     </svg>
                   </div>
                   
-                  <div style={{ marginTop: '1.5rem', width: '100%', borderTop: '1px solid var(--border-color)', paddingTop: '0.75rem' }}>
-                    <p style={{ fontSize: '0.6rem', color: 'var(--text-muted)', textTransform: 'uppercase', letterSpacing: '0.15em', fontWeight: 'bold' }}>
-                      {profSex === 'Male' ? 'Croquis Silhouette — Homme' : 'Croquis Silhouette — Femme'}
-                    </p>
-                    <p style={{ fontSize: '0.55rem', color: 'var(--text-muted)', fontStyle: 'italic', marginTop: '0.25rem' }}>
-                      Modulates dynamically in real time
-                    </p>
+                  <div style={{ marginTop: '1.25rem', width: '100%', borderTop: '1px solid var(--border-color)', paddingTop: '0.75rem' }}>
+                    <div style={{ display: 'flex', flexDirection: 'column', gap: '0.35rem', fontSize: '0.65rem', textTransform: 'uppercase', letterSpacing: '0.08em', alignItems: 'center' }}>
+                      <span style={{ color: '#1A1A1A', fontWeight: 'bold', display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
+                        <span style={{ display: 'inline-block', width: '16px', height: '3px', backgroundColor: '#1A1A1A' }}></span>
+                        Your Personal Silhouette ({profSex === 'Male' ? 'Homme' : 'Femme'})
+                      </span>
+                      <span style={{ color: '#8E877D', display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
+                        <span style={{ display: 'inline-block', width: '16px', height: '3px', backgroundColor: '#B5AFA6' }}></span>
+                        Average Benchmark Silhouette (Aligned)
+                      </span>
+                    </div>
                   </div>
                 </div>
 
@@ -3163,6 +3405,70 @@ export default function AtelierEditDashboard() {
                   disabled={isSavingGarmentEdit}
                 >
                   {isSavingGarmentEdit ? 'Saving...' : 'Save details'}
+                </button>
+              </div>
+            </form>
+          </div>
+        </div>
+      )}
+
+      {/* GDPR Right to Erasure Modal */}
+      {showGdprDeleteModal && (
+        <div style={{
+          position: 'fixed',
+          top: 0,
+          left: 0,
+          right: 0,
+          bottom: 0,
+          backgroundColor: 'rgba(0,0,0,0.85)',
+          zIndex: 9999,
+          display: 'flex',
+          justifyContent: 'center',
+          alignItems: 'center',
+          padding: '1rem'
+        }}>
+          <div className="lookbook-panel" style={{ maxWidth: '500px', width: '100%', padding: '2rem', border: '1px solid #ef4444', backgroundColor: '#121212' }}>
+            <h3 style={{ fontSize: '1.35rem', color: '#ef4444', marginBottom: '0.75rem' }}>
+              ⚠️ Confirm Permanent Account Erasure
+            </h3>
+            <p style={{ fontSize: '0.85rem', color: 'var(--text)', marginBottom: '1rem', lineHeight: '1.5' }}>
+              You are requesting permanent erasure under <strong>GDPR Article 17 (Right to be Forgotten)</strong>.
+            </p>
+            <ul style={{ fontSize: '0.8rem', color: 'var(--text-muted)', marginBottom: '1.25rem', paddingLeft: '1.25rem', display: 'flex', flexDirection: 'column', gap: '0.35rem' }}>
+              <li>All uploaded wardrobe photos in Cloud Storage will be erased.</li>
+              <li>Your sizing profiles, lookbooks, and feeds will be purged.</li>
+              <li>Your active session will be invalidated immediately.</li>
+            </ul>
+
+            <form onSubmit={handleDeleteGdprAccount} className="form-group-stack">
+              <div className="form-field">
+                <label style={{ color: '#ef4444' }}>Type &ldquo;DELETE&rdquo; to confirm:</label>
+                <input
+                  type="text"
+                  required
+                  value={gdprConfirmInput}
+                  onChange={(e) => setGdprConfirmInput(e.target.value)}
+                  placeholder="DELETE"
+                  style={{ border: '1px solid #ef4444', backgroundColor: 'rgba(239, 68, 68, 0.1)' }}
+                />
+              </div>
+
+              <div style={{ display: 'flex', gap: '1rem', marginTop: '1.5rem' }}>
+                <button
+                  type="button"
+                  onClick={() => { setShowGdprDeleteModal(false); setGdprConfirmInput(''); }}
+                  className="nav-action"
+                  style={{ flex: 1, padding: '0.65rem' }}
+                >
+                  Cancel
+                </button>
+                <button
+                  type="submit"
+                  disabled={isDeletingAccount || gdprConfirmInput.trim().toUpperCase() !== 'DELETE'}
+                  className="delete-action-btn"
+                  style={{ flex: 1, padding: '0.65rem', textTransform: 'uppercase' }}
+                >
+                  {isDeletingAccount ? 'ERASING DATA...' : 'CONFIRM PERMANENT ERASURE'}
                 </button>
               </div>
             </form>
