@@ -111,6 +111,9 @@ export default function AtelierEditDashboard() {
   const [editBuffer, setEditBuffer] = useState<Record<string, { brand: string; category: string; styleNotes: string; tags: string }>>({});
   const [bulkBrandValue, setBulkBrandValue] = useState('');
 
+  // Item-Anchored Outfit Generation State
+  const [anchorGarment, setAnchorGarment] = useState<WardrobeItem | null>(null);
+
   // Search & Filtering States
   const [searchQuery, setSearchQuery] = useState('');
   const [categoryFilter, setCategoryFilter] = useState('All');
@@ -750,6 +753,12 @@ export default function AtelierEditDashboard() {
 
 
 
+  const handleCreateOutfitAroundItem = (item: WardrobeItem) => {
+    setAnchorGarment(item);
+    setActiveTab('feed');
+    showToast(`Anchored outfit styling around: ${item.category} (${item.brand || 'No brand'})`, 'info');
+  };
+
   const triggerRecommendations = async (vibe?: string | React.MouseEvent) => {
     const vibePrompt = typeof vibe === 'string' ? vibe : undefined;
     setIsGenerating(true);
@@ -757,7 +766,7 @@ export default function AtelierEditDashboard() {
       const res = await fetch('/api/recommendations/generate', { 
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ vibe: vibePrompt })
+        body: JSON.stringify({ vibe: vibePrompt, anchorItemId: anchorGarment?.id })
       });
       if (res.ok) {
         fetchRecommendations();
@@ -1608,6 +1617,32 @@ export default function AtelierEditDashboard() {
             {/* Style Feed tab */}
             {activeTab === 'feed' && (
           <div className="outfit-stream">
+            {anchorGarment && (
+              <div className="lookbook-panel" style={{ width: '100%', padding: '1rem 1.5rem', border: '1px solid var(--accent-gold)', marginBottom: '1.5rem', display: 'flex', alignItems: 'center', justifyContent: 'space-between', backgroundColor: 'rgba(212, 175, 55, 0.08)' }}>
+                <div style={{ display: 'flex', alignItems: 'center', gap: '1rem' }}>
+                  <div style={{ position: 'relative', width: '48px', height: '48px', borderRadius: '4px', overflow: 'hidden', border: '1px solid var(--accent-gold)' }}>
+                    <Image src={anchorGarment.imageUrl} alt="Anchor Item" fill style={{ objectFit: 'cover' }} unoptimized />
+                  </div>
+                  <div>
+                    <span style={{ fontSize: '0.65rem', textTransform: 'uppercase', letterSpacing: '0.1em', color: 'var(--accent-gold)', fontWeight: 800, display: 'block' }}>
+                      ★ Hero Anchor Garment Active
+                    </span>
+                    <span style={{ fontSize: '0.9rem', fontWeight: 'bold' }}>
+                      {anchorGarment.brand ? `${anchorGarment.brand} - ` : ''}{anchorGarment.category}
+                    </span>
+                  </div>
+                </div>
+                <button
+                  type="button"
+                  onClick={() => setAnchorGarment(null)}
+                  className="nav-action"
+                  style={{ fontSize: '0.75rem', textDecoration: 'underline', color: 'var(--accent-gold)' }}
+                >
+                  ✕ Clear Anchor
+                </button>
+              </div>
+            )}
+
             {/* Custom Vibe Input Card */}
             <div className="lookbook-panel" style={{ padding: '1.5rem', marginBottom: '2rem' }}>
               <h3 style={{ fontSize: '1.25rem', marginBottom: '0.5rem', borderBottom: '1px solid var(--border-color)', paddingBottom: '0.5rem' }}>
@@ -2180,6 +2215,23 @@ export default function AtelierEditDashboard() {
                             </div>
                           )}
 
+                          <button
+                            type="button"
+                            onClick={() => handleCreateOutfitAroundItem(item)}
+                            className="accent-button"
+                            style={{
+                              fontSize: '0.7rem',
+                              padding: '0.45rem 0.5rem',
+                              width: '100%',
+                              marginTop: '0.5rem',
+                              backgroundColor: anchorGarment?.id === item.id ? 'var(--accent-gold)' : undefined,
+                              color: anchorGarment?.id === item.id ? '#000000' : undefined,
+                              fontWeight: 'bold',
+                            }}
+                          >
+                            {anchorGarment?.id === item.id ? '★ HERO ANCHOR ACTIVE' : '✨ CREATE OUTFIT AROUND ITEM'}
+                          </button>
+
                           <div style={{ display: 'flex', justifyContent: 'flex-end', borderTop: '1px solid var(--border-color)', paddingTop: '0.5rem', marginTop: '0.5rem' }}>
                             <button
                               type="button"
@@ -2336,13 +2388,13 @@ export default function AtelierEditDashboard() {
                   </div>
 
                   <div className="form-field">
-                    <label>RSS Feed URL</label>
+                    <label>{newFeedType === 'instagram' ? 'Instagram Handle / Account' : 'RSS Feed URL'}</label>
                     <input
-                      type="url"
+                      type={newFeedType === 'instagram' ? 'text' : 'url'}
                       required
                       value={newFeedUrl}
                       onChange={(e) => setNewFeedUrl(e.target.value)}
-                      placeholder="https://..."
+                      placeholder={newFeedType === 'instagram' ? 'e.g. @chanelofficial or alexandermcqueen' : 'https://...'}
                     />
                   </div>
 
@@ -2353,6 +2405,7 @@ export default function AtelierEditDashboard() {
                       onChange={(e) => setNewFeedType(e.target.value)}
                     >
                       <option value="rss">RSS / Newsletter feed</option>
+                      <option value="instagram">Instagram Account (Dual Bridge + Search)</option>
                       <option value="youtube">YouTube Video source</option>
                       <option value="substack">Substack feed</option>
                     </select>
@@ -2387,7 +2440,7 @@ export default function AtelierEditDashboard() {
                             <span className={`ingest-item-title ${feed.isMuted ? 'muted' : ''}`}>
                               {feed.name}
                             </span>
-                            <span className="ingest-type-badge">{feed.type}</span>
+                            <span className="ingest-type-badge">{feed.type === 'instagram' ? '📸 Instagram' : feed.type}</span>
                           </div>
                           <span className="ingest-item-url">{feed.url}</span>
                         </div>

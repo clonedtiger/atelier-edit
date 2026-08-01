@@ -134,7 +134,8 @@ export async function generateOutfitRecommendations(
     inspirationNotes?: string | null;
   },
   vibe?: string,
-  inspirations?: Array<{ notes: string | null; tags: string[] }>
+  inspirations?: Array<{ notes: string | null; tags: string[] }>,
+  anchorItem?: { id: string; category: string; brand?: string | null; color: string[]; detectedTags: string[]; styleNotes?: string | null }
 ): Promise<RecommendedOutfit[]> {
   const wardrobeSummary = wardrobe.map(item => (
     `ID: ${item.id} | Category: ${item.category} | Colors: ${item.color.join(', ')} | Tags: ${item.detectedTags.join(', ')} | Notes: ${item.styleNotes || 'None'}`
@@ -175,6 +176,21 @@ export async function generateOutfitRecommendations(
     `
     : '';
 
+  const anchorInstructions = anchorItem
+    ? `
+    MANDATORY HERO ANCHOR GARMENT FOR THIS LOOKBOOK:
+    The client explicitly selected the following piece from her closet to build the outfit around:
+    - ID: ${anchorItem.id}
+    - Category: ${anchorItem.category}
+    - Brand: ${anchorItem.brand || 'Unspecified'}
+    - Colors: ${anchorItem.color.join(', ')}
+    - Tags: ${anchorItem.detectedTags.join(', ')}
+    - Notes: ${anchorItem.styleNotes || 'None'}
+
+    YOU MUST INCLUDE THIS EXACT GARMENT (using wardrobeItemId: "${anchorItem.id}") AS THE CENTRAL HERO PIECE IN AT LEAST OUTFIT #1 (and ideally featured in the lookbook collection). Build the rest of the outfit around it by choosing complementary pieces from her closet and recommending new purchases.
+    `
+    : '';
+
   const prompt = `
     You are a personal fashion editor styling a client. Her aesthetic is a curated crossover between Chanel's structured elegance (tweeds, double-breasted, bouclé, sophisticated cuts) and Alexander McQueen's rebellious edge (leather, heavy hardware, asymmetry, corsetry, tailoring with a dark twist).
 
@@ -187,6 +203,7 @@ export async function generateOutfitRecommendations(
     ${profileSummary}
     ${vibeInstructions}
     ${inspirationsSummary}
+    ${anchorInstructions}
 
     Your task is to generate exactly 3 outfit recommendations that blend her existing wardrobe with current trends, tailored specifically to her profile.
     For each outfit, you must:

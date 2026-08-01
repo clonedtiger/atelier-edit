@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { prisma } from '@/lib/db';
 import { getSession } from '@/lib/session';
+import { cleanInstagramHandle } from '@/lib/instagram';
 
 export async function GET() {
   try {
@@ -34,16 +35,27 @@ export async function POST(req: NextRequest) {
     const { url, name, type } = body;
 
     if (!url) {
-      return NextResponse.json({ error: 'URL is required' }, { status: 400 });
+      return NextResponse.json({ error: 'URL or handle is required' }, { status: 400 });
     }
 
-    // Default values if empty
     const resolvedType = type || 'rss';
-    const resolvedName = name || new URL(url).hostname || 'Custom Feed';
+    let targetUrl = url.trim();
+    let resolvedName = name ? name.trim() : '';
+
+    if (resolvedType === 'instagram') {
+      const handle = cleanInstagramHandle(url);
+      if (!handle) {
+        return NextResponse.json({ error: 'Invalid Instagram handle' }, { status: 400 });
+      }
+      targetUrl = `https://instagram.com/${handle}`;
+      resolvedName = resolvedName || `@${handle} (Instagram)`;
+    } else {
+      resolvedName = resolvedName || (url.startsWith('http') ? new URL(url).hostname : 'Custom Feed');
+    }
 
     const newFeed = await prisma.feedSource.create({
       data: {
-        url,
+        url: targetUrl,
         name: resolvedName,
         type: resolvedType,
         isMuted: false,

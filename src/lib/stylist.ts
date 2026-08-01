@@ -198,7 +198,7 @@ async function searchShoppingLink(query: string, brand: string | null): Promise<
  * 4. Queries shopping links for new suggested purchases.
  * 5. Saves recommendations to the database.
  */
-export async function generateRecommendationsForUser(userId: string, vibe?: string) {
+export async function generateRecommendationsForUser(userId: string, vibe?: string, anchorItemId?: string) {
   // 1. Fetch user wardrobe items
   const wardrobe = await prisma.wardrobeItem.findMany({
     where: { userId },
@@ -210,6 +210,26 @@ export async function generateRecommendationsForUser(userId: string, vibe?: stri
       styleNotes: true,
     },
   });
+
+  // 1a. Fetch anchor item if specified
+  let anchorItem: { id: string; category: string; brand?: string | null; color: string[]; detectedTags: string[]; styleNotes?: string | null } | undefined = undefined;
+  if (anchorItemId) {
+    const found = await prisma.wardrobeItem.findFirst({
+      where: { id: anchorItemId, userId },
+      select: {
+        id: true,
+        category: true,
+        brand: true,
+        color: true,
+        detectedTags: true,
+        styleNotes: true,
+      },
+    });
+    if (found) {
+      anchorItem = found;
+      console.log(`Stylist consultation anchored around item: ${anchorItem.id} (${anchorItem.category} - ${anchorItem.brand || 'No brand'})`);
+    }
+  }
 
   // 1b. Fetch user sizing profile
   const user = await prisma.user.findUnique({
@@ -257,13 +277,14 @@ export async function generateRecommendationsForUser(userId: string, vibe?: stri
 
   console.log(`Loaded ${wardrobe.length} wardrobe items, ${trendsList.length} trends, and ${inspirations.length} visual inspirations.`);
 
-  // 3. Ask Gemini to create outfits, passing user measurements
+  // 3. Ask Gemini to create outfits, passing user measurements & optional anchor item
   const recommendedOutfits = await generateOutfitRecommendations(
     wardrobe, 
     trendsList, 
     user || undefined,
     vibe,
-    inspirations
+    inspirations,
+    anchorItem
   );
   console.log(`Generated ${recommendedOutfits.length} outfit recommendations from Gemini.`);
 

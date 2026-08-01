@@ -162,7 +162,8 @@ describe('Visual Inspiration Board & Stylist Integration Tests', () => {
             notes: 'Draped McQueen look in black silk',
             tags: expect.arrayContaining(['draped', 'silk', 'mcqueen']),
           }),
-        ])
+        ]),
+        undefined
       );
 
       // Clean up the dummy inspiration

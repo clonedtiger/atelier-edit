@@ -3,6 +3,7 @@ import path from 'path';
 import Parser from 'rss-parser';
 import { prisma } from './db';
 import { extractTrendsFromContent } from './gemini';
+import { syncInstagramAccount } from './instagram';
 
 const parser = new Parser();
 
@@ -110,7 +111,30 @@ export async function syncArticlesAndTrends(limitPerFeed = 2, force = false) {
 
   for (const source of sources) {
     try {
-      console.log(`Fetching feed: ${source.name} (${source.url})`);
+      console.log(`Fetching feed: ${source.name} (${source.url}) [Type: ${source.type}]`);
+
+      if (source.type === 'instagram') {
+        const instagramArticles = await syncInstagramAccount(source.url);
+        for (const article of instagramArticles) {
+          const existing = await prisma.trendArticle.findUnique({
+            where: { sourceUrl: article.sourceUrl }
+          });
+          if (existing) continue;
+
+          await prisma.trendArticle.create({
+            data: {
+              sourceUrl: article.sourceUrl,
+              sourceName: article.sourceName,
+              title: article.title,
+              content: article.content.slice(0, 15000),
+              publishedAt: article.publishedAt,
+              extractedTrends: article.extractedTrends
+            }
+          });
+        }
+        continue;
+      }
+
       const feed = await parser.parseURL(source.url);
       
       // Get the latest N items

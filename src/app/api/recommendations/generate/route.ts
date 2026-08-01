@@ -26,10 +26,10 @@ export async function POST(req: Request) {
     }
 
     const body = await req.json().catch(() => ({}));
-    const { vibe } = body;
+    const { vibe, anchorItemId } = body;
 
-    console.log(`Generating styling recommendations for user id: ${userId} with vibe: ${vibe || 'none'}...`);
-    const recommendations = await generateRecommendationsForUser(userId, vibe);
+    console.log(`Generating styling recommendations for user id: ${userId} with vibe: ${vibe || 'none'}, anchorItemId: ${anchorItemId || 'none'}...`);
+    const recommendations = await generateRecommendationsForUser(userId, vibe, anchorItemId);
     
     // Log analytical activity for outfit generation
     await logUserActivity(userId, 'GENERATE_OUTFIT');
