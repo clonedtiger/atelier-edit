@@ -216,9 +216,9 @@ export default function AtelierEditDashboard() {
   };
 
   // Toast notifications
-  const [toast, setToast] = useState<{ message: string; type: 'success' | 'error' } | null>(null);
+  const [toast, setToast] = useState<{ message: string; type: 'success' | 'error' | 'info' } | null>(null);
 
-  const showToast = useCallback((message: string, type: 'success' | 'error' = 'success') => {
+  const showToast = useCallback((message: string, type: 'success' | 'error' | 'info' = 'success') => {
     setToast({ message, type });
   }, []);
 
@@ -3172,7 +3172,7 @@ export default function AtelierEditDashboard() {
 
       {toast && (
         <div className={`toast-notification ${toast.type}`}>
-          <span className="toast-icon">{toast.type === 'success' ? '✓' : '✕'}</span>
+          <span className="toast-icon">{toast.type === 'success' ? '✓' : toast.type === 'info' ? 'ℹ' : '✕'}</span>
           <span className="toast-message">{toast.message}</span>
         </div>
       )}
