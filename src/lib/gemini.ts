@@ -39,18 +39,57 @@ export interface RecommendedOutfit {
 }
 
 /**
- * Analyzes a wardrobe photo using Gemini Vision API and returns style metadata.
+ * Safely parses JSON returned by Gemini models, stripping markdown code fences
+ * and isolating outer JSON object or array bounds to handle trailing text/commentary.
+ */
+function safeParseGeminiJson<T>(rawText: string): T {
+  let cleaned = (rawText || '').trim();
+
+  // Strip markdown code fences if wrapped
+  cleaned = cleaned.replace(/^```(?:json)?\s*/i, '').replace(/\s*```$/i, '').trim();
+
+  // Locate outer JSON object or array bounds
+  const firstObj = cleaned.indexOf('{');
+  const firstArr = cleaned.indexOf('[');
+
+  let start = -1;
+  let end = -1;
+
+  if (firstObj !== -1 && (firstArr === -1 || firstObj < firstArr)) {
+    start = firstObj;
+    end = cleaned.lastIndexOf('}');
+  } else if (firstArr !== -1) {
+    start = firstArr;
+    end = cleaned.lastIndexOf(']');
+  }
+
+  if (start !== -1 && end !== -1 && end > start) {
+    cleaned = cleaned.substring(start, end + 1);
+  }
+
+  return JSON.parse(cleaned) as T;
+}
+
+/**
+ * Analyzes a wardrobe garment image (base64) using Gemini 2.5 Flash Vision.
  */
 export async function analyzeWardrobeImage(base64Data: string, mimeType: string): Promise<TaggedWardrobeItem> {
   const prompt = `
-    Analyze this wardrobe item image. Provide style tagging and details.
+    Analyze this clothing item photo.
+    Identify:
+    1. Category: Exactly one of "Outerwear", "Tops", "Bottoms", "Dresses", "Shoes", "Bags", "Jewelry", "Accessories".
+    2. Color: Primary colors present (e.g., ["Black", "Gold"]).
+    3. Brand: Brand name if visible on label, hardware, or tags (e.g. "Chanel", "Alexander McQueen", "Zara", "AllSaints"). If unidentifiable, return null.
+    4. Style notes: Brief 1-2 sentence description of design details, silhouette, fabric, hardware, cuts, and overall vibe.
+    5. Detected tags: List of key styling attributes (e.g., ["bouclé", "tweed", "double-breasted", "gold buttons", "cropped", "leather", "hardware", "asymmetric"]).
+
     You must output a JSON object adhering exactly to this structure:
     {
-      "category": "One of: Outerwear, Tops, Bottoms, Shoes, Accessories, Dresses, Knitwear, Makeup, Jewelry",
-      "color": ["Primary Color Name", "Secondary Color Name (optional)", ...],
-      "brand": "Brand name if visible, or null if unknown",
-      "styleNotes": "A descriptive summary of the item including texture, silhouette, materials, and styling essence (e.g. heavy structure bouclé, cropped military jacket)",
-      "detectedTags": ["tag1", "tag2", ...] // Include visual traits (e.g. tweed, leather, asymmetric, hardware, double-breasted, grunge, classic)
+      "category": "Outerwear",
+      "color": ["Black"],
+      "brand": "Chanel",
+      "styleNotes": "Structured tweed cropped jacket with gold lion buttons.",
+      "detectedTags": ["tweed", "cropped", "gold buttons"]
     }
   `;
 
@@ -72,7 +111,7 @@ export async function analyzeWardrobeImage(base64Data: string, mimeType: string)
     });
 
     const text = response.text || '';
-    return JSON.parse(text) as TaggedWardrobeItem;
+    return safeParseGeminiJson<TaggedWardrobeItem>(text);
   } catch (error) {
     console.error('Error analyzing wardrobe image with Gemini:', error);
     throw new Error('Gemini vision analysis failed');
@@ -107,7 +146,7 @@ export async function extractTrendsFromContent(title: string, content: string): 
     });
 
     const text = response.text || '';
-    const parsed = JSON.parse(text);
+    const parsed = safeParseGeminiJson<{ extractedTrends?: string[] }>(text);
     return parsed.extractedTrends || [];
   } catch (error) {
     console.error('Error extracting trends with Gemini:', error);
@@ -245,7 +284,7 @@ export async function generateOutfitRecommendations(
     });
 
     const text = response.text || '';
-    const parsed = JSON.parse(text);
+    const parsed = safeParseGeminiJson<{ outfits?: RecommendedOutfit[] }>(text);
     return parsed.outfits || [];
   } catch (error) {
     console.error('Error generating outfits with Gemini:', error);
@@ -290,7 +329,7 @@ export async function analyzeInspirationImage(base64Data: string, mimeType: stri
     });
 
     const text = response.text || '';
-    const parsed = JSON.parse(text);
+    const parsed = safeParseGeminiJson<{ notes?: string; tags?: string[] }>(text);
     return {
       notes: parsed.notes || 'Visual fashion inspiration',
       tags: parsed.tags || []
