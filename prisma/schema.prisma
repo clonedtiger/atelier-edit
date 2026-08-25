@@ -43,6 +43,8 @@ model User {
   sessions         UserSession[]
   activities       UsageActivity[]
   inspirations     InspirationImage[]
+
+  @@index([role])
 }
 
 model WardrobeItem {
@@ -56,6 +58,9 @@ model WardrobeItem {
   styleNotes  String?  // Description of cut, fabric, texture
   detectedTags String[] // e.g. ["tweed", "structural", "asymmetric"]
   createdAt   DateTime @default(now())
+
+  @@index([userId, createdAt])
+  @@index([userId, category])
 }
 
 model FeedSource {
@@ -65,6 +70,8 @@ model FeedSource {
   type      String   // "rss" | "youtube" | "substack"
   isMuted   Boolean  @default(false)
   createdAt DateTime @default(now())
+
+  @@index([isMuted])
 }
 
 model TrendArticle {
@@ -76,6 +83,9 @@ model TrendArticle {
   publishedAt DateTime
   extractedTrends String[] // e.g. ["boucle jackets", "oversized leather"]
   createdAt   DateTime @default(now())
+
+  @@index([createdAt])
+  @@index([sourceName])
 }
 
 model Recommendation {
@@ -86,6 +96,8 @@ model Recommendation {
   narrative   String   // Text explanation of the outfit styling choices
   createdAt   DateTime @default(now())
   outfitItems RecommendationItem[]
+
+  @@index([userId, createdAt])
 }
 
 model RecommendationItem {
@@ -103,6 +115,9 @@ model RecommendationItem {
   purchaseImageUrl String?
   priceEstimate    String?
   stylingRationale String   // Why this item is paired
+
+  @@index([recommendationId])
+  @@index([wardrobeItemId])
 }
 
 model UserSession {
@@ -112,6 +127,8 @@ model UserSession {
   loginTime  DateTime @default(now())
   lastActive DateTime @default(now())
   duration   Int?     // duration in seconds
+
+  @@index([userId, lastActive])
 }
 
 model UsageActivity {
@@ -120,6 +137,8 @@ model UsageActivity {
   user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
   action    String   // "LOGIN" | "UPLOAD_IMAGE" | "GENERATE_OUTFIT"
   timestamp DateTime @default(now())
+
+  @@index([userId, timestamp])
 }
 
 model InspirationImage {
@@ -130,4 +149,6 @@ model InspirationImage {
   notes     String?  // Summary of the style aesthetic / textures / vibe
   tags      String[] // Aesthetic keywords / tags
   createdAt DateTime @default(now())
+
+  @@index([userId, createdAt])
 }
