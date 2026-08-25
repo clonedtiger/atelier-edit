@@ -121,11 +121,36 @@ export async function clearSessionCookie() {
 /**
  * Reads the session cookie and decodes the user payload.
  */
-export async function getSession(): Promise<SessionPayload | null> {
-  const cookieStore = await cookies();
-  const sessionVal = cookieStore.get('session')?.value;
-  if (!sessionVal) return null;
-  return decryptSession(sessionVal);
+export async function getSession(req?: NextRequest): Promise<SessionPayload | null> {
+  // 1. If NextRequest was passed, check its parsed cookies and raw headers first
+  if (req) {
+    const val = req.cookies.get('session')?.value;
+    if (val) {
+      const decrypted = decryptSession(val);
+      if (decrypted) return decrypted;
+    }
+    const rawHeader = req.headers.get('cookie');
+    if (rawHeader) {
+      const match = rawHeader.match(/(?:^|;\s*)session=([^;]+)/);
+      if (match) {
+        const decrypted = decryptSession(match[1]);
+        if (decrypted) return decrypted;
+      }
+    }
+  }
+
+  // 2. Fallback to App Router cookies() store
+  try {
+    const cookieStore = await cookies();
+    const sessionVal = cookieStore.get('session')?.value;
+    if (sessionVal) {
+      return decryptSession(sessionVal);
+    }
+  } catch {
+    // Ignore context error if cookies() not available
+  }
+
+  return null;
 }
 
 /**
@@ -133,6 +158,16 @@ export async function getSession(): Promise<SessionPayload | null> {
  */
 export function getSessionFromRequest(req: NextRequest): SessionPayload | null {
   const sessionVal = req.cookies.get('session')?.value;
-  if (!sessionVal) return null;
-  return decryptSession(sessionVal);
+  if (sessionVal) {
+    const decrypted = decryptSession(sessionVal);
+    if (decrypted) return decrypted;
+  }
+  const rawHeader = req.headers.get('cookie');
+  if (rawHeader) {
+    const match = rawHeader.match(/(?:^|;\s*)session=([^;]+)/);
+    if (match) {
+      return decryptSession(match[1]);
+    }
+  }
+  return null;
 }

@@ -3,9 +3,11 @@ import { prisma } from '@/lib/db';
 import { getSession, clearSessionCookie } from '@/lib/session';
 import { updateActiveSession } from '@/lib/analytics';
 
-export async function GET() {
+export const dynamic = 'force-dynamic';
+
+export async function GET(req: NextRequest) {
   try {
-    const session = await getSession();
+    const session = await getSession(req);
     if (!session) {
       return NextResponse.json({ authenticated: false });
     }
