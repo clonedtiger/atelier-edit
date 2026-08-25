@@ -2104,12 +2104,7 @@ export default function AtelierEditDashboard() {
 
       {/* Main Content View */}
       <main className="main-container">
-        
-        {loadingMe ? (
-          <div className="outfit-narrative" style={{ textAlign: 'center', border: 'none', padding: '4rem 0' }}>
-            Verifying session parameters...
-          </div>
-        ) : !user ? (
+        {!user ? (
           /* Unauthenticated view: Render the login/registration form directly */
           <div className="auth-panel-wrapper">
             <div className="lookbook-panel">
