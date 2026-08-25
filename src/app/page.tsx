@@ -180,7 +180,7 @@ export default function AtelierEditDashboard() {
   const [whatsNewPosts, setWhatsNewPosts] = useState<WhatsNewPost[]>([]);
   
   // Loading states
-  const [loadingMe, setLoadingMe] = useState(true);
+  const [loadingMe, setLoadingMe] = useState(false);
   const [loadingWardrobe, setLoadingWardrobe] = useState(false);
   const [loadingRecommendations, setLoadingRecommendations] = useState(false);
   const [loadingFeeds, setLoadingFeeds] = useState(false);
@@ -736,7 +736,8 @@ export default function AtelierEditDashboard() {
       clearTimeout(timer);
       window.removeEventListener('beforeinstallprompt', handleBeforeInstall);
     };
-  }, [checkSession, fetchWardrobe, fetchRecommendations, fetchFeeds, fetchWhatsNew, fetchInspirations, fetchLiveWeatherForApp, fetchCapsules, fetchCollages]);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
 
   // Client-side image compressor (converts to WebP canvas blob)
   const compressImage = (file: File): Promise<Blob> => {
