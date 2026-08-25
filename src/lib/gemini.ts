@@ -119,16 +119,17 @@ export async function analyzeWardrobeImage(base64Data: string, mimeType: string)
 }
 
 /**
- * Analyzes article/video text content and extracts key fashion trends.
+ * Analyzes article/video text content and extracts key fashion trends across all styles.
  */
 export async function extractTrendsFromContent(title: string, content: string): Promise<string[]> {
   const prompt = `
-    You are a luxury fashion curator. Read the content of the article or script below and extract the primary fashion styles, silhouettes, colors, fabrics, or styling rules mentioned.
-    Focus on trends that fit either the classic, structured elegance of Chanel (tweeds, tailored coordinates, bouclé, pearls) or the rebellious, edgy grunge of Alexander McQueen (asymmetrical zippers, hardware, heavy leather, structured tailoring, deconstructed pieces).
+    You are an elite fashion editor and trend intelligence analyst. Read the content of the article, show review, or fashion newsletter below and extract the primary styling directions, silhouettes, color forecasts, textile textures, key garment cuts, footwear/accessory trends, and pairing principles.
     
     Article Title: ${title}
     Article Content:
     ${content.slice(0, 8000)} // truncate to prevent token overflow
+    
+    Extract 3-8 precise, actionable fashion trend descriptors (e.g. "oversized structural tailoring", "draped cowl-neck layering", "monochrome earth tones", "chunky lug-sole footwear", "minimalist knitwear", "relaxed wide-leg trousers").
     
     You must output a JSON object adhering exactly to this structure:
     {
@@ -154,24 +155,30 @@ export async function extractTrendsFromContent(title: string, content: string): 
   }
 }
 
+export interface UserStyleProfile {
+  sex?: string | null;
+  height?: string | null;
+  weight?: string | null;
+  waistSize?: string | null;
+  braSize?: string | null;
+  shoeSize?: string | null;
+  hatSize?: string | null;
+  gloveSize?: string | null;
+  workLife?: string | null;
+  inspirationNotes?: string | null;
+  styleAesthetic?: string | null;
+  favoriteBrands?: string | null;
+  avoidedStyles?: string | null;
+  colorPalette?: string | null;
+}
+
 /**
  * Synthesizes fashion feeds: Blends wardrobe items with current trends to create lookbooks.
  */
 export async function generateOutfitRecommendations(
   wardrobe: Array<{ id: string; category: string; color: string[]; detectedTags: string[]; styleNotes: string | null }>,
   trends: string[],
-  userProfile?: {
-    sex?: string | null;
-    height?: string | null;
-    weight?: string | null;
-    waistSize?: string | null;
-    braSize?: string | null;
-    shoeSize?: string | null;
-    hatSize?: string | null;
-    gloveSize?: string | null;
-    workLife?: string | null;
-    inspirationNotes?: string | null;
-  },
+  userProfile?: UserStyleProfile,
   vibe?: string,
   inspirations?: Array<{ notes: string | null; tags: string[] }>,
   anchorItem?: { id: string; category: string; brand?: string | null; color: string[]; detectedTags: string[]; styleNotes?: string | null }
@@ -182,9 +189,19 @@ export async function generateOutfitRecommendations(
 
   const trendsSummary = trends.slice(0, 20).join(', ');
 
-  const profileSummary = userProfile
+  const styleDnaSummary = `
+    CLIENT'S UNIQUE STYLE DNA & AESTHETIC DIRECTIVES:
+    - Primary Style Aesthetic: ${userProfile?.styleAesthetic || 'Refined Modern Luxury with Timeless Tailoring'}
+    - Favorite Brands & Designers: ${userProfile?.favoriteBrands || 'Curated high-end and contemporary designers'}
+    - Avoided Styles & Rules: ${userProfile?.avoidedStyles || 'None specified'}
+    - Preferred Color Palette: ${userProfile?.colorPalette || 'Harmonious tailored palette'}
+    - Daily Work & Lifestyle: ${userProfile?.workLife || 'Not specified'}
+    - Inspiration Guidelines: ${userProfile?.inspirationNotes || 'Not specified'}
+  `;
+
+  const sizingSummary = userProfile
     ? `
-    Client Profile & Physical Sizing:
+    Client Physical Sizing & Fit Parameters:
     - Sex: ${userProfile.sex || 'Not specified'}
     - Height: ${userProfile.height || 'Not specified'}
     - Weight: ${userProfile.weight || 'Not specified'}
@@ -193,32 +210,30 @@ export async function generateOutfitRecommendations(
     - Shoe Size: ${userProfile.shoeSize || 'Not specified'}
     - Hat Size: ${userProfile.hatSize || 'Not specified'}
     - Glove Size: ${userProfile.gloveSize || 'Not specified'}
-    - Daily Work Life: ${userProfile.workLife || 'Not specified'}
-    - Inspiration Guidelines: ${userProfile.inspirationNotes || 'Not specified'}
     `
-    : 'Client Profile: Standard lookbook styling.';
+    : 'Client Fit: Standard lookbook tailoring.';
 
   const vibeInstructions = vibe
     ? `
-    CUSTOM STYLING DIRECTIVE FOR THIS CONSULTATION:
-    The client has requested the following custom styling prompt/mood/event: "${vibe}".
-    You MUST prioritize this request and ensure all 3 generated outfits strictly align with this theme (e.g. incorporating floral vibes, dressing for a sunny day, or preparing for the specified occasion) while keeping the core Chanel x McQueen aesthetic.
+    CUSTOM SESSION DIRECTIVE:
+    The client has requested the following custom styling prompt/mood/event for this consultation: "${vibe}".
+    You MUST prioritize this request and ensure all 3 generated outfits strictly align with this theme while honoring their unique Style DNA.
     `
     : '';
 
   const inspirationsSummary = inspirations && inspirations.length > 0
     ? `
-    CLIENT'S UPLOADED VISUAL INSPIRATIONS (Aesthetic boards, magazine street snaps, artwork style concepts they love):
+    CLIENT'S UPLOADED VISUAL INSPIRATIONS (Aesthetic moodboards, street style snaps, textures):
     ${inspirations.map((ins, i) => `Inspiration #${i + 1}: Notes: ${ins.notes || 'None'} | Tags: ${ins.tags.join(', ')}`).join('\n')}
     
-    You should incorporate these visual elements, patterns, textures, colors, or vibes directly into the generated outfits to align matches with their visual board.
+    Incorporate these visual elements, textures, silhouette cuts, or moods into the generated outfits.
     `
     : '';
 
   const anchorInstructions = anchorItem
     ? `
-    MANDATORY HERO ANCHOR GARMENT FOR THIS LOOKBOOK:
-    The client explicitly selected the following piece from her closet to build the outfit around:
+    MANDATORY HERO ANCHOR GARMENT:
+    The client explicitly selected the following piece from their closet to build the outfit around:
     - ID: ${anchorItem.id}
     - Category: ${anchorItem.category}
     - Brand: ${anchorItem.brand || 'Unspecified'}
@@ -226,31 +241,33 @@ export async function generateOutfitRecommendations(
     - Tags: ${anchorItem.detectedTags.join(', ')}
     - Notes: ${anchorItem.styleNotes || 'None'}
 
-    YOU MUST INCLUDE THIS EXACT GARMENT (using wardrobeItemId: "${anchorItem.id}") AS THE CENTRAL HERO PIECE IN AT LEAST OUTFIT #1 (and ideally featured in the lookbook collection). Build the rest of the outfit around it by choosing complementary pieces from her closet and recommending new purchases.
+    YOU MUST INCLUDE THIS EXACT GARMENT (using wardrobeItemId: "${anchorItem.id}") AS THE CENTRAL HERO PIECE IN AT LEAST OUTFIT #1. Build the rest of the outfit around it by choosing complementary pieces from their closet and recommending new purchases.
     `
     : '';
 
   const prompt = `
-    You are a personal fashion editor styling a client. Her aesthetic is a curated crossover between Chanel's structured elegance (tweeds, double-breasted, bouclé, sophisticated cuts) and Alexander McQueen's rebellious edge (leather, heavy hardware, asymmetry, corsetry, tailoring with a dark twist).
+    You are an elite haute couture personal stylist and fashion editor.
+    You are styling an individual client based strictly on their personalized Style DNA, physical measurements, wardrobe collection, and curated fashion intelligence radar.
 
     Here is the client's current wardrobe items:
-    ${wardrobeSummary || 'No items uploaded yet. Create generic outfits using wardrobe placeholders.'}
+    ${wardrobeSummary || 'No items uploaded yet. Create outfits using closet placeholders.'}
 
-    Here are the current fashion trends from her curated feeds (blogs, newsletters, shows):
-    ${trendsSummary || 'Timeless Chanel and McQueen styling'}
+    Here are the current fashion trends from their curated subscribed feeds:
+    ${trendsSummary || 'Timeless luxury styling'}
 
-    ${profileSummary}
+    ${styleDnaSummary}
+    ${sizingSummary}
     ${vibeInstructions}
     ${inspirationsSummary}
     ${anchorInstructions}
 
-    Your task is to generate exactly 3 outfit recommendations that blend her existing wardrobe with current trends, tailored specifically to her profile.
+    Your task is to generate exactly 3 outfit recommendations that blend the client's existing wardrobe with current trends, tailored strictly to their Style DNA and sizing profile.
     For each outfit, you must:
-    1. Create a compelling, luxury-editorial title (e.g. "The Structural Bouclé with a Biker Twist").
-    2. Provide a narrative paragraph styling guide explaining the look, how it fits her aesthetic, why it works, and how it aligns with their daily Work Life and Inspiration guidelines. Ensure you explicitly describe how the clothing is paired with shoes, jewelry/accessories, and makeup details.
-    3. List the items making up the outfit. Each outfit should be a complete look including clothing, shoes, jewelry (or accessories), and makeup coordinates (from her closet or suggested as a new purchase). Each item in the list can be EITHER:
+    1. Create a compelling, luxury-editorial title fitting their aesthetic (e.g. "Architectural Cashmere with Tailored Edge").
+    2. Provide a narrative paragraph styling guide explaining the look, how it fits their aesthetic, why it works, and how it aligns with their daily lifestyle and inspiration guidelines. Describe pairing with shoes, accessories/jewelry, and subtle beauty/makeup coordinates.
+    3. List the items making up the outfit. Each outfit should be a complete look. Each item in the list can be EITHER:
        a) An existing wardrobe item (specify its ID in 'wardrobeItemId' and describe how to wear it in 'stylingRationale').
-       b) A proposed new item to purchase (do NOT set 'wardrobeItemId'. Instead, provide 'purchaseName', 'purchaseBrand' which should be a curated brand (e.g. Zara, Mango, NET-A-PORTER, AllSaints, Chanel, Alexander McQueen, Sephora, etc.), a price estimate, and the styling rationale explaining why they need this missing piece. CRITICAL: Suggest the exact size (e.g., "Size 38" for shoes, "Size 26 / S" for trousers, or "Size M" for outerwear) matching their physical measurements).
+       b) A proposed new item to purchase (do NOT set 'wardrobeItemId'. Instead, provide 'purchaseName', 'purchaseBrand' which should be a brand matching their favorite brands or aesthetic, a realistic price estimate, and the styling rationale citing the exact size matching their physical measurements).
 
     You must output a JSON object adhering exactly to this structure:
     {
@@ -265,11 +282,9 @@ export async function generateOutfitRecommendations(
               "purchaseBrand": "Curated Brand Name (if new)",
               "priceEstimate": "Estimated price range (if new)",
               "stylingRationale": "How to style this piece in the outfit, citing the recommended size and fit for their height/build."
-            },
-            ...
+            }
           ]
-        },
-        ...
+        }
       ]
     }
   `;
@@ -302,12 +317,21 @@ export interface TaggedInspiration {
  */
 export async function analyzeInspirationImage(base64Data: string, mimeType: string): Promise<TaggedInspiration> {
   const prompt = `
-    Analyze this fashion inspiration image. It could be a photo of a person, street style, a magazine cutout, artwork, pattern texture, or a text reference.
-    Identify the style vibe, mood, aesthetic, fabrics, textures, color notes, and pairing ideas.
+    You are an expert fashion director and visual trend curator.
+    Analyze this visual fashion inspiration photograph. It could be:
+    - A street style photograph of someone wearing an outfit
+    - A garment or accessory spotted on a rack/hanger in a clothing boutique or store
+    - A page from a fashion magazine or editorial lookbook
+    - A detail shot of a fabric texture, pattern, jewelry piece, shoe, or silhouette concept.
+
+    Identify:
+    1. Aesthetic Vibe & Mood: Concise 1-2 sentence description of the styling vibe, cut, fabrics, color palette, and styling concept.
+    2. Key Tags: Array of 3-7 specific fashion styling tags (e.g. ["street-style", "tailoring", "oversized-blazer", "camel-wool", "minimalist", "hardware"]).
+
     You must output a JSON object adhering exactly to this structure:
     {
-      "notes": "A description of the style inspiration (e.g. relaxed minimalist styling in warm beige, high-contrast McQueen leather look with hardware)",
-      "tags": ["tag1", "tag2", ...] // Key visual tags (e.g. minimalist, grunge, boucle, hardware, beige, draping, structured)
+      "notes": "Description of the aesthetic vibe and styling elements...",
+      "tags": ["tag1", "tag2", "tag3"]
     }
   `;
 

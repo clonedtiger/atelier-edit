@@ -23,6 +23,13 @@ model User {
   clothingSize     String?
   workLife         String?          // Description of work/daily life
   inspirationNotes String?          // Inspirations list
+  
+  // Personalized Style DNA
+  styleAesthetic   String?          // e.g. "Minimalist Quiet Luxury", "Parisian Chic", "Contemporary Streetwear"
+  favoriteBrands   String?          // e.g. "The Row, Toteme, Khaite, COS, Celine"
+  avoidedStyles    String?          // e.g. "No neon, avoid loud logos, no synthetic leather"
+  colorPalette     String?          // e.g. "Monochrome, ivory, camel, olive, charcoal"
+  
   mfaEnabled       Boolean          @default(false)
   mfaSecret        String?          // TOTP secret key
   role             String           @default("user")
@@ -36,13 +43,15 @@ model User {
   marketingPartners         Boolean          @default(false)
   marketingConsentUpdatedAt DateTime?
 
-  createdAt        DateTime         @default(now())
-  updatedAt        DateTime         @updatedAt
-  wardrobeItems    WardrobeItem[]
-  recommendations  Recommendation[]
-  sessions         UserSession[]
-  activities       UsageActivity[]
-  inspirations     InspirationImage[]
+  createdAt         DateTime         @default(now())
+  updatedAt         DateTime         @updatedAt
+  wardrobeItems     WardrobeItem[]
+  recommendations   Recommendation[]
+  sessions          UserSession[]
+  activities        UsageActivity[]
+  inspirations      InspirationImage[]
+  feedSubscriptions UserFeedSubscription[]
+  customFeeds       FeedSource[]
 
   @@index([role])
 }
@@ -64,14 +73,34 @@ model WardrobeItem {
 }
 
 model FeedSource {
-  id        String   @id @default(uuid())
-  name      String
-  url       String   @unique
-  type      String   // "rss" | "youtube" | "substack"
-  isMuted   Boolean  @default(false)
-  createdAt DateTime @default(now())
+  id            String   @id @default(uuid())
+  name          String
+  url           String   @unique
+  type          String   // "rss" | "youtube" | "substack" | "instagram"
+  category      String?  // "Luxury & Haute Couture" | "Streetwear & Contemporary" | "Minimalism" | "Editorial Substacks"
+  userId        String?  // null for curated starter feeds, or user id for custom feeds
+  user          User?    @relation(fields: [userId], references: [id], onDelete: Cascade)
+  isMuted       Boolean  @default(false)
+  createdAt     DateTime @default(now())
+  subscriptions UserFeedSubscription[]
 
   @@index([isMuted])
+  @@index([userId])
+  @@index([category])
+}
+
+model UserFeedSubscription {
+  id           String     @id @default(uuid())
+  userId       String
+  user         User       @relation(fields: [userId], references: [id], onDelete: Cascade)
+  feedSourceId String
+  feedSource   FeedSource @relation(fields: [feedSourceId], references: [id], onDelete: Cascade)
+  isMuted      Boolean    @default(false)
+  createdAt    DateTime   @default(now())
+
+  @@unique([userId, feedSourceId])
+  @@index([userId])
+  @@index([feedSourceId])
 }
 
 model TrendArticle {

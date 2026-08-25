@@ -12,19 +12,30 @@ async function main() {
 
   // 1. Create default user
   const user = await prisma.user.upsert({
-    where: { email: 'wife@fashionfeed.com' },
+    where: { email: 'curator@atelieredit.com' },
     update: {
       role: 'admin',
+      styleAesthetic: 'Minimalist Quiet Luxury x Editorial Tailoring',
+      favoriteBrands: 'The Row, Toteme, Khaite, Chanel, AllSaints',
+      avoidedStyles: 'No neon colors, avoid synthetic fast-fashion polyester, no loud branding logos',
+      colorPalette: 'Black, Cream, Camel, Charcoal, Forest Pine',
     },
     create: {
-      email: 'wife@fashionfeed.com',
-      name: 'Wife',
+      email: 'curator@atelieredit.com',
+      name: 'Atelier Curator',
       role: 'admin',
+      styleAesthetic: 'Minimalist Quiet Luxury x Editorial Tailoring',
+      favoriteBrands: 'The Row, Toteme, Khaite, Chanel, AllSaints',
+      avoidedStyles: 'No neon colors, avoid synthetic fast-fashion polyester, no loud branding logos',
+      colorPalette: 'Black, Cream, Camel, Charcoal, Forest Pine',
+      workLife: 'Creative Director & Fashion Editor traveling between London and Paris',
+      inspirationNotes: 'Clean architectural silhouettes, textured knitwear, structural outerwear, refined hardware accents',
     },
   });
   console.log(`Default User created: ${user.email}`);
 
   // Clear existing data
+  await prisma.userFeedSubscription.deleteMany({});
   await prisma.recommendationItem.deleteMany({
     where: {
       recommendation: {
@@ -37,19 +48,29 @@ async function main() {
   await prisma.feedSource.deleteMany({});
   await prisma.trendArticle.deleteMany({});
 
-  // 2. Seed Feed Sources
+  // 2. Seed Curated Starter Feed Channels
   const feedSources = [
-    { name: 'Magasin (Laura Reilly)', url: 'https://magasin.substack.com/feed', type: 'rss' },
-    { name: 'The Cereal Aisle (Leandra Medine Cohen)', url: 'https://thecerealaisle.substack.com/feed', type: 'rss' },
-    { name: '5 Things You Should Buy (Becky Malinsky)', url: 'https://5thingsyoushouldbuy.substack.com/feed', type: 'rss' },
-    { name: 'Loïc Prigent (YouTube)', url: 'https://www.youtube.com/feeds/videos.xml?channel_id=UCU5Z-qPL8Terv_te68esHOw', type: 'youtube' },
-    { name: 'Who What Wear', url: 'https://www.whowhatwear.com', type: 'rss' },
+    { name: 'Magasin (Laura Reilly)', url: 'https://magasin.substack.com/feed', type: 'rss', category: 'Editorial Substacks' },
+    { name: 'The Cereal Aisle (Leandra Medine Cohen)', url: 'https://thecerealaisle.substack.com/feed', type: 'rss', category: 'Editorial Substacks' },
+    { name: '5 Things You Should Buy (Becky Malinsky)', url: 'https://5thingsyoushouldbuy.substack.com/feed', type: 'rss', category: 'Editorial Substacks' },
+    { name: 'Loïc Prigent (Runway & Behind The Scenes)', url: 'https://www.youtube.com/feeds/videos.xml?channel_id=UCU5Z-qPL8Terv_te68esHOw', type: 'youtube', category: 'Luxury & Haute Couture' },
+    { name: 'Who What Wear (Trend Radar)', url: 'https://www.whowhatwear.com', type: 'rss', category: 'Contemporary Style' },
+    { name: 'Vogue Runway Analysis', url: 'https://www.vogue.com/feed/rss', type: 'rss', category: 'Luxury & Haute Couture' },
+    { name: 'Highsnobiety Editorial', url: 'https://www.highsnobiety.com/feed/', type: 'rss', category: 'Streetwear & Contemporary' },
   ];
 
   for (const fs of feedSources) {
-    await prisma.feedSource.create({ data: fs });
+    const createdFeed = await prisma.feedSource.create({ data: fs });
+    // Subscribe default user to starter feeds
+    await prisma.userFeedSubscription.create({
+      data: {
+        userId: user.id,
+        feedSourceId: createdFeed.id,
+        isMuted: false,
+      },
+    });
   }
-  console.log('Seeded 5 active feed outlets.');
+  console.log(`Seeded ${feedSources.length} curated feed channels with subscriptions.`);
 
   // 3. Seed Wardrobe Items
   const items = [

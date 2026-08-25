@@ -30,6 +30,10 @@ export async function GET() {
         clothingSize: true,
         workLife: true,
         inspirationNotes: true,
+        styleAesthetic: true,
+        favoriteBrands: true,
+        avoidedStyles: true,
+        colorPalette: true,
         mfaEnabled: true,
         marketingEmail: true,
         marketingSms: true,
@@ -81,6 +85,10 @@ export async function POST(req: NextRequest) {
       clothingSize,
       workLife,
       inspirationNotes,
+      styleAesthetic,
+      favoriteBrands,
+      avoidedStyles,
+      colorPalette,
       password,
     } = body;
 
@@ -99,6 +107,10 @@ export async function POST(req: NextRequest) {
       clothingSize?: string;
       workLife?: string;
       inspirationNotes?: string;
+      styleAesthetic?: string;
+      favoriteBrands?: string;
+      avoidedStyles?: string;
+      colorPalette?: string;
       passwordHash?: string;
     } = {};
 
@@ -122,6 +134,10 @@ export async function POST(req: NextRequest) {
     if (clothingSize !== undefined) updateData.clothingSize = clothingSize;
     if (workLife !== undefined) updateData.workLife = workLife;
     if (inspirationNotes !== undefined) updateData.inspirationNotes = inspirationNotes;
+    if (styleAesthetic !== undefined) updateData.styleAesthetic = styleAesthetic;
+    if (favoriteBrands !== undefined) updateData.favoriteBrands = favoriteBrands;
+    if (avoidedStyles !== undefined) updateData.avoidedStyles = avoidedStyles;
+    if (colorPalette !== undefined) updateData.colorPalette = colorPalette;
 
     // Handle profile password change
     if (password) {

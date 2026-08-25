@@ -20,6 +20,10 @@ interface UserProfile {
   clothingSize: string | null;
   workLife: string | null;
   inspirationNotes: string | null;
+  styleAesthetic?: string | null;
+  favoriteBrands?: string | null;
+  avoidedStyles?: string | null;
+  colorPalette?: string | null;
   mfaEnabled: boolean;
   marketingEmail?: boolean;
   marketingSms?: boolean;
@@ -75,9 +79,23 @@ interface FeedSource {
   name: string;
   url: string;
   type: string;
+  category?: string;
+  isCustom?: boolean;
+  isSubscribed?: boolean;
   isMuted: boolean;
   createdAt: string;
 }
+
+export const STYLE_ARCHETYPES = [
+  { id: 'quiet-luxury', label: 'Minimalist Quiet Luxury', desc: 'Understated elegance, neutral palette, architectural tailoring (e.g. The Row, Toteme, Khaite, Loro Piana)' },
+  { id: 'parisian-chic', label: 'Parisian Chic', desc: 'Effortless classic tailoring, bouclé jackets, breton stripes, refined denim, slingbacks' },
+  { id: 'avant-garde-rebel', label: 'Structural Avant-Garde / Rebel', desc: 'Asymmetric cuts, hardware, leather, dark tailoring, structural deconstruction (e.g. McQueen, Rick Owens)' },
+  { id: 'contemporary-street', label: 'Contemporary Streetwear', desc: 'Relaxed silhouettes, elevated hoodies, statement sneakers, utility trousers' },
+  { id: 'old-money', label: 'Old Money / Heritage Preppy', desc: 'Cable knits, tailored blazers, loafers, crisp shirting, equestrian accents' },
+  { id: 'executive-tailored', label: 'Modern Executive / Power Tailoring', desc: 'Sharp double-breasted suits, crisp poplin, sleek trench coats, leather totes' },
+  { id: 'boho-artisan', label: 'Bohemian Artisan', desc: 'Rich textures, flowing silhouettes, earthy tones, artisanal jewelry, vintage suede' },
+  { id: 'custom', label: 'Custom Aesthetic', desc: 'Your bespoke aesthetic blending multiple design philosophies' },
+];
 
 export default function AtelierEditDashboard() {
   const [activeTab, setActiveTab] = useState<'feed' | 'closet' | 'trends' | 'account' | 'whats-new'>('whats-new');
@@ -170,7 +188,15 @@ export default function AtelierEditDashboard() {
   const [profBra, setProfBra] = useState('');
   const [profWorkLife, setProfWorkLife] = useState('');
   const [profInspirations, setProfInspirations] = useState('');
+  const [profStyleAesthetic, setProfStyleAesthetic] = useState('Minimalist Quiet Luxury');
+  const [profFavoriteBrands, setProfFavoriteBrands] = useState('');
+  const [profAvoidedStyles, setProfAvoidedStyles] = useState('');
+  const [profColorPalette, setProfColorPalette] = useState('');
   const [profPassword, setProfPassword] = useState('');
+
+  // Discover & Custom Feeds state
+  const [newFeedCategory, setNewFeedCategory] = useState('Luxury & Haute Couture');
+  const [feedCategoryFilter, setFeedCategoryFilter] = useState('All');
 
   // Wardrobe duplicates & inline edit states
   const [duplicateGroups, setDuplicateGroups] = useState<Array<{ hash: string; items: WardrobeItem[] }>>([]);
@@ -190,6 +216,8 @@ export default function AtelierEditDashboard() {
   const [insCustomNotes, setInsCustomNotes] = useState('');
   const [inspirationFiles, setInspirationFiles] = useState<File[]>([]);
   const [inspirationPreviewUrls, setInspirationPreviewUrls] = useState<string[]>([]);
+  const [selectedInspirationLightbox, setSelectedInspirationLightbox] = useState<InspirationImage | null>(null);
+  const [inspirationTagFilter, setInspirationTagFilter] = useState('All');
 
   // Sizing sub-states for international measurements
   const [heightUnit, setHeightUnit] = useState<'cm' | 'ftin'>('cm');
@@ -362,6 +390,10 @@ export default function AtelierEditDashboard() {
     setProfBra(u.braSize || '');
     setProfWorkLife(u.workLife || '');
     setProfInspirations(u.inspirationNotes || '');
+    setProfStyleAesthetic(u.styleAesthetic || 'Minimalist Quiet Luxury');
+    setProfFavoriteBrands(u.favoriteBrands || '');
+    setProfAvoidedStyles(u.avoidedStyles || '');
+    setProfColorPalette(u.colorPalette || '');
     setMarketingEmail(Boolean(u.marketingEmail));
     setMarketingSms(Boolean(u.marketingSms));
     setMarketingPartners(Boolean(u.marketingPartners));
@@ -1277,6 +1309,10 @@ export default function AtelierEditDashboard() {
           clothingSize: serializedClothing,
           workLife: profWorkLife,
           inspirationNotes: profInspirations,
+          styleAesthetic: profStyleAesthetic,
+          favoriteBrands: profFavoriteBrands,
+          avoidedStyles: profAvoidedStyles,
+          colorPalette: profColorPalette,
           password: profPassword || undefined,
         }),
       });
@@ -1392,6 +1428,7 @@ export default function AtelierEditDashboard() {
           url: newFeedUrl,
           name: newFeedName,
           type: newFeedType,
+          category: newFeedCategory,
         }),
       });
 
@@ -1401,6 +1438,7 @@ export default function AtelierEditDashboard() {
         setNewFeedType('rss');
         fetchFeeds();
         triggerSilentFeedSync();
+        showToast('Custom feed added to your radar!');
       } else {
         const errData = await res.json();
         showToast(`Failed to add feed: ${errData.error}`, 'error');
@@ -1408,6 +1446,24 @@ export default function AtelierEditDashboard() {
     } catch (err) {
       console.error(err);
       showToast('Error adding feed source.', 'error');
+    }
+  };
+
+  const handleToggleSubscribe = async (feedId: string, currentSubscribed: boolean) => {
+    try {
+      const res = await fetch(`/api/feeds/${feedId}`, {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ isSubscribed: !currentSubscribed }),
+      });
+
+      if (res.ok) {
+        fetchFeeds();
+        triggerSilentFeedSync();
+        showToast(!currentSubscribed ? 'Channel added to your radar!' : 'Channel removed from your radar.');
+      }
+    } catch (err) {
+      console.error(err);
     }
   };
 
@@ -1422,6 +1478,7 @@ export default function AtelierEditDashboard() {
       if (res.ok) {
         fetchFeeds();
         triggerSilentFeedSync();
+        showToast(!currentMute ? 'Feed muted' : 'Feed unmuted');
       }
     } catch (err) {
       console.error(err);
@@ -1576,7 +1633,7 @@ export default function AtelierEditDashboard() {
               onClick={() => setActiveTab('trends')}
               className={`nav-link ${activeTab === 'trends' ? 'active' : ''}`}
             >
-              Inspirations ({feeds.length})
+              Inspirations ({inspirations.length})
             </button>
 
             <span className="nav-divider">|</span>
@@ -1586,6 +1643,15 @@ export default function AtelierEditDashboard() {
               className={`nav-link ${activeTab === 'account' ? 'active' : ''}`}
             >
               My Profile
+            </button>
+
+            <button
+              type="button"
+              onClick={() => openCameraViewfinder('inspiration')}
+              className="header-snap-btn"
+              title="Snap street style, boutique racks, or magazine inspiration on the fly"
+            >
+              📸 Snap Inspiration
             </button>
 
             {user && user.role === 'admin' && (
@@ -1878,11 +1944,18 @@ export default function AtelierEditDashboard() {
 
             {/* Custom Vibe Input Card */}
             <div className="lookbook-panel" style={{ padding: '1.5rem', marginBottom: '2rem' }}>
-              <h3 style={{ fontSize: '1.25rem', marginBottom: '0.5rem', borderBottom: '1px solid var(--border-color)', paddingBottom: '0.5rem' }}>
-                Personal Stylist Consultation
-              </h3>
+              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: '0.5rem', borderBottom: '1px solid var(--border-color)', paddingBottom: '0.5rem', marginBottom: '0.75rem' }}>
+                <h3 style={{ fontSize: '1.25rem' }}>
+                  Personal Stylist Consultation
+                </h3>
+                <div className="stylist-dna-badge" style={{ marginBottom: 0 }}>
+                  <span>✦ Aesthetic: <strong>{user?.styleAesthetic || 'Personalized Tailoring'}</strong></span>
+                  <span style={{ opacity: 0.5 }}>|</span>
+                  <span>{feeds.filter(f => f.isSubscribed && !f.isMuted).length} Active Feeds</span>
+                </div>
+              </div>
               <p style={{ fontSize: '0.8rem', color: 'var(--text-muted)', marginBottom: '1.25rem' }}>
-                Request a specific outfit vibe, occasion, or style theme (e.g., &ldquo;sunny day floral look&rdquo; or &ldquo;edgy concert layering&rdquo;).
+                Recommendations synthesize your <strong>{user?.styleAesthetic || 'Personalized'}</strong> aesthetic, closet collection, and active fashion channels. You can also specify an occasion, destination, or mood below:
               </p>
               <div style={{ display: 'flex', gap: '1rem', alignItems: 'center' }}>
                 <input
@@ -2719,17 +2792,34 @@ export default function AtelierEditDashboard() {
                     />
                   </div>
 
-                  <div className="form-field">
-                    <label>Feed Classification</label>
-                    <select
-                      value={newFeedType}
-                      onChange={(e) => setNewFeedType(e.target.value)}
-                    >
-                      <option value="rss">RSS / Newsletter feed</option>
-                      <option value="instagram">Instagram Account (Dual Bridge + Search)</option>
-                      <option value="youtube">YouTube Video source</option>
-                      <option value="substack">Substack feed</option>
-                    </select>
+                  <div className="form-row-grid cols-2" style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '0.75rem' }}>
+                    <div className="form-field">
+                      <label>Feed Classification</label>
+                      <select
+                        value={newFeedType}
+                        onChange={(e) => setNewFeedType(e.target.value)}
+                      >
+                        <option value="rss">RSS / Newsletter feed</option>
+                        <option value="instagram">Instagram Account</option>
+                        <option value="youtube">YouTube Video source</option>
+                        <option value="substack">Substack feed</option>
+                      </select>
+                    </div>
+
+                    <div className="form-field">
+                      <label>Category</label>
+                      <select
+                        value={newFeedCategory}
+                        onChange={(e) => setNewFeedCategory(e.target.value)}
+                      >
+                        <option value="Editorial Substacks">Editorial Substacks</option>
+                        <option value="Luxury &amp; Haute Couture">Luxury &amp; Haute Couture</option>
+                        <option value="Contemporary Style">Contemporary Style</option>
+                        <option value="Streetwear &amp; Contemporary">Streetwear &amp; Contemporary</option>
+                        <option value="Minimalism &amp; Sustainable">Minimalism &amp; Sustainable</option>
+                        <option value="Custom Feeds">Custom Feeds</option>
+                      </select>
+                    </div>
                   </div>
 
                   <button type="submit" className="accent-button">
@@ -2740,9 +2830,29 @@ export default function AtelierEditDashboard() {
 
               {/* List channels */}
               <div className="lookbook-panel" style={{ padding: '1.5rem' }}>
-                <h3 style={{ fontSize: '1.35rem', marginBottom: '1.25rem', borderBottom: '1px solid var(--border-color)', paddingBottom: '0.5rem' }}>
-                  Inspiration Sources
-                </h3>
+                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', borderBottom: '1px solid var(--border-color)', paddingBottom: '0.5rem', marginBottom: '1rem', flexWrap: 'wrap', gap: '0.5rem' }}>
+                  <h3 style={{ fontSize: '1.35rem' }}>
+                    Curated Fashion Channels
+                  </h3>
+                  <span style={{ fontSize: '0.7rem', color: 'var(--text-muted)' }}>
+                    {feeds.filter(f => f.isSubscribed && !f.isMuted).length} active on your radar
+                  </span>
+                </div>
+
+                {/* Feed Category Filter Pills */}
+                <div className="category-filter-bar" style={{ display: 'flex', gap: '0.35rem', overflowX: 'auto', paddingBottom: '0.5rem', marginBottom: '1rem' }}>
+                  {['All', 'Editorial Substacks', 'Luxury & Haute Couture', 'Contemporary Style', 'Streetwear & Contemporary', 'Custom Feeds'].map((cat) => (
+                    <button
+                      key={cat}
+                      type="button"
+                      className={`filter-tab-btn ${feedCategoryFilter === cat ? 'active' : ''}`}
+                      onClick={() => setFeedCategoryFilter(cat)}
+                      style={{ fontSize: '0.65rem', padding: '0.3rem 0.6rem', whiteSpace: 'nowrap' }}
+                    >
+                      {cat}
+                    </button>
+                  ))}
+                </div>
 
                 {loadingFeeds ? (
                   <div style={{ textAlign: 'center', fontSize: '0.8rem', color: 'var(--text-muted)', padding: '2rem 0' }}>
@@ -2754,34 +2864,67 @@ export default function AtelierEditDashboard() {
                   </p>
                 ) : (
                   <div style={{ display: 'flex', flexDirection: 'column' }}>
-                    {feeds.map((feed) => (
-                      <div key={feed.id} className="ingest-item-row">
+                    {feeds
+                      .filter(feed => feedCategoryFilter === 'All' || feed.category === feedCategoryFilter)
+                      .map((feed) => (
+                      <div key={feed.id} className="ingest-item-row" style={{ opacity: feed.isSubscribed ? (feed.isMuted ? 0.6 : 1) : 0.45 }}>
                         <div className="ingest-item-meta">
-                          <div className="ingest-item-header">
+                          <div className="ingest-item-header" style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', flexWrap: 'wrap' }}>
                             <span className={`ingest-item-title ${feed.isMuted ? 'muted' : ''}`}>
                               {feed.name}
                             </span>
+                            <span className="feed-category-pill">{feed.category || 'General'}</span>
                             <span className="ingest-type-badge">{feed.type === 'instagram' ? '📸 Instagram' : feed.type}</span>
+                            {feed.isCustom && (
+                              <span style={{ fontSize: '0.55rem', color: 'var(--accent)', fontWeight: 700, textTransform: 'uppercase' }}>• Custom</span>
+                            )}
                           </div>
                           <span className="ingest-item-url">{feed.url}</span>
                         </div>
 
-                        <div className="ingest-actions">
-                          <label className="mute-toggle">
-                            <input
-                              type="checkbox"
-                              checked={feed.isMuted}
-                              onChange={() => handleToggleMute(feed.id, feed.isMuted)}
-                              style={{ marginRight: '4px' }}
-                            />
-                            Mute
-                          </label>
-                          <button
-                            onClick={() => handleDeleteFeed(feed.id)}
-                            className="delete-action-btn"
-                          >
-                            Delete
-                          </button>
+                        <div className="ingest-actions" style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
+                          {feed.isSubscribed ? (
+                            <>
+                              <label className="mute-toggle">
+                                <input
+                                  type="checkbox"
+                                  checked={feed.isMuted}
+                                  onChange={() => handleToggleMute(feed.id, feed.isMuted)}
+                                  style={{ marginRight: '4px' }}
+                                />
+                                Mute
+                              </label>
+                              <button
+                                type="button"
+                                onClick={() => handleToggleSubscribe(feed.id, true)}
+                                className="nav-action"
+                                style={{ fontSize: '0.7rem', padding: '0.25rem 0.5rem', border: '1px solid var(--border-color)', borderRadius: '3px' }}
+                                title="Unsubscribe from this feed"
+                              >
+                                Unsubscribe
+                              </button>
+                            </>
+                          ) : (
+                            <button
+                              type="button"
+                              onClick={() => handleToggleSubscribe(feed.id, false)}
+                              className="accent-button"
+                              style={{ width: 'auto', fontSize: '0.65rem', padding: '0.25rem 0.6rem' }}
+                            >
+                              ➕ Subscribe
+                            </button>
+                          )}
+
+                          {feed.isCustom && (
+                            <button
+                              type="button"
+                              onClick={() => handleDeleteFeed(feed.id)}
+                              className="delete-action-btn"
+                              style={{ fontSize: '0.7rem', padding: '0.25rem 0.5rem' }}
+                            >
+                              Delete
+                            </button>
+                          )}
                         </div>
                       </div>
                     ))}
@@ -2794,11 +2937,13 @@ export default function AtelierEditDashboard() {
             {/* Right Column: Visual Inspiration Board Uploads & Grid Gallery */}
             <div>
               <div className="lookbook-panel" style={{ padding: '1.5rem' }}>
-                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', borderBottom: '1px solid var(--border-color)', paddingBottom: '0.5rem', marginBottom: '1.25rem' }}>
+                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', borderBottom: '1px solid var(--border-color)', paddingBottom: '0.5rem', marginBottom: '1.25rem', flexWrap: 'wrap', gap: '0.5rem' }}>
                   <div>
-                    <h3 style={{ fontSize: '1.35rem' }}>Visual Inspiration Board</h3>
+                    <h3 style={{ fontSize: '1.35rem' }}>
+                      Visual Inspiration Moodboard ({inspirations.length})
+                    </h3>
                     <p style={{ fontSize: '0.75rem', color: 'var(--text-muted)', marginTop: '2px' }}>
-                      Upload snapshots of street style, magazines, artworks, or textures. The AI Stylist active-scans this board to steer outfit recommendation directives.
+                      Snap photos of garments on shop racks, street outfits, or magazine lookbooks. Gemini Vision auto-analyzes cuts, fabrics, and aesthetics to steer your AI Stylist.
                     </p>
                   </div>
                 </div>
@@ -2816,7 +2961,7 @@ export default function AtelierEditDashboard() {
                         <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 9a2 2 0 012-2h.93a2 2 0 001.664-.89l.812-1.22A2 2 0 0110.07 4h3.86a2 2 0 011.664.89l.812 1.22A2 2 0 0018.07 7H19a2 2 0 012 2v9a2 2 0 01-2 2H5a2 2 0 01-2-2V9z" />
                         <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 13a3 3 0 11-6 0 3 3 0 016 0z" />
                       </svg>
-                      <span>Snap Inspiration</span>
+                      <span>📸 Snap Photo (Camera)</span>
                     </button>
 
                     <button
@@ -2828,7 +2973,7 @@ export default function AtelierEditDashboard() {
                       <svg width="14" height="14" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                         <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z" />
                       </svg>
-                      <span>Browse Library</span>
+                      <span>🖼️ Photo Library</span>
                     </button>
 
                     <input
@@ -2857,7 +3002,7 @@ export default function AtelierEditDashboard() {
                         type="text"
                         value={insCustomNotes}
                         onChange={(e) => setInsCustomNotes(e.target.value)}
-                        placeholder="e.g. Minimalist layering vibe, tailored McQueen collar texture"
+                        placeholder="e.g. Vintage leather biker jacket in boutique, love the oversized collar"
                         style={{ fontSize: '0.8rem', padding: '0.45rem', width: '100%' }}
                       />
                     </div>
@@ -2867,7 +3012,7 @@ export default function AtelierEditDashboard() {
                       className="accent-button"
                       style={{ padding: '0.55rem 1rem', width: 'auto', marginTop: '1.25rem' }}
                     >
-                      {isUploadingInspiration ? 'INGESTING...' : `UPLOAD INSPIRATION (${inspirationFiles.length})`}
+                      {isUploadingInspiration ? 'INGESTING...' : `ADD TO MOODBOARD (${inspirationFiles.length})`}
                     </button>
                   </div>
 
@@ -2890,6 +3035,33 @@ export default function AtelierEditDashboard() {
                   )}
                 </form>
 
+                {/* Moodboard Tag Filter Bar */}
+                {inspirations.length > 0 && (() => {
+                  const uniqueTags = Array.from(new Set(inspirations.flatMap((ins) => ins.tags || []))).filter(Boolean);
+                  if (uniqueTags.length === 0) return null;
+                  return (
+                    <div className="moodboard-filter-bar">
+                      <button
+                        type="button"
+                        className={`moodboard-chip ${inspirationTagFilter === 'All' ? 'active' : ''}`}
+                        onClick={() => setInspirationTagFilter('All')}
+                      >
+                        All Snaps ({inspirations.length})
+                      </button>
+                      {uniqueTags.map((tag) => (
+                        <button
+                          key={tag}
+                          type="button"
+                          className={`moodboard-chip ${inspirationTagFilter === tag ? 'active' : ''}`}
+                          onClick={() => setInspirationTagFilter(tag)}
+                        >
+                          #{tag}
+                        </button>
+                      ))}
+                    </div>
+                  );
+                })()}
+
                 {/* Gallery List */}
                 {loadingInspirations ? (
                   <div style={{ textAlign: 'center', padding: '3rem 0', color: 'var(--text-muted)', fontSize: '0.8rem' }}>
@@ -2897,14 +3069,20 @@ export default function AtelierEditDashboard() {
                   </div>
                 ) : inspirations.length === 0 ? (
                   <div style={{ textAlign: 'center', padding: '4rem 2rem', border: '1px dashed rgba(255,255,255,0.05)', background: 'rgba(0,0,0,0.1)', borderRadius: '4px', color: 'var(--text-muted)' }}>
-                    <p style={{ fontSize: '0.85rem', fontWeight: 'bold' }}>Visual Board Empty</p>
-                    <p style={{ fontSize: '0.75rem', marginTop: '4px' }}>Upload street outfits or magazine snapshots above to customize lookbook styling directives.</p>
+                    <p style={{ fontSize: '0.85rem', fontWeight: 'bold' }}>Visual Moodboard Empty</p>
+                    <p style={{ fontSize: '0.75rem', marginTop: '4px' }}>Use your phone camera or the snap button above to capture garments on shop racks, magazine pages, or street styles.</p>
                   </div>
                 ) : (
                   <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(180px, 1fr))', gap: '1rem' }}>
-                    {inspirations.map((ins) => (
-                      <div key={ins.id} className="garment-card" style={{ display: 'flex', flexDirection: 'column', height: 'auto', padding: '0.5rem', background: 'rgba(255,255,255,0.02)', border: '1px solid var(--border-color)' }}>
-                        <div style={{ position: 'relative', width: '100%', height: '140px', borderRadius: '3px', overflow: 'hidden' }}>
+                    {inspirations
+                      .filter((ins) => inspirationTagFilter === 'All' || (ins.tags && ins.tags.includes(inspirationTagFilter)))
+                      .map((ins) => (
+                      <div key={ins.id} className="garment-card" style={{ display: 'flex', flexDirection: 'column', height: 'auto', padding: '0.5rem', background: 'rgba(255,255,255,0.02)', border: '1px solid var(--border-color)', cursor: 'pointer' }}>
+                        <div
+                          style={{ position: 'relative', width: '100%', height: '140px', borderRadius: '3px', overflow: 'hidden' }}
+                          onClick={() => setSelectedInspirationLightbox(ins)}
+                          title="Click to expand full inspiration details"
+                        >
                           <Image
                             src={ins.imageUrl}
                             alt="Visual Inspiration"
@@ -2913,7 +3091,11 @@ export default function AtelierEditDashboard() {
                             unoptimized
                           />
                           <button
-                            onClick={() => handleDeleteInspiration(ins.id)}
+                            type="button"
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              handleDeleteInspiration(ins.id);
+                            }}
                             style={{
                               position: 'absolute',
                               top: '5px',
@@ -2937,7 +3119,10 @@ export default function AtelierEditDashboard() {
                             ✕
                           </button>
                         </div>
-                        <div style={{ padding: '0.4rem 0.25rem 0.25rem 0.25rem', flex: '1', display: 'flex', flexDirection: 'column', gap: '0.25rem' }}>
+                        <div
+                          style={{ padding: '0.4rem 0.25rem 0.25rem 0.25rem', flex: '1', display: 'flex', flexDirection: 'column', gap: '0.25rem' }}
+                          onClick={() => setSelectedInspirationLightbox(ins)}
+                        >
                           <p style={{ fontSize: '0.75rem', lineHeight: '1.25', margin: 0, color: 'var(--text-muted)' }}>
                             {ins.notes || 'Visual Vibe'}
                           </p>
@@ -2945,7 +3130,7 @@ export default function AtelierEditDashboard() {
                             <div style={{ display: 'flex', flexWrap: 'wrap', gap: '3px', marginTop: 'auto', paddingTop: '0.4rem' }}>
                               {ins.tags.map((t, tIdx) => (
                                 <span key={tIdx} style={{ fontSize: '0.55rem', padding: '1px 4px', background: 'rgba(212, 175, 55, 0.1)', color: 'var(--accent-gold)', borderRadius: '2px', textTransform: 'uppercase', letterSpacing: '0.02em' }}>
-                                  {t}
+                                  #{t}
                                 </span>
                               ))}
                             </div>
@@ -3320,29 +3505,98 @@ export default function AtelierEditDashboard() {
                       </div>
                     </div>
 
-                    {/* Part 3 */}
-                    <div className="form-group-stack" style={{ gap: '1rem', marginTop: '1rem' }}>
-                      <h4 style={{ fontSize: '1.15rem', color: 'var(--accent)', borderBottom: '1px solid var(--border-color)', paddingBottom: '0.25rem' }}>
-                        3. Personalization Parameters
-                      </h4>
-                      
-                      <div className="form-field" style={{ maxWidth: '400px' }}>
-                        <label>Type of Work / Lifestyle</label>
+                    {/* Part 3: Style DNA & Aesthetic Archetype */}
+                    <div className="form-group-stack" style={{ gap: '1.25rem', marginTop: '1.5rem' }}>
+                      <div style={{ borderBottom: '1px solid var(--border-color)', paddingBottom: '0.5rem' }}>
+                        <h4 style={{ fontSize: '1.15rem', color: 'var(--accent)', marginBottom: '0.25rem' }}>
+                          3. Style DNA &amp; Aesthetic Archetype
+                        </h4>
+                        <p style={{ fontSize: '0.75rem', color: 'var(--text-muted)' }}>
+                          Define your unique styling philosophy, design rules, and brand universe so Gemini recommendations match your personal taste.
+                        </p>
+                      </div>
+
+                      <div className="form-field" style={{ maxWidth: '600px' }}>
+                        <label>Select Aesthetic Archetype</label>
+                        <div className="style-archetype-chips">
+                          {STYLE_ARCHETYPES.map((arch) => (
+                            <button
+                              type="button"
+                              key={arch.id}
+                              className={`style-chip ${profStyleAesthetic === arch.label ? 'active' : ''}`}
+                              onClick={() => setProfStyleAesthetic(arch.label)}
+                              title={arch.desc}
+                            >
+                              {arch.label}
+                            </button>
+                          ))}
+                        </div>
+                      </div>
+
+                      <div className="form-field" style={{ maxWidth: '600px' }}>
+                        <label>Custom Style Aesthetic / Narrative</label>
                         <input
                           type="text"
-                          value={profWorkLife}
-                          onChange={(e) => setProfWorkLife(e.target.value)}
-                          placeholder="e.g. Creative director, travels frequently, corporate office..."
+                          value={profStyleAesthetic}
+                          onChange={(e) => setProfStyleAesthetic(e.target.value)}
+                          placeholder="e.g. Minimalist Quiet Luxury with Architectural Silhouettes"
                         />
                       </div>
 
                       <div className="form-field" style={{ maxWidth: '600px' }}>
-                        <label>Styling Inspirations &amp; Mood Guidelines</label>
+                        <label>Favorite Brands &amp; Designers</label>
+                        <input
+                          type="text"
+                          value={profFavoriteBrands}
+                          onChange={(e) => setProfFavoriteBrands(e.target.value)}
+                          placeholder="e.g. The Row, Toteme, Khaite, COS, Celine, Loro Piana, Zara"
+                        />
+                      </div>
+
+                      <div className="form-field" style={{ maxWidth: '600px' }}>
+                        <label>Style Rules &amp; Avoided Aesthetics</label>
+                        <input
+                          type="text"
+                          value={profAvoidedStyles}
+                          onChange={(e) => setProfAvoidedStyles(e.target.value)}
+                          placeholder="e.g. Avoid neon colors, no loud logos, avoid synthetic polyester"
+                        />
+                      </div>
+
+                      <div className="form-field" style={{ maxWidth: '600px' }}>
+                        <label>Signature Color Palette</label>
+                        <input
+                          type="text"
+                          value={profColorPalette}
+                          onChange={(e) => setProfColorPalette(e.target.value)}
+                          placeholder="e.g. Black, Cream, Camel, Charcoal, Forest Pine"
+                        />
+                      </div>
+                    </div>
+
+                    {/* Part 4: Lifestyle & Context */}
+                    <div className="form-group-stack" style={{ gap: '1rem', marginTop: '1.5rem' }}>
+                      <h4 style={{ fontSize: '1.15rem', color: 'var(--accent)', borderBottom: '1px solid var(--border-color)', paddingBottom: '0.25rem' }}>
+                        4. Lifestyle &amp; Visual Inspirations
+                      </h4>
+                      
+                      <div className="form-field" style={{ maxWidth: '600px' }}>
+                        <label>Type of Work / Daily Lifestyle</label>
+                        <input
+                          type="text"
+                          value={profWorkLife}
+                          onChange={(e) => setProfWorkLife(e.target.value)}
+                          placeholder="e.g. Creative director, travels frequently between London and Paris, corporate boardrooms..."
+                        />
+                      </div>
+
+                      <div className="form-field" style={{ maxWidth: '600px' }}>
+                        <label>Styling Notes &amp; Moodboard Guidelines</label>
                         <textarea
                           value={profInspirations}
                           onChange={(e) => setProfInspirations(e.target.value)}
-                          placeholder="Detail specific designer preferences, textures, color notes, or general visual ideas..."
-                          rows={4}
+                          placeholder="Detail specific texture preferences, silhouettes, layering rules, or visual concepts..."
+                          rows={3}
                         />
                       </div>
 
@@ -3364,7 +3618,7 @@ export default function AtelierEditDashboard() {
                         {user.mfaEnabled ? 'MFA Security Active' : 'Basic Login'}
                       </span>
                       <button type="submit" className="accent-button" style={{ width: 'auto' }}>
-                        {isSavingProfile ? 'Saving Sizing Profile...' : 'SAVE PROFILE'}
+                        {isSavingProfile ? 'Saving Style Profile...' : 'SAVE STYLE DNA & PROFILE'}
                       </button>
                     </div>
 
@@ -3792,6 +4046,80 @@ export default function AtelierEditDashboard() {
             </div>
           </div>
         </div>
+      )}
+
+      {/* Visual Inspiration Lightbox Modal */}
+      {selectedInspirationLightbox && (
+        <div className="inspiration-lightbox-overlay" onClick={() => setSelectedInspirationLightbox(null)}>
+          <div className="inspiration-lightbox-modal" onClick={(e) => e.stopPropagation()}>
+            <div style={{ position: 'relative', width: '100%', height: '360px', backgroundColor: '#0c0c0d' }}>
+              <Image
+                src={selectedInspirationLightbox.imageUrl}
+                alt="Inspiration Detail"
+                fill
+                style={{ objectFit: 'contain' }}
+                unoptimized
+              />
+              <button
+                type="button"
+                onClick={() => setSelectedInspirationLightbox(null)}
+                style={{
+                  position: 'absolute',
+                  top: '12px',
+                  right: '12px',
+                  background: 'rgba(0, 0, 0, 0.75)',
+                  color: '#FAF8F4',
+                  border: '1px solid rgba(255, 255, 255, 0.2)',
+                  borderRadius: '50%',
+                  width: '32px',
+                  height: '32px',
+                  cursor: 'pointer',
+                  fontSize: '14px',
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                }}
+                aria-label="Close Lightbox"
+              >
+                ✕
+              </button>
+            </div>
+            <div style={{ padding: '1.25rem 1.5rem', display: 'flex', flexDirection: 'column', gap: '0.75rem' }}>
+              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: '0.5rem' }}>
+                <span style={{ fontSize: '0.7rem', color: 'var(--accent-gold)', textTransform: 'uppercase', letterSpacing: '0.12em', fontWeight: 700 }}>
+                  ✦ Visual Moodboard Inspiration
+                </span>
+                <span style={{ fontSize: '0.7rem', color: 'var(--text-muted)' }}>
+                  {new Date(selectedInspirationLightbox.createdAt).toLocaleDateString()}
+                </span>
+              </div>
+              <p style={{ fontSize: '0.85rem', color: '#FAF8F4', lineHeight: '1.5', margin: 0 }}>
+                {selectedInspirationLightbox.notes || 'Street style & aesthetic mood inspiration.'}
+              </p>
+              {selectedInspirationLightbox.tags.length > 0 && (
+                <div style={{ display: 'flex', flexWrap: 'wrap', gap: '0.4rem', marginTop: '0.25rem' }}>
+                  {selectedInspirationLightbox.tags.map((tag, idx) => (
+                    <span key={idx} style={{ fontSize: '0.65rem', padding: '0.25rem 0.6rem', background: 'rgba(212, 175, 55, 0.15)', color: 'var(--accent-gold)', borderRadius: '4px', fontWeight: 600 }}>
+                      #{tag}
+                    </span>
+                  ))}
+                </div>
+              )}
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Floating Mobile Snap FAB */}
+      {user && (
+        <button
+          type="button"
+          onClick={() => openCameraViewfinder('inspiration')}
+          className="mobile-fab-snap"
+          aria-label="Snap Street/Shop Inspiration"
+        >
+          📸 Snap Inspiration
+        </button>
       )}
 
       {toast && (

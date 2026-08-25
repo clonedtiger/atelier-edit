@@ -90,8 +90,8 @@ function getStringHash(str: string): number {
  * Restricts queries to target sites (Zara, Mango, Net-A-Porter, AllSaints).
  */
 async function searchShoppingLink(query: string, brand: string | null): Promise<SearchResult | null> {
-  const targetBrand = brand || 'fashion';
-  const fullQuery = `${query} "${targetBrand}" site:zara.com OR site:mango.com OR site:net-a-porter.com OR site:allsaints.com`;
+  const targetBrand = brand || 'luxury fashion';
+  const fullQuery = `${query} "${targetBrand}" site:net-a-porter.com OR site:ssense.com OR site:farfetch.com OR site:nordstrom.com OR site:zara.com OR site:mango.com OR site:cos.com OR site:allsaints.com`;
   console.log(`Searching shopping item with query: "${fullQuery}"`);
 
   // Categorize query to fetch matching group of images
@@ -231,7 +231,7 @@ export async function generateRecommendationsForUser(userId: string, vibe?: stri
     }
   }
 
-  // 1b. Fetch user sizing profile
+  // 1b. Fetch user sizing profile and personalized Style DNA
   const user = await prisma.user.findUnique({
     where: { id: userId },
     select: {
@@ -245,20 +245,48 @@ export async function generateRecommendationsForUser(userId: string, vibe?: stri
       gloveSize: true,
       workLife: true,
       inspirationNotes: true,
+      styleAesthetic: true,
+      favoriteBrands: true,
+      avoidedStyles: true,
+      colorPalette: true,
     },
   });
 
-  // 2. Fetch the latest trend keywords from articles parsed in the last 14 days
-  const recentArticles = await prisma.trendArticle.findMany({
-    where: {
-      createdAt: {
-        gte: new Date(Date.now() - 14 * 24 * 60 * 60 * 1000), // last 14 days
-      },
-    },
-    select: {
-      extractedTrends: true,
-    },
+  // 2. Fetch the latest trend keywords from articles matching the user's active (unmuted) feed subscriptions
+  const userSubs = await prisma.userFeedSubscription.findMany({
+    where: { userId, isMuted: false },
+    include: { feedSource: true },
   });
+
+  let recentArticles: Array<{ extractedTrends: string[] }> = [];
+  if (userSubs.length > 0) {
+    const feedNames = userSubs.map((s) => s.feedSource.name);
+    recentArticles = await prisma.trendArticle.findMany({
+      where: {
+        createdAt: {
+          gte: new Date(Date.now() - 30 * 24 * 60 * 60 * 1000), // last 30 days
+        },
+        sourceName: { in: feedNames },
+      },
+      select: {
+        extractedTrends: true,
+      },
+    });
+  }
+
+  // Fallback: If user has no articles from personal subscriptions yet, pull recent global articles
+  if (recentArticles.length === 0) {
+    recentArticles = await prisma.trendArticle.findMany({
+      where: {
+        createdAt: {
+          gte: new Date(Date.now() - 30 * 24 * 60 * 60 * 1000),
+        },
+      },
+      select: {
+        extractedTrends: true,
+      },
+    });
+  }
 
   const trendsSet = new Set<string>();
   recentArticles.forEach((article) => {
@@ -275,7 +303,7 @@ export async function generateRecommendationsForUser(userId: string, vibe?: stri
     },
   });
 
-  console.log(`Loaded ${wardrobe.length} wardrobe items, ${trendsList.length} trends, and ${inspirations.length} visual inspirations.`);
+  console.log(`Loaded ${wardrobe.length} wardrobe items, ${trendsList.length} trends (${userSubs.length} active feeds), and ${inspirations.length} visual inspirations.`);
 
   // 3. Ask Gemini to create outfits, passing user measurements & optional anchor item
   const recommendedOutfits = await generateOutfitRecommendations(
