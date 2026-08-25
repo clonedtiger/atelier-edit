@@ -97,13 +97,21 @@ export async function GET() {
       },
     });
 
+    const capsules = await prisma.capsuleTrip.findMany({
+      where: { userId },
+    });
+
+    const collages = await prisma.outfitCollage.findMany({
+      where: { userId },
+    });
+
     // Assemble compliance export payload
     const exportPackage = {
       exportMetadata: {
         title: 'Atelier Edit - GDPR / DPA 2018 Personal Data Export',
         exportedAt: new Date().toISOString(),
         dataSubjectEmail: userProfile.email,
-        complianceNotice: 'This package contains all personal data, physical sizing measurements, uploaded media references, styling lookbooks, and consent logs stored by Atelier Edit under GDPR Article 20.',
+        complianceNotice: 'This package contains all personal data, physical sizing measurements, uploaded media references, styling lookbooks, travel capsules, collages, and consent logs stored by Atelier Edit under GDPR Article 20.',
       },
       accountProfile: userProfile,
       marketingConsentAudit: {
@@ -123,6 +131,14 @@ export async function GET() {
       stylistLookbooks: {
         totalOutfits: recommendations.length,
         recommendations,
+      },
+      travelCapsules: {
+        totalTrips: capsules.length,
+        trips: capsules,
+      },
+      outfitCollages: {
+        totalCollages: collages.length,
+        collages,
       },
       activityAuditLogs: activities,
       accountSessions: sessions,

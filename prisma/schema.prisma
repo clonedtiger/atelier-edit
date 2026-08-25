@@ -24,11 +24,12 @@ model User {
   workLife         String?          // Description of work/daily life
   inspirationNotes String?          // Inspirations list
   
-  // Personalized Style DNA
+  // Personalized Style DNA & Location
   styleAesthetic   String?          // e.g. "Minimalist Quiet Luxury", "Parisian Chic", "Contemporary Streetwear"
   favoriteBrands   String?          // e.g. "The Row, Toteme, Khaite, COS, Celine"
   avoidedStyles    String?          // e.g. "No neon, avoid loud logos, no synthetic leather"
   colorPalette     String?          // e.g. "Monochrome, ivory, camel, olive, charcoal"
+  locationCity     String?          // e.g. "London", "Paris", "New York", "Milan"
   
   mfaEnabled       Boolean          @default(false)
   mfaSecret        String?          // TOTP secret key
@@ -52,6 +53,8 @@ model User {
   inspirations      InspirationImage[]
   feedSubscriptions UserFeedSubscription[]
   customFeeds       FeedSource[]
+  capsules          CapsuleTrip[]
+  collages          OutfitCollage[]
 
   @@index([role])
 }
@@ -181,3 +184,33 @@ model InspirationImage {
 
   @@index([userId, createdAt])
 }
+
+model CapsuleTrip {
+  id              String   @id @default(uuid())
+  userId          String
+  user            User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  destination     String   // e.g. "Paris, France"
+  startDate       DateTime
+  endDate         DateTime
+  tripPurpose     String   // "Business & Dinners", "Weekend Getaway", "Fashion Week"
+  luggageType     String   // "Carry-on Only", "Checked Suitcase"
+  itemIds         String[] // Array of selected wardrobe item UUIDs
+  outfitSchedule  Json     // Day-by-day day & evening outfit itineraries
+  checklistNotes  String?
+  createdAt       DateTime @default(now())
+
+  @@index([userId, createdAt])
+}
+
+model OutfitCollage {
+  id           String   @id @default(uuid())
+  userId       String
+  user         User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  title        String   // e.g. "Autumn Rain in Mayfair"
+  canvasData   Json     // Placed elements: [{ id, imageUrl, x, y, scale, rotation, zIndex, label }]
+  thumbnailUrl String?  // Rendered composite image
+  createdAt    DateTime @default(now())
+
+  @@index([userId, createdAt])
+}
+

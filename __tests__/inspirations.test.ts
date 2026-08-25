@@ -163,6 +163,7 @@ describe('Visual Inspiration Board & Stylist Integration Tests', () => {
             tags: expect.arrayContaining(['draped', 'silk', 'mcqueen']),
           }),
         ]),
+        undefined,
         undefined
       );
 

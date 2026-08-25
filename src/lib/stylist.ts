@@ -1,5 +1,6 @@
 import { prisma } from './db';
 import { generateOutfitRecommendations } from './gemini';
+import { fetchLiveWeather } from './weather';
 
 interface SearchResult {
   title: string;
@@ -89,7 +90,7 @@ function getStringHash(str: string): number {
  * Searches the web for a retail shopping link matching the requested query.
  * Restricts queries to target sites (Zara, Mango, Net-A-Porter, AllSaints).
  */
-async function searchShoppingLink(query: string, brand: string | null): Promise<SearchResult | null> {
+export async function searchShoppingLink(query: string, brand: string | null): Promise<SearchResult | null> {
   const targetBrand = brand || 'luxury fashion';
   const fullQuery = `${query} "${targetBrand}" site:net-a-porter.com OR site:ssense.com OR site:farfetch.com OR site:nordstrom.com OR site:zara.com OR site:mango.com OR site:cos.com OR site:allsaints.com`;
   console.log(`Searching shopping item with query: "${fullQuery}"`);
@@ -198,7 +199,7 @@ async function searchShoppingLink(query: string, brand: string | null): Promise<
  * 4. Queries shopping links for new suggested purchases.
  * 5. Saves recommendations to the database.
  */
-export async function generateRecommendationsForUser(userId: string, vibe?: string, anchorItemId?: string) {
+export async function generateRecommendationsForUser(userId: string, vibe?: string, anchorItemId?: string, weatherCity?: string) {
   // 1. Fetch user wardrobe items
   const wardrobe = await prisma.wardrobeItem.findMany({
     where: { userId },
@@ -231,7 +232,7 @@ export async function generateRecommendationsForUser(userId: string, vibe?: stri
     }
   }
 
-  // 1b. Fetch user sizing profile and personalized Style DNA
+  // 1b. Fetch user sizing profile, personalized Style DNA, and location
   const user = await prisma.user.findUnique({
     where: { id: userId },
     select: {
@@ -249,8 +250,29 @@ export async function generateRecommendationsForUser(userId: string, vibe?: stri
       favoriteBrands: true,
       avoidedStyles: true,
       colorPalette: true,
+      locationCity: true,
     },
   });
+
+  // 1c. Resolve live weather context
+  const targetCity = weatherCity || user?.locationCity || undefined;
+  let weatherContext: { city: string; tempCelsius: number; condition: string; stylingDirectives: string } | undefined = undefined;
+  if (targetCity) {
+    try {
+      const liveWeather = await fetchLiveWeather({ city: targetCity });
+      if (liveWeather) {
+        weatherContext = {
+          city: liveWeather.city,
+          tempCelsius: liveWeather.tempCelsius,
+          condition: liveWeather.condition,
+          stylingDirectives: liveWeather.stylingDirectives,
+        };
+        console.log(`Loaded weather context: ${weatherContext.city} (${weatherContext.tempCelsius}°C - ${weatherContext.condition})`);
+      }
+    } catch (err) {
+      console.warn('Could not fetch live weather context:', err);
+    }
+  }
 
   // 2. Fetch the latest trend keywords from articles matching the user's active (unmuted) feed subscriptions
   const userSubs = await prisma.userFeedSubscription.findMany({
@@ -305,14 +327,15 @@ export async function generateRecommendationsForUser(userId: string, vibe?: stri
 
   console.log(`Loaded ${wardrobe.length} wardrobe items, ${trendsList.length} trends (${userSubs.length} active feeds), and ${inspirations.length} visual inspirations.`);
 
-  // 3. Ask Gemini to create outfits, passing user measurements & optional anchor item
+  // 3. Ask Gemini to create outfits, passing user measurements, anchor item, and weather
   const recommendedOutfits = await generateOutfitRecommendations(
     wardrobe, 
     trendsList, 
     user || undefined,
     vibe,
     inspirations,
-    anchorItem
+    anchorItem,
+    weatherContext
   );
   console.log(`Generated ${recommendedOutfits.length} outfit recommendations from Gemini.`);
 

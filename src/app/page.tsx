@@ -24,6 +24,7 @@ interface UserProfile {
   favoriteBrands?: string | null;
   avoidedStyles?: string | null;
   colorPalette?: string | null;
+  locationCity?: string | null;
   mfaEnabled: boolean;
   marketingEmail?: boolean;
   marketingSms?: boolean;
@@ -31,6 +32,72 @@ interface UserProfile {
   marketingConsentUpdatedAt?: string | null;
   role?: string;
   suspended?: boolean;
+}
+
+export interface WeatherInfo {
+  city: string;
+  country?: string;
+  tempCelsius: number;
+  tempFahrenheit: number;
+  condition: string;
+  weatherCode: number;
+  icon: string;
+  stylingDirectives: string;
+}
+
+export interface CapsuleTripItem {
+  id: string;
+  destination: string;
+  startDate: string;
+  endDate: string;
+  tripPurpose: string;
+  luggageType: string;
+  itemIds: string[];
+  outfitSchedule: Array<{
+    dayNumber: number;
+    date: string;
+    dayLook: { title: string; narrative: string; itemIds: string[] };
+    eveningLook: { title: string; narrative: string; itemIds: string[] };
+  }>;
+  checklistNotes?: string;
+  createdAt: string;
+}
+
+export interface WardrobeAnalyticsData {
+  totalItems: number;
+  categoryBreakdown: Array<{ category: string; count: number; percentage: number }>;
+  colorBreakdown: Array<{ family: string; count: number; percentage: number; colors: string[] }>;
+  styleDnaAlignmentScore: number;
+  unwornGems: WardrobeItem[];
+}
+
+export interface WardrobeGapItem {
+  purchaseName: string;
+  purchaseBrand: string;
+  category: string;
+  estimatedPrice: string;
+  stylingRationale: string;
+  unlocksLooksCount: number;
+  purchaseUrl: string | null;
+}
+
+export interface CollageCanvasElement {
+  id: string;
+  imageUrl: string;
+  x: number;
+  y: number;
+  scale: number;
+  rotation: number;
+  zIndex: number;
+  label: string;
+}
+
+export interface OutfitCollageItem {
+  id: string;
+  title: string;
+  canvasData: CollageCanvasElement[];
+  thumbnailUrl?: string | null;
+  createdAt: string;
 }
 
 interface WardrobeItem {
@@ -97,8 +164,13 @@ export const STYLE_ARCHETYPES = [
   { id: 'custom', label: 'Custom Aesthetic', desc: 'Your bespoke aesthetic blending multiple design philosophies' },
 ];
 
+export interface BeforeInstallPromptEvent extends Event {
+  prompt: () => Promise<void>;
+  userChoice: Promise<{ outcome: 'accepted' | 'dismissed' }>;
+}
+
 export default function AtelierEditDashboard() {
-  const [activeTab, setActiveTab] = useState<'feed' | 'closet' | 'trends' | 'account' | 'whats-new'>('whats-new');
+  const [activeTab, setActiveTab] = useState<'feed' | 'closet' | 'capsule' | 'studio' | 'trends' | 'account' | 'whats-new'>('whats-new');
   const [user, setUser] = useState<UserProfile | null>(null);
   
   // Data lists
@@ -192,7 +264,46 @@ export default function AtelierEditDashboard() {
   const [profFavoriteBrands, setProfFavoriteBrands] = useState('');
   const [profAvoidedStyles, setProfAvoidedStyles] = useState('');
   const [profColorPalette, setProfColorPalette] = useState('');
+  const [profLocationCity, setProfLocationCity] = useState('');
   const [profPassword, setProfPassword] = useState('');
+
+  // Live Weather & Climate State
+  const [liveWeather, setLiveWeather] = useState<WeatherInfo | null>(null);
+  const [showWeatherModal, setShowWeatherModal] = useState(false);
+  const [weatherCityInput, setWeatherCityInput] = useState('');
+  const [isLoadingWeather, setIsLoadingWeather] = useState(false);
+
+  // PWA & Install Prompt state
+  const [pwaPromptEvent, setPwaPromptEvent] = useState<BeforeInstallPromptEvent | null>(null);
+  const [showPwaBanner, setShowPwaBanner] = useState(false);
+
+  // Capsule Wardrobe & Travel Itinerary Planner State
+  const [capsules, setCapsules] = useState<CapsuleTripItem[]>([]);
+  const [loadingCapsules, setLoadingCapsules] = useState(false);
+  const [isGeneratingCapsule, setIsGeneratingCapsule] = useState(false);
+  const [selectedCapsule, setSelectedCapsule] = useState<CapsuleTripItem | null>(null);
+  const [tripDestination, setTripDestination] = useState('');
+  const [tripStartDate, setTripStartDate] = useState('');
+  const [tripEndDate, setTripEndDate] = useState('');
+  const [tripPurpose, setTripPurpose] = useState('Business Meetings & Evening Dinners');
+  const [tripLuggageType, setTripLuggageType] = useState('Carry-on Only');
+  const [tripChecklistNotes, setTripChecklistNotes] = useState('');
+  const [showNewCapsuleModal, setShowNewCapsuleModal] = useState(false);
+
+  // Wardrobe Analytics & Gap Heatmaps State
+  const [wardrobeViewMode, setWardrobeViewMode] = useState<'grid' | 'analytics'>('grid');
+  const [analyticsData, setAnalyticsData] = useState<WardrobeAnalyticsData | null>(null);
+  const [loadingAnalytics, setLoadingAnalytics] = useState(false);
+  const [wardrobeGaps, setWardrobeGaps] = useState<WardrobeGapItem[]>([]);
+  const [loadingGaps, setLoadingGaps] = useState(false);
+
+  // Flat-Lay Studio Canvas State
+  const [collages, setCollages] = useState<OutfitCollageItem[]>([]);
+  const [loadingCollages, setLoadingCollages] = useState(false);
+  const [canvasItems, setCanvasItems] = useState<CollageCanvasElement[]>([]);
+  const [selectedCanvasItemId, setSelectedCanvasItemId] = useState<string | null>(null);
+  const [collageTitle, setCollageTitle] = useState('Autumn Look Mood');
+  const [isSavingCollage, setIsSavingCollage] = useState(false);
 
   // Discover & Custom Feeds state
   const [newFeedCategory, setNewFeedCategory] = useState('Luxury & Haute Couture');
@@ -394,11 +505,28 @@ export default function AtelierEditDashboard() {
     setProfFavoriteBrands(u.favoriteBrands || '');
     setProfAvoidedStyles(u.avoidedStyles || '');
     setProfColorPalette(u.colorPalette || '');
+    setProfLocationCity(u.locationCity || 'London');
     setMarketingEmail(Boolean(u.marketingEmail));
     setMarketingSms(Boolean(u.marketingSms));
     setMarketingPartners(Boolean(u.marketingPartners));
     setMarketingConsentUpdatedAt(u.marketingConsentUpdatedAt || null);
   }, []);
+
+  const fetchLiveWeatherForApp = useCallback(async (cityOverride?: string) => {
+    setIsLoadingWeather(true);
+    try {
+      const city = cityOverride || user?.locationCity || 'London';
+      const res = await fetch(`/api/weather?city=${encodeURIComponent(city)}`);
+      if (res.ok) {
+        const data: WeatherInfo = await res.json();
+        setLiveWeather(data);
+      }
+    } catch (err) {
+      console.warn('Weather fetch error:', err);
+    } finally {
+      setIsLoadingWeather(false);
+    }
+  }, [user]);
 
   const fetchWardrobe = useCallback(async () => {
     setLoadingWardrobe(true);
@@ -460,6 +588,51 @@ export default function AtelierEditDashboard() {
     }
   }, []);
 
+  const fetchCapsules = useCallback(async () => {
+    setLoadingCapsules(true);
+    try {
+      const res = await fetch('/api/capsules');
+      if (res.ok) {
+        const data = await res.json();
+        setCapsules(data);
+      }
+    } catch (err) {
+      console.error('Error fetching capsules:', err);
+    } finally {
+      setLoadingCapsules(false);
+    }
+  }, []);
+
+  const fetchAnalytics = useCallback(async () => {
+    setLoadingAnalytics(true);
+    try {
+      const res = await fetch('/api/wardrobe/analytics');
+      if (res.ok) {
+        const data = await res.json();
+        setAnalyticsData(data);
+      }
+    } catch (err) {
+      console.error('Error fetching analytics:', err);
+    } finally {
+      setLoadingAnalytics(false);
+    }
+  }, []);
+
+  const fetchCollages = useCallback(async () => {
+    setLoadingCollages(true);
+    try {
+      const res = await fetch('/api/collages');
+      if (res.ok) {
+        const data = await res.json();
+        setCollages(data);
+      }
+    } catch (err) {
+      console.error('Error fetching collages:', err);
+    } finally {
+      setLoadingCollages(false);
+    }
+  }, []);
+
   const fetchWhatsNew = useCallback(async (force = false) => {
     setLoadingWhatsNew(true);
     try {
@@ -482,7 +655,6 @@ export default function AtelierEditDashboard() {
   }, [showToast]);
 
   const triggerSilentFeedSync = useCallback(async () => {
-    // Disabled automatic silent background sync to preserve Gemini API quota limits (15 RPM)
     console.log('Automated background sync bypassed to preserve Gemini API quota.');
     fetchRecommendations();
   }, [fetchRecommendations]);
@@ -496,7 +668,7 @@ export default function AtelierEditDashboard() {
         if (data.authenticated && data.user) {
           setUser(data.user);
           populateProfileFields(data.user);
-          triggerSilentFeedSync(); // Automatically sync feeds on session load/login
+          triggerSilentFeedSync();
         } else {
           setUser(null);
         }
@@ -508,7 +680,7 @@ export default function AtelierEditDashboard() {
     }
   }, [populateProfileFields, triggerSilentFeedSync]);
 
-  // Load initial data
+  // Load initial data & register PWA Service Worker
   useEffect(() => {
     const timer = setTimeout(() => {
       checkSession();
@@ -517,9 +689,32 @@ export default function AtelierEditDashboard() {
       fetchFeeds();
       fetchWhatsNew();
       fetchInspirations();
+      fetchLiveWeatherForApp();
+      fetchCapsules();
+      fetchCollages();
     }, 0);
-    return () => clearTimeout(timer);
-  }, [checkSession, fetchWardrobe, fetchRecommendations, fetchFeeds, fetchWhatsNew, fetchInspirations]);
+
+    // Register Service Worker for PWA
+    if (typeof window !== 'undefined' && 'serviceWorker' in navigator) {
+      navigator.serviceWorker.register('/sw.js').catch((err) => {
+        console.warn('PWA ServiceWorker registration failed:', err);
+      });
+    }
+
+    // Capture PWA install prompt
+    const handleBeforeInstall = (e: Event) => {
+      e.preventDefault();
+      setPwaPromptEvent(e as BeforeInstallPromptEvent);
+      setShowPwaBanner(true);
+    };
+
+    window.addEventListener('beforeinstallprompt', handleBeforeInstall);
+
+    return () => {
+      clearTimeout(timer);
+      window.removeEventListener('beforeinstallprompt', handleBeforeInstall);
+    };
+  }, [checkSession, fetchWardrobe, fetchRecommendations, fetchFeeds, fetchWhatsNew, fetchInspirations, fetchLiveWeatherForApp, fetchCapsules, fetchCollages]);
 
   // Client-side image compressor (converts to WebP canvas blob)
   const compressImage = (file: File): Promise<Blob> => {
@@ -946,7 +1141,11 @@ export default function AtelierEditDashboard() {
       const res = await fetch('/api/recommendations/generate', { 
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ vibe: vibePrompt, anchorItemId: anchorGarment?.id })
+        body: JSON.stringify({
+          vibe: vibePrompt,
+          anchorItemId: anchorGarment?.id,
+          weatherCity: liveWeather?.city,
+        })
       });
       if (res.ok) {
         fetchRecommendations();
@@ -1313,14 +1512,16 @@ export default function AtelierEditDashboard() {
           favoriteBrands: profFavoriteBrands,
           avoidedStyles: profAvoidedStyles,
           colorPalette: profColorPalette,
+          locationCity: profLocationCity,
           password: profPassword || undefined,
         }),
       });
 
       if (res.ok) {
-        showToast('Style and Sizing Profile saved successfully!');
+        showToast('Style DNA, Location & Sizing Profile saved successfully!');
         setProfPassword('');
-        checkSession(); 
+        checkSession();
+        if (profLocationCity) fetchLiveWeatherForApp(profLocationCity);
       } else {
         const data = await res.json();
         showToast(`Failed to save: ${data.error}`, 'error');
@@ -1330,6 +1531,182 @@ export default function AtelierEditDashboard() {
       showToast('Error saving profile', 'error');
     } finally {
       setIsSavingProfile(false);
+    }
+  };
+
+  // PWA Install Action
+  const handleInstallPwa = async () => {
+    if (!pwaPromptEvent) return;
+    pwaPromptEvent.prompt();
+    const { outcome } = await pwaPromptEvent.userChoice;
+    if (outcome === 'accepted') {
+      showToast('Atelier Edit added to Home Screen!', 'success');
+    }
+    setPwaPromptEvent(null);
+    setShowPwaBanner(false);
+  };
+
+  // Weather Location Switcher
+  const handleSwitchWeather = (cityName: string) => {
+    if (!cityName.trim()) return;
+    fetchLiveWeatherForApp(cityName.trim());
+    setShowWeatherModal(false);
+    showToast(`Updated styling climate to ${cityName.trim()}`, 'info');
+  };
+
+  // Capsule Trip Actions
+  const handleCreateCapsuleSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!tripDestination || !tripStartDate || !tripEndDate) {
+      showToast('Please enter destination, start date, and end date.', 'error');
+      return;
+    }
+    setIsGeneratingCapsule(true);
+    try {
+      const res = await fetch('/api/capsules', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          destination: tripDestination,
+          startDate: tripStartDate,
+          endDate: tripEndDate,
+          tripPurpose,
+          luggageType: tripLuggageType,
+          checklistNotes: tripChecklistNotes,
+        }),
+      });
+      const data = await res.json();
+      if (res.ok) {
+        showToast('Travel packing capsule & lookbook synthesized!', 'success');
+        setShowNewCapsuleModal(false);
+        fetchCapsules();
+        setSelectedCapsule(data.capsuleTrip);
+      } else {
+        showToast(data.error || 'Failed to generate capsule', 'error');
+      }
+    } catch (err) {
+      console.error(err);
+      showToast('Error generating travel capsule', 'error');
+    } finally {
+      setIsGeneratingCapsule(false);
+    }
+  };
+
+  const handleDeleteCapsule = async (id: string) => {
+    if (!confirm('Are you sure you want to delete this travel capsule?')) return;
+    try {
+      const res = await fetch(`/api/capsules/${id}`, { method: 'DELETE' });
+      if (res.ok) {
+        showToast('Travel capsule removed.');
+        setCapsules((prev) => prev.filter((c) => c.id !== id));
+        if (selectedCapsule?.id === id) setSelectedCapsule(null);
+      }
+    } catch (err) {
+      console.error(err);
+      showToast('Failed to delete capsule', 'error');
+    }
+  };
+
+  // Wardrobe Gaps Generator
+  const handleFetchGaps = async () => {
+    setLoadingGaps(true);
+    try {
+      const res = await fetch('/api/wardrobe/gaps', { method: 'POST' });
+      const data = await res.json();
+      if (res.ok && data.gaps) {
+        setWardrobeGaps(data.gaps);
+        showToast('Strategic wardrobe gaps analyzed!');
+      } else {
+        showToast(data.error || 'Gap analysis failed', 'error');
+      }
+    } catch (err) {
+      console.error(err);
+      showToast('Error analyzing gaps', 'error');
+    } finally {
+      setLoadingGaps(false);
+    }
+  };
+
+  // Flat-Lay Studio Canvas Actions
+  const handleAddItemToCanvas = (item: WardrobeItem | InspirationImage) => {
+    const count = canvasItems.length + 1;
+    const newItem: CollageCanvasElement = {
+      id: `canvas-elem-${item.id}-${count}`,
+      imageUrl: item.imageUrl,
+      x: 60 + ((count - 1) % 5) * 40,
+      y: 60 + ((count - 1) % 5) * 35,
+      scale: 1,
+      rotation: ((count * 7) % 17) - 8,
+      zIndex: count,
+      label: ('category' in item ? `${item.brand || 'Closet'} ${item.category}` : item.notes || 'Inspiration Snap'),
+    };
+    setCanvasItems((prev) => [...prev, newItem]);
+    setSelectedCanvasItemId(newItem.id);
+    showToast('Item placed on flat-lay canvas.');
+  };
+
+  const handleUpdateCanvasItemTransform = (scale: number, rotation: number) => {
+    if (!selectedCanvasItemId) return;
+    setCanvasItems((prev) =>
+      prev.map((item) => (item.id === selectedCanvasItemId ? { ...item, scale, rotation } : item))
+    );
+  };
+
+  const handleRemoveCanvasItem = (id: string) => {
+    setCanvasItems((prev) => prev.filter((item) => item.id !== id));
+    if (selectedCanvasItemId === id) setSelectedCanvasItemId(null);
+  };
+
+  const handleBringCanvasItemForward = (id: string) => {
+    setCanvasItems((prev) => {
+      const maxZ = Math.max(...prev.map((i) => i.zIndex), 0);
+      return prev.map((item) => (item.id === id ? { ...item, zIndex: maxZ + 1 } : item));
+    });
+  };
+
+  const handleSaveCollageSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (canvasItems.length === 0) {
+      showToast('Please add items to the flat-lay canvas first.', 'error');
+      return;
+    }
+    setIsSavingCollage(true);
+    try {
+      const res = await fetch('/api/collages', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          title: collageTitle || 'Editorial Flat-Lay Mood',
+          canvasData: canvasItems,
+          thumbnailUrl: canvasItems[0]?.imageUrl || null,
+        }),
+      });
+      const data = await res.json();
+      if (res.ok) {
+        showToast('Editorial Flat-Lay saved to your Studio lookbook!', 'success');
+        fetchCollages();
+      } else {
+        showToast(data.error || 'Failed to save collage', 'error');
+      }
+    } catch (err) {
+      console.error(err);
+      showToast('Error saving collage', 'error');
+    } finally {
+      setIsSavingCollage(false);
+    }
+  };
+
+  const handleDeleteCollage = async (id: string) => {
+    if (!confirm('Are you sure you want to delete this flat-lay collage?')) return;
+    try {
+      const res = await fetch(`/api/collages/${id}`, { method: 'DELETE' });
+      if (res.ok) {
+        showToast('Flat-lay collage deleted.');
+        setCollages((prev) => prev.filter((c) => c.id !== id));
+      }
+    } catch (err) {
+      console.error(err);
+      showToast('Failed to delete collage', 'error');
     }
   };
 
@@ -1628,6 +2005,26 @@ export default function AtelierEditDashboard() {
             >
               Wardrobe ({wardrobe.length})
             </button>
+
+            <button
+              onClick={() => {
+                setActiveTab('capsule');
+                fetchCapsules();
+              }}
+              className={`nav-link ${activeTab === 'capsule' ? 'active' : ''}`}
+            >
+              Capsules ({capsules.length})
+            </button>
+
+            <button
+              onClick={() => {
+                setActiveTab('studio');
+                fetchCollages();
+              }}
+              className={`nav-link ${activeTab === 'studio' ? 'active' : ''}`}
+            >
+              Studio ({collages.length})
+            </button>
             
             <button
               onClick={() => setActiveTab('trends')}
@@ -1913,9 +2310,89 @@ export default function AtelierEditDashboard() {
         ) : (
           /* Authenticated Dashboard View */
           <>
+            {/* PWA Install Banner */}
+            {showPwaBanner && pwaPromptEvent && (
+              <div className="pwa-install-banner">
+                <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem' }}>
+                  <span style={{ fontSize: '1.4rem' }}>📱</span>
+                  <div>
+                    <strong style={{ display: 'block', fontSize: '0.85rem', color: '#FAF8F4' }}>Install Atelier Edit on your device</strong>
+                    <span style={{ fontSize: '0.75rem', color: 'rgba(255,255,255,0.7)' }}>Access your wardrobe, packing capsules, and flat-lay studio instantly offline.</span>
+                  </div>
+                </div>
+                <div style={{ display: 'flex', gap: '0.5rem', alignItems: 'center' }}>
+                  <button type="button" onClick={handleInstallPwa} className="pwa-install-btn">
+                    Add to Home Screen
+                  </button>
+                  <button type="button" onClick={() => setShowPwaBanner(false)} className="pwa-dismiss-btn">
+                    ✕
+                  </button>
+                </div>
+              </div>
+            )}
+
             {/* Style Feed tab */}
             {activeTab === 'feed' && (
           <div className="outfit-stream">
+            {/* Live Weather Status Bar */}
+            {liveWeather && (
+              <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '1.25rem', background: '#ffffff', padding: '0.75rem 1.25rem', borderRadius: '6px', border: '1px solid var(--border-color)', boxShadow: 'var(--shadow-sm)' }}>
+                <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem', flexWrap: 'wrap' }}>
+                  <span style={{ fontSize: '1.3rem' }}>{liveWeather.icon}</span>
+                  <div>
+                    <span style={{ fontSize: '0.85rem', fontWeight: 700, color: 'var(--text-primary)' }}>
+                      {liveWeather.city}: {liveWeather.tempCelsius}°C / {liveWeather.tempFahrenheit}°F • {liveWeather.condition}
+                    </span>
+                    <span style={{ display: 'block', fontSize: '0.7rem', color: 'var(--text-secondary)' }}>
+                      🌤️ Thermal Styling Rule: {liveWeather.stylingDirectives}
+                    </span>
+                  </div>
+                </div>
+                <button
+                  type="button"
+                  onClick={() => {
+                    setWeatherCityInput(liveWeather.city);
+                    setShowWeatherModal(true);
+                  }}
+                  className="weather-pill-btn"
+                >
+                  📍 Change Climate
+                </button>
+              </div>
+            )}
+
+            {/* Weather Location Switcher Modal */}
+            {showWeatherModal && (
+              <div className="modal-overlay" style={{ position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.75)', zIndex: 9999, display: 'flex', alignItems: 'center', justifyContent: 'center', padding: '1rem' }}>
+                <div className="lookbook-panel" style={{ maxWidth: '420px', width: '100%', padding: '1.5rem', background: '#ffffff' }}>
+                  <h3 style={{ fontSize: '1.1rem', marginBottom: '0.75rem' }}>Select Styling Location & Climate</h3>
+                  <p style={{ fontSize: '0.75rem', color: 'var(--text-secondary)', marginBottom: '1rem' }}>
+                    Enter any destination city worldwide to adapt AI styling recommendations and layering logic to live forecasts.
+                  </p>
+                  <form onSubmit={(e) => { e.preventDefault(); handleSwitchWeather(weatherCityInput); }}>
+                    <div className="form-field" style={{ marginBottom: '1rem' }}>
+                      <label>City Name</label>
+                      <input
+                        type="text"
+                        required
+                        value={weatherCityInput}
+                        onChange={(e) => setWeatherCityInput(e.target.value)}
+                        placeholder="e.g. Paris, New York, Tokyo, Milan"
+                      />
+                    </div>
+                    <div style={{ display: 'flex', gap: '0.75rem', justifyContent: 'flex-end' }}>
+                      <button type="button" onClick={() => setShowWeatherModal(false)} className="nav-action" style={{ background: 'none', border: 'none', cursor: 'pointer' }}>
+                        Cancel
+                      </button>
+                      <button type="submit" className="accent-button" style={{ padding: '0.5rem 1rem' }} disabled={isLoadingWeather}>
+                        {isLoadingWeather ? 'Fetching Forecast...' : 'Apply Climate'}
+                      </button>
+                    </div>
+                  </form>
+                </div>
+              </div>
+            )}
+
             {anchorGarment && (
               <div className="lookbook-panel" style={{ width: '100%', padding: '1rem 1.5rem', border: '1px solid var(--accent-gold)', marginBottom: '1.5rem', display: 'flex', alignItems: 'center', justifyContent: 'space-between', backgroundColor: 'rgba(212, 175, 55, 0.08)' }}>
                 <div style={{ display: 'flex', alignItems: 'center', gap: '1rem' }}>
@@ -2199,36 +2676,266 @@ export default function AtelierEditDashboard() {
 
         {/* Closet tab */}
         {activeTab === 'closet' && (
-          <div style={{ display: 'flex', flexDirection: 'column', gap: '2rem' }}>
-            
-            {/* Search and Category Filter Row */}
-            <div className="search-filter-row">
-              <div className="search-input-wrapper">
-                <input
-                  type="text"
-                  value={searchQuery}
-                  onChange={(e) => setSearchQuery(e.target.value)}
-                  placeholder="Search wardrobe items by brand, tag, color, or style notes..."
-                />
-              </div>
-
-              <select
-                value={categoryFilter}
-                onChange={(e) => setCategoryFilter(e.target.value)}
-                className="filter-select"
+          <div style={{ display: 'flex', flexDirection: 'column', gap: '1.5rem' }}>
+            {/* Sub-Tab Navigation Bar */}
+            <div style={{ display: 'flex', gap: '1rem', borderBottom: '1px solid var(--border-color)', paddingBottom: '0.5rem' }}>
+              <button
+                type="button"
+                onClick={() => setWardrobeViewMode('grid')}
+                className="nav-link"
+                style={{
+                  borderBottom: wardrobeViewMode === 'grid' ? '2px solid var(--accent)' : 'none',
+                  color: wardrobeViewMode === 'grid' ? 'var(--text-primary)' : 'var(--text-secondary)',
+                  fontWeight: wardrobeViewMode === 'grid' ? 700 : 500,
+                  padding: '0.4rem 0.8rem',
+                }}
               >
-                <option value="All">All Categories</option>
-                <option value="Outerwear">Outerwear</option>
-                <option value="Tops">Tops</option>
-                <option value="Bottoms">Bottoms</option>
-                <option value="Shoes">Shoes</option>
-                <option value="Accessories">Accessories</option>
-                <option value="Dresses">Dresses</option>
-                <option value="Knitwear">Knitwear</option>
-                <option value="Makeup">Makeup</option>
-                <option value="Jewelry">Jewelry</option>
-              </select>
+                📁 Wardrobe Inventory ({wardrobe.length})
+              </button>
+              <button
+                type="button"
+                onClick={() => {
+                  setWardrobeViewMode('analytics');
+                  fetchAnalytics();
+                }}
+                className="nav-link"
+                style={{
+                  borderBottom: wardrobeViewMode === 'analytics' ? '2px solid var(--accent)' : 'none',
+                  color: wardrobeViewMode === 'analytics' ? 'var(--text-primary)' : 'var(--text-secondary)',
+                  fontWeight: wardrobeViewMode === 'analytics' ? 700 : 500,
+                  padding: '0.4rem 0.8rem',
+                }}
+              >
+                📊 Wardrobe Intelligence & Gaps
+              </button>
             </div>
+
+            {/* Wardrobe Intelligence & Gap Analysis View */}
+            {wardrobeViewMode === 'analytics' && (
+              <div style={{ display: 'flex', flexDirection: 'column', gap: '1.5rem' }}>
+                {loadingAnalytics ? (
+                  <div className="lookbook-panel" style={{ padding: '3rem', textAlign: 'center' }}>
+                    Computing wardrobe statistical distributions & color spectrum...
+                  </div>
+                ) : analyticsData ? (
+                  <>
+                    {/* Top Summary Row */}
+                    <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))', gap: '1rem' }}>
+                      <div className="analytics-card" style={{ padding: '1rem' }}>
+                        <span style={{ fontSize: '0.7rem', textTransform: 'uppercase', color: 'var(--text-secondary)' }}>Total Garments</span>
+                        <h3 style={{ fontSize: '1.8rem', margin: '0.2rem 0' }}>{analyticsData.totalItems}</h3>
+                        <span style={{ fontSize: '0.75rem', color: 'var(--text-muted)' }}>Indexed across 9 categories</span>
+                      </div>
+                      <div className="analytics-card" style={{ padding: '1rem' }}>
+                        <span style={{ fontSize: '0.7rem', textTransform: 'uppercase', color: 'var(--text-secondary)' }}>Style DNA Harmony</span>
+                        <h3 style={{ fontSize: '1.8rem', margin: '0.2rem 0', color: 'var(--accent-gold)' }}>
+                          {analyticsData.styleDnaAlignmentScore}%
+                        </h3>
+                        <span style={{ fontSize: '0.75rem', color: 'var(--text-muted)' }}>
+                          Aligned with {user?.styleAesthetic || 'Personalized'}
+                        </span>
+                      </div>
+                      <div className="analytics-card" style={{ padding: '1rem' }}>
+                        <span style={{ fontSize: '0.7rem', textTransform: 'uppercase', color: 'var(--text-secondary)' }}>Unworn Gems</span>
+                        <h3 style={{ fontSize: '1.8rem', margin: '0.2rem 0' }}>{analyticsData.unwornGems.length}</h3>
+                        <span style={{ fontSize: '0.75rem', color: 'var(--text-muted)' }}>Ready for fresh styling</span>
+                      </div>
+                    </div>
+
+                    {/* Breakdown Grid */}
+                    <div className="analytics-grid">
+                      {/* Category Breakdown */}
+                      <div className="analytics-card">
+                        <h4 style={{ fontSize: '0.9rem', marginBottom: '1rem', textTransform: 'uppercase', letterSpacing: '0.06em' }}>
+                          Category Distribution
+                        </h4>
+                        <div style={{ display: 'flex', flexDirection: 'column', gap: '0.65rem' }}>
+                          {analyticsData.categoryBreakdown.map((cat) => (
+                            <div key={cat.category} className="color-bar-row">
+                              <span style={{ width: '90px', fontSize: '0.75rem', fontWeight: 600 }}>{cat.category}</span>
+                              <div className="color-bar-track">
+                                <div className="color-bar-fill" style={{ width: `${cat.percentage}%` }} />
+                              </div>
+                              <span style={{ width: '45px', fontSize: '0.7rem', textAlign: 'right', color: 'var(--text-secondary)' }}>
+                                {cat.count} ({cat.percentage}%)
+                              </span>
+                            </div>
+                          ))}
+                        </div>
+                      </div>
+
+                      {/* Color Palette Breakdown */}
+                      <div className="analytics-card">
+                        <h4 style={{ fontSize: '0.9rem', marginBottom: '1rem', textTransform: 'uppercase', letterSpacing: '0.06em' }}>
+                          Color Palette Spectrum
+                        </h4>
+                        <div style={{ display: 'flex', flexDirection: 'column', gap: '0.65rem' }}>
+                          {analyticsData.colorBreakdown.map((fam) => (
+                            <div key={fam.family} className="color-bar-row">
+                              <span style={{ width: '130px', fontSize: '0.75rem', fontWeight: 600 }}>{fam.family}</span>
+                              <div className="color-bar-track">
+                                <div className="color-bar-fill" style={{ width: `${fam.percentage}%`, backgroundColor: fam.family.includes('Warm') ? '#C89D7C' : fam.family.includes('Jewel') ? '#4B5563' : 'var(--accent)' }} />
+                              </div>
+                              <span style={{ width: '45px', fontSize: '0.7rem', textAlign: 'right', color: 'var(--text-secondary)' }}>
+                                {fam.percentage}%
+                              </span>
+                            </div>
+                          ))}
+                        </div>
+                      </div>
+                    </div>
+
+                    {/* Unworn Gems Carousel */}
+                    {analyticsData.unwornGems.length > 0 && (
+                      <div className="analytics-card">
+                        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '0.75rem' }}>
+                          <div>
+                            <h4 style={{ fontSize: '0.9rem', textTransform: 'uppercase', letterSpacing: '0.06em' }}>
+                              💎 Unworn Gems
+                            </h4>
+                            <p style={{ fontSize: '0.75rem', color: 'var(--text-secondary)' }}>
+                              Underutilized items in your closet ready to be reinvented into new looks.
+                            </p>
+                          </div>
+                        </div>
+                        <div className="unworn-gems-rack">
+                          {analyticsData.unwornGems.map((item) => (
+                            <div
+                              key={item.id}
+                              style={{
+                                width: '160px',
+                                flexShrink: 0,
+                                border: '1px solid var(--border-color)',
+                                borderRadius: '4px',
+                                padding: '0.65rem',
+                                background: '#fafafa',
+                                display: 'flex',
+                                flexDirection: 'column',
+                                gap: '0.4rem',
+                              }}
+                            >
+                              <div style={{ position: 'relative', width: '100%', height: '140px', borderRadius: '3px', overflow: 'hidden' }}>
+                                <Image src={item.imageUrl} alt={item.category} fill style={{ objectFit: 'cover' }} unoptimized />
+                              </div>
+                              <span style={{ fontSize: '0.75rem', fontWeight: 700, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
+                                {item.brand ? `${item.brand} ` : ''}{item.category}
+                              </span>
+                              <button
+                                type="button"
+                                onClick={() => handleCreateOutfitAroundItem(item)}
+                                className="accent-button"
+                                style={{ padding: '0.35rem 0.5rem', fontSize: '0.65rem' }}
+                              >
+                                ★ Style Around This
+                              </button>
+                            </div>
+                          ))}
+                        </div>
+                      </div>
+                    )}
+
+                    {/* AI Strategic Wardrobe Gap Analysis */}
+                    <div className="analytics-card" style={{ border: '1px solid var(--accent-gold)' }}>
+                      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: '0.75rem', marginBottom: '1rem' }}>
+                        <div>
+                          <h4 style={{ fontSize: '0.95rem', color: 'var(--accent-gold)', textTransform: 'uppercase', letterSpacing: '0.06em' }}>
+                            🔍 Strategic Wardrobe Gap Recommendations
+                          </h4>
+                          <p style={{ fontSize: '0.75rem', color: 'var(--text-secondary)' }}>
+                            AI analysis of 3 missing foundation pieces that maximize outfit combinations and versatility for your Style DNA.
+                          </p>
+                        </div>
+                        <button
+                          type="button"
+                          onClick={handleFetchGaps}
+                          disabled={loadingGaps}
+                          className="accent-button"
+                          style={{ padding: '0.5rem 1rem' }}
+                        >
+                          {loadingGaps ? 'Synthesizing Gaps & Sourcing...' : '✦ Analyze Closet Gaps'}
+                        </button>
+                      </div>
+
+                      {wardrobeGaps.length > 0 && (
+                        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(240px, 1fr))', gap: '1rem', marginTop: '1rem' }}>
+                          {wardrobeGaps.map((gap, idx) => (
+                            <div key={idx} className="gap-card">
+                              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start' }}>
+                                <span style={{ fontSize: '0.65rem', textTransform: 'uppercase', fontWeight: 800, color: 'var(--accent)' }}>
+                                  {gap.category}
+                                </span>
+                                <span style={{ fontSize: '0.75rem', fontWeight: 700, color: 'var(--accent-gold)' }}>
+                                  {gap.estimatedPrice}
+                                </span>
+                              </div>
+                              <h5 style={{ fontSize: '0.9rem', margin: '0.2rem 0' }}>{gap.purchaseName}</h5>
+                              <span style={{ fontSize: '0.75rem', color: 'var(--text-secondary)', fontStyle: 'italic' }}>
+                                Recommended brand: {gap.purchaseBrand}
+                              </span>
+                              <p style={{ fontSize: '0.75rem', color: 'var(--text-primary)', margin: '0.4rem 0' }}>
+                                {gap.stylingRationale}
+                              </p>
+                              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginTop: 'auto', paddingTop: '0.5rem' }}>
+                                <span style={{ fontSize: '0.7rem', color: '#16a34a', fontWeight: 700 }}>
+                                  ✦ Unlocks ~{gap.unlocksLooksCount} new looks
+                                </span>
+                                {gap.purchaseUrl && (
+                                  <a
+                                    href={gap.purchaseUrl}
+                                    target="_blank"
+                                    rel="noopener noreferrer"
+                                    className="nav-action"
+                                    style={{ fontSize: '0.7rem', textDecoration: 'underline', color: 'var(--accent)', fontWeight: 700 }}
+                                  >
+                                    Shop Retail →
+                                  </a>
+                                )}
+                              </div>
+                            </div>
+                          ))}
+                        </div>
+                      )}
+                    </div>
+                  </>
+                ) : (
+                  <div className="lookbook-panel" style={{ padding: '2rem', textAlign: 'center' }}>
+                    Upload wardrobe items to view intelligence analytics and color breakdowns.
+                  </div>
+                )}
+              </div>
+            )}
+
+            {/* Normal Wardrobe Inventory Grid / Spreadsheet View */}
+            {wardrobeViewMode === 'grid' && (
+              <>
+                {/* Search and Category Filter Row */}
+                <div className="search-filter-row">
+                  <div className="search-input-wrapper">
+                    <input
+                      type="text"
+                      value={searchQuery}
+                      onChange={(e) => setSearchQuery(e.target.value)}
+                      placeholder="Search wardrobe items by brand, tag, color, or style notes..."
+                    />
+                  </div>
+
+                  <select
+                    value={categoryFilter}
+                    onChange={(e) => setCategoryFilter(e.target.value)}
+                    className="filter-select"
+                  >
+                    <option value="All">All Categories</option>
+                    <option value="Outerwear">Outerwear</option>
+                    <option value="Tops">Tops</option>
+                    <option value="Bottoms">Bottoms</option>
+                    <option value="Shoes">Shoes</option>
+                    <option value="Accessories">Accessories</option>
+                    <option value="Dresses">Dresses</option>
+                    <option value="Knitwear">Knitwear</option>
+                    <option value="Makeup">Makeup</option>
+                    <option value="Jewelry">Jewelry</option>
+                  </select>
+                </div>
             
             {/* Spreadsheet vs Grid View toggles and bulk tools */}
             <div className="batch-editor-toggle-row">
@@ -2752,7 +3459,556 @@ export default function AtelierEditDashboard() {
                 </div>
               </div>
             )}
+              </>
+            )}
 
+          </div>
+        )}
+
+        {/* ==========================================================================
+            Capsule Wardrobe & Travel Packing Assistant Tab
+            ========================================================================== */}
+        {activeTab === 'capsule' && (
+          <div style={{ display: 'flex', flexDirection: 'column', gap: '2rem' }}>
+            {/* Header & Trip Launcher */}
+            <div className="lookbook-panel" style={{ padding: '1.5rem', display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: '1rem' }}>
+              <div>
+                <h3 style={{ fontSize: '1.25rem', color: 'var(--accent-gold)' }}>✈️ Travel Packing Capsule Assistant</h3>
+                <p style={{ fontSize: '0.8rem', color: 'var(--text-muted)' }}>
+                  Synthesize an interchange capsule wardrobe (6–12 pieces) with day-by-day outfits for your upcoming trips.
+                </p>
+              </div>
+              <button
+                type="button"
+                onClick={() => setShowNewCapsuleModal(true)}
+                className="accent-button"
+                style={{ padding: '0.65rem 1.25rem' }}
+              >
+                ✦ New Travel Capsule
+              </button>
+            </div>
+
+            {/* New Capsule Generator Modal */}
+            {showNewCapsuleModal && (
+              <div className="modal-overlay" style={{ position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.8)', zIndex: 9999, display: 'flex', alignItems: 'center', justifyContent: 'center', padding: '1.5rem' }}>
+                <div className="lookbook-panel" style={{ maxWidth: '540px', width: '100%', padding: '2rem', background: '#ffffff' }}>
+                  <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1rem' }}>
+                    <h3 style={{ fontSize: '1.2rem', color: 'var(--accent-gold)' }}>Generate Travel Packing Capsule</h3>
+                    <button type="button" onClick={() => setShowNewCapsuleModal(false)} className="nav-action" style={{ border: 'none', background: 'none', cursor: 'pointer', fontSize: '1.2rem' }}>✕</button>
+                  </div>
+                  <form onSubmit={handleCreateCapsuleSubmit} className="form-group-stack">
+                    <div className="form-field">
+                      <label>Destination City</label>
+                      <input
+                        type="text"
+                        required
+                        value={tripDestination}
+                        onChange={(e) => setTripDestination(e.target.value)}
+                        placeholder="e.g. Paris, France or Tokyo, Japan"
+                      />
+                    </div>
+                    <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '1rem' }}>
+                      <div className="form-field">
+                        <label>Start Date</label>
+                        <input
+                          type="date"
+                          required
+                          value={tripStartDate}
+                          onChange={(e) => setTripStartDate(e.target.value)}
+                        />
+                      </div>
+                      <div className="form-field">
+                        <label>End Date</label>
+                        <input
+                          type="date"
+                          required
+                          value={tripEndDate}
+                          onChange={(e) => setTripEndDate(e.target.value)}
+                        />
+                      </div>
+                    </div>
+                    <div className="form-field">
+                      <label>Trip Purpose & Itinerary Vibes</label>
+                      <input
+                        type="text"
+                        required
+                        value={tripPurpose}
+                        onChange={(e) => setTripPurpose(e.target.value)}
+                        placeholder="e.g. Business meetings by day, Michelin dinners by night"
+                      />
+                    </div>
+                    <div className="form-field">
+                      <label>Luggage Limitation</label>
+                      <select
+                        value={tripLuggageType}
+                        onChange={(e) => setTripLuggageType(e.target.value)}
+                        className="filter-select"
+                      >
+                        <option value="Carry-on Only">Carry-on Only (Max 8-10 versatile garments)</option>
+                        <option value="Checked Bag">Checked Luggage (12-16 garments with outerwear options)</option>
+                        <option value="Weekend Duffle">Weekend Duffle (Compact 5-6 essentials)</option>
+                      </select>
+                    </div>
+                    <div className="form-field">
+                      <label>Custom Packing Notes (Optional)</label>
+                      <input
+                        type="text"
+                        value={tripChecklistNotes}
+                        onChange={(e) => setTripChecklistNotes(e.target.value)}
+                        placeholder="e.g. Need walking shoes for cobblestones"
+                      />
+                    </div>
+                    <div style={{ display: 'flex', justifyContent: 'flex-end', gap: '1rem', marginTop: '1rem' }}>
+                      <button type="button" onClick={() => setShowNewCapsuleModal(false)} className="nav-action" style={{ background: 'none', border: 'none', cursor: 'pointer' }}>Cancel</button>
+                      <button type="submit" className="accent-button" disabled={isGeneratingCapsule}>
+                        {isGeneratingCapsule ? 'Synthesizing Interchange Matrix...' : '✦ Generate Capsule'}
+                      </button>
+                    </div>
+                  </form>
+                </div>
+              </div>
+            )}
+
+            {/* Travel Capsules List & Selected Detail */}
+            {loadingCapsules ? (
+              <div className="lookbook-panel" style={{ padding: '3rem', textAlign: 'center' }}>Loading your travel capsules...</div>
+            ) : capsules.length === 0 ? (
+              <div className="lookbook-panel" style={{ padding: '3rem', textAlign: 'center' }}>
+                <p style={{ color: 'var(--text-secondary)', marginBottom: '1rem' }}>No travel capsules generated yet.</p>
+                <button type="button" onClick={() => setShowNewCapsuleModal(true)} className="accent-button">
+                  ✦ Plan Your First Trip
+                </button>
+              </div>
+            ) : (
+              <div style={{ display: 'flex', flexDirection: 'column', gap: '2rem' }}>
+                {/* Trip Cards Selector */}
+                <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(260px, 1fr))', gap: '1rem' }}>
+                  {capsules.map((cap) => {
+                    const isSelected = selectedCapsule?.id === cap.id || (!selectedCapsule && capsules[0].id === cap.id);
+                    if (isSelected && !selectedCapsule) setSelectedCapsule(cap);
+
+                    return (
+                      <div
+                        key={cap.id}
+                        onClick={() => setSelectedCapsule(cap)}
+                        className="lookbook-panel"
+                        style={{
+                          padding: '1.25rem',
+                          cursor: 'pointer',
+                          border: isSelected ? '2px solid var(--accent-gold)' : '1px solid var(--border-color)',
+                          backgroundColor: isSelected ? 'rgba(212, 175, 55, 0.04)' : '#ffffff',
+                          transition: 'var(--transition-smooth)',
+                        }}
+                      >
+                        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start' }}>
+                          <span style={{ fontSize: '0.65rem', textTransform: 'uppercase', color: 'var(--accent)', fontWeight: 800 }}>
+                            {cap.luggageType}
+                          </span>
+                          <button
+                            type="button"
+                            onClick={(e) => { e.stopPropagation(); handleDeleteCapsule(cap.id); }}
+                            className="nav-action"
+                            style={{ color: '#ef4444', border: 'none', background: 'none', cursor: 'pointer', fontSize: '0.75rem' }}
+                          >
+                            ✕
+                          </button>
+                        </div>
+                        <h4 style={{ fontSize: '1.1rem', margin: '0.35rem 0' }}>{cap.destination}</h4>
+                        <span style={{ fontSize: '0.75rem', color: 'var(--text-secondary)', display: 'block' }}>
+                          {new Date(cap.startDate).toLocaleDateString()} – {new Date(cap.endDate).toLocaleDateString()}
+                        </span>
+                        <span style={{ fontSize: '0.75rem', color: 'var(--text-muted)', display: 'block', marginTop: '0.25rem' }}>
+                          {cap.itemIds.length} packed items • {cap.outfitSchedule?.length || 0} days
+                        </span>
+                      </div>
+                    );
+                  })}
+                </div>
+
+                {/* Selected Capsule Detailed View */}
+                {selectedCapsule && (
+                  <div className="lookbook-panel" style={{ padding: '2rem', display: 'flex', flexDirection: 'column', gap: '2rem' }}>
+                    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: '1rem', borderBottom: '1px solid var(--border-color)', paddingBottom: '1rem' }}>
+                      <div>
+                        <span style={{ fontSize: '0.7rem', textTransform: 'uppercase', letterSpacing: '0.1em', color: 'var(--accent-gold)', fontWeight: 800 }}>
+                          ✦ Capsule Itinerary & Packing Matrix
+                        </span>
+                        <h3 style={{ fontSize: '1.5rem', margin: '0.25rem 0' }}>{selectedCapsule.destination}</h3>
+                        <p style={{ fontSize: '0.8rem', color: 'var(--text-secondary)' }}>
+                          <strong>Purpose:</strong> {selectedCapsule.tripPurpose} | <strong>Luggage:</strong> {selectedCapsule.luggageType}
+                        </p>
+                      </div>
+                      <button
+                        type="button"
+                        onClick={() => window.print()}
+                        className="weather-pill-btn"
+                        style={{ padding: '0.5rem 1rem' }}
+                      >
+                        🖨️ Print Packing List
+                      </button>
+                    </div>
+
+                    {/* Stylist Rationale */}
+                    {selectedCapsule.checklistNotes && (
+                      <div style={{ background: 'var(--bg-surface)', padding: '1rem 1.25rem', borderRadius: '6px', borderLeft: '4px solid var(--accent-gold)' }}>
+                        <strong style={{ display: 'block', fontSize: '0.8rem', marginBottom: '0.25rem', color: 'var(--text-primary)' }}>
+                          Editorial Packing Strategy
+                        </strong>
+                        <p style={{ fontSize: '0.75rem', color: 'var(--text-secondary)', margin: 0 }}>
+                          {selectedCapsule.checklistNotes}
+                        </p>
+                      </div>
+                    )}
+
+                    {/* Packed Items Rack */}
+                    <div>
+                      <h4 style={{ fontSize: '1rem', marginBottom: '1rem', textTransform: 'uppercase', letterSpacing: '0.06em' }}>
+                        🧳 Packing Rack ({selectedCapsule.itemIds.length} Core Pieces)
+                      </h4>
+                      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(130px, 1fr))', gap: '0.75rem' }}>
+                        {wardrobe.filter(w => selectedCapsule.itemIds.includes(w.id)).map(item => (
+                          <div key={item.id} style={{ border: '1px solid var(--border-color)', borderRadius: '4px', padding: '0.5rem', background: '#fafafa' }}>
+                            <div style={{ position: 'relative', width: '100%', height: '110px', borderRadius: '3px', overflow: 'hidden', marginBottom: '0.35rem' }}>
+                              <Image src={item.imageUrl} alt={item.category} fill style={{ objectFit: 'cover' }} unoptimized />
+                            </div>
+                            <span style={{ fontSize: '0.7rem', fontWeight: 700, display: 'block', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
+                              {item.brand ? `${item.brand} ` : ''}{item.category}
+                            </span>
+                            <span style={{ fontSize: '0.65rem', color: 'var(--text-secondary)' }}>{item.color?.join(', ')}</span>
+                          </div>
+                        ))}
+                      </div>
+                    </div>
+
+                    {/* Day-by-Day Outfit Timeline */}
+                    {selectedCapsule.outfitSchedule && selectedCapsule.outfitSchedule.length > 0 && (
+                      <div>
+                        <h4 style={{ fontSize: '1rem', marginBottom: '1rem', textTransform: 'uppercase', letterSpacing: '0.06em' }}>
+                          📅 Daily Lookbook Schedule
+                        </h4>
+                        <div className="capsule-timeline">
+                          {selectedCapsule.outfitSchedule.map((schedule, idx) => (
+                            <div key={idx} className="capsule-day-card">
+                              <div style={{ borderBottom: '1px solid var(--border-color)', paddingBottom: '0.5rem' }}>
+                                <span style={{ fontSize: '0.7rem', fontWeight: 800, textTransform: 'uppercase', color: 'var(--accent-gold)' }}>
+                                  Day {schedule.dayNumber}
+                                </span>
+                                <strong style={{ display: 'block', fontSize: '0.85rem' }}>{schedule.date}</strong>
+                              </div>
+
+                              {/* Day Look */}
+                              {schedule.dayLook && (
+                                <div className="capsule-look-box">
+                                  <span style={{ fontSize: '0.65rem', textTransform: 'uppercase', color: 'var(--accent)', fontWeight: 800, display: 'block' }}>
+                                    ☀️ Morning / Daytime
+                                  </span>
+                                  <strong style={{ fontSize: '0.8rem', display: 'block', margin: '0.2rem 0' }}>{schedule.dayLook.title}</strong>
+                                  <p style={{ fontSize: '0.7rem', color: 'var(--text-secondary)', margin: 0 }}>{schedule.dayLook.narrative}</p>
+                                </div>
+                              )}
+
+                              {/* Evening Look */}
+                              {schedule.eveningLook && (
+                                <div className="capsule-look-box">
+                                  <span style={{ fontSize: '0.65rem', textTransform: 'uppercase', color: 'var(--accent-gold)', fontWeight: 800, display: 'block' }}>
+                                    🌙 Evening / Dinner
+                                  </span>
+                                  <strong style={{ fontSize: '0.8rem', display: 'block', margin: '0.2rem 0' }}>{schedule.eveningLook.title}</strong>
+                                  <p style={{ fontSize: '0.7rem', color: 'var(--text-secondary)', margin: 0 }}>{schedule.eveningLook.narrative}</p>
+                                </div>
+                              )}
+                            </div>
+                          ))}
+                        </div>
+                      </div>
+                    )}
+                  </div>
+                )}
+              </div>
+            )}
+          </div>
+        )}
+
+        {/* ==========================================================================
+            Editorial Flat-Lay Canvas Studio Tab
+            ========================================================================== */}
+        {activeTab === 'studio' && (
+          <div style={{ display: 'flex', flexDirection: 'column', gap: '1.5rem' }}>
+            {/* Studio Header */}
+            <div className="lookbook-panel" style={{ padding: '1.5rem', display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: '1rem' }}>
+              <div>
+                <h3 style={{ fontSize: '1.25rem', color: 'var(--accent-gold)' }}>🎨 Editorial Flat-Lay Canvas Studio</h3>
+                <p style={{ fontSize: '0.8rem', color: 'var(--text-muted)' }}>
+                  Drag, layer, scale, and rotate garments from your wardrobe and inspiration moodboards to compose editorial magazine spreads.
+                </p>
+              </div>
+              <div style={{ display: 'flex', gap: '0.75rem', alignItems: 'center' }}>
+                <input
+                  type="text"
+                  value={collageTitle}
+                  onChange={(e) => setCollageTitle(e.target.value)}
+                  placeholder="Lookbook Spread Title"
+                  style={{ padding: '0.5rem 0.75rem', fontSize: '0.8rem', borderRadius: '4px', border: '1px solid var(--border-color)', width: '220px' }}
+                />
+                <button
+                  type="button"
+                  onClick={handleSaveCollageSubmit}
+                  disabled={isSavingCollage || canvasItems.length === 0}
+                  className="accent-button"
+                  style={{ padding: '0.5rem 1rem' }}
+                >
+                  {isSavingCollage ? 'Saving...' : '💾 Save Spread'}
+                </button>
+              </div>
+            </div>
+
+            {/* Studio Workspace */}
+            <div className="flatlay-studio-container">
+              {/* Sidebar Closet & Inspiration Selector */}
+              <div className="flatlay-sidebar">
+                <h4 style={{ fontSize: '0.8rem', textTransform: 'uppercase', letterSpacing: '0.08em', marginBottom: '0.75rem', color: 'var(--text-primary)' }}>
+                  Add to Canvas
+                </h4>
+                <div style={{ display: 'flex', flexDirection: 'column', gap: '0.65rem' }}>
+                  {wardrobe.map((item) => (
+                    <div
+                      key={item.id}
+                      style={{
+                        display: 'flex',
+                        alignItems: 'center',
+                        gap: '0.5rem',
+                        padding: '0.4rem',
+                        border: '1px solid var(--border-color)',
+                        borderRadius: '4px',
+                        background: '#fafafa',
+                      }}
+                    >
+                      <div style={{ position: 'relative', width: '38px', height: '38px', borderRadius: '3px', overflow: 'hidden', flexShrink: 0 }}>
+                        <Image src={item.imageUrl} alt={item.category} fill style={{ objectFit: 'cover' }} unoptimized />
+                      </div>
+                      <div style={{ flex: 1, minWidth: 0 }}>
+                        <span style={{ fontSize: '0.7rem', fontWeight: 700, display: 'block', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
+                          {item.brand ? `${item.brand} ` : ''}{item.category}
+                        </span>
+                      </div>
+                      <button
+                        type="button"
+                        onClick={() => handleAddItemToCanvas(item)}
+                        className="weather-pill-btn"
+                        style={{ padding: '0.2rem 0.5rem', fontSize: '0.65rem' }}
+                      >
+                        + Add
+                      </button>
+                    </div>
+                  ))}
+                  {inspirations.map((ins) => (
+                    <div
+                      key={ins.id}
+                      style={{
+                        display: 'flex',
+                        alignItems: 'center',
+                        gap: '0.5rem',
+                        padding: '0.4rem',
+                        border: '1px solid var(--border-color)',
+                        borderRadius: '4px',
+                        background: '#fafafa',
+                      }}
+                    >
+                      <div style={{ position: 'relative', width: '38px', height: '38px', borderRadius: '3px', overflow: 'hidden', flexShrink: 0 }}>
+                        <Image src={ins.imageUrl} alt="Inspiration" fill style={{ objectFit: 'cover' }} unoptimized />
+                      </div>
+                      <div style={{ flex: 1, minWidth: 0 }}>
+                        <span style={{ fontSize: '0.7rem', fontWeight: 700, display: 'block', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
+                          Inspiration Snap
+                        </span>
+                      </div>
+                      <button
+                        type="button"
+                        onClick={() => handleAddItemToCanvas(ins)}
+                        className="weather-pill-btn"
+                        style={{ padding: '0.2rem 0.5rem', fontSize: '0.65rem' }}
+                      >
+                        + Add
+                      </button>
+                    </div>
+                  ))}
+                </div>
+              </div>
+
+              {/* Main Interactive Flat-Lay Canvas */}
+              <div style={{ flex: 1, display: 'flex', flexDirection: 'column', gap: '0.75rem' }}>
+                {/* Canvas Controls Toolbar */}
+                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: '0.5rem', background: '#fafafa', padding: '0.5rem 0.75rem', borderRadius: '4px', border: '1px solid var(--border-color)' }}>
+                  <div style={{ display: 'flex', gap: '0.4rem', alignItems: 'center' }}>
+                    <span style={{ fontSize: '0.7rem', fontWeight: 700 }}>Transform:</span>
+                    <button
+                      type="button"
+                      disabled={!selectedCanvasItemId}
+                      onClick={() => {
+                        const item = canvasItems.find(i => i.id === selectedCanvasItemId);
+                        if (item) handleUpdateCanvasItemTransform(Math.min(item.scale + 0.15, 2.5), item.rotation);
+                      }}
+                      className="weather-pill-btn"
+                    >
+                      Scale +
+                    </button>
+                    <button
+                      type="button"
+                      disabled={!selectedCanvasItemId}
+                      onClick={() => {
+                        const item = canvasItems.find(i => i.id === selectedCanvasItemId);
+                        if (item) handleUpdateCanvasItemTransform(Math.max(item.scale - 0.15, 0.4), item.rotation);
+                      }}
+                      className="weather-pill-btn"
+                    >
+                      Scale -
+                    </button>
+                    <button
+                      type="button"
+                      disabled={!selectedCanvasItemId}
+                      onClick={() => {
+                        const item = canvasItems.find(i => i.id === selectedCanvasItemId);
+                        if (item) handleUpdateCanvasItemTransform(item.scale, item.rotation - 15);
+                      }}
+                      className="weather-pill-btn"
+                    >
+                      ↺ Rotate
+                    </button>
+                    <button
+                      type="button"
+                      disabled={!selectedCanvasItemId}
+                      onClick={() => {
+                        const item = canvasItems.find(i => i.id === selectedCanvasItemId);
+                        if (item) handleUpdateCanvasItemTransform(item.scale, item.rotation + 15);
+                      }}
+                      className="weather-pill-btn"
+                    >
+                      ↻ Rotate
+                    </button>
+                    <button
+                      type="button"
+                      disabled={!selectedCanvasItemId}
+                      onClick={() => selectedCanvasItemId && handleBringCanvasItemForward(selectedCanvasItemId)}
+                      className="weather-pill-btn"
+                    >
+                      Bring to Front
+                    </button>
+                  </div>
+                  <div style={{ display: 'flex', gap: '0.4rem' }}>
+                    <button
+                      type="button"
+                      disabled={!selectedCanvasItemId}
+                      onClick={() => selectedCanvasItemId && handleRemoveCanvasItem(selectedCanvasItemId)}
+                      className="nav-action"
+                      style={{ color: '#ef4444', fontSize: '0.7rem', background: 'none', border: 'none', cursor: 'pointer' }}
+                    >
+                      Remove Item
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => setCanvasItems([])}
+                      className="nav-action"
+                      style={{ fontSize: '0.7rem', background: 'none', border: 'none', cursor: 'pointer' }}
+                    >
+                      Clear Canvas
+                    </button>
+                  </div>
+                </div>
+
+                {/* Canvas Surface */}
+                <div
+                  className="flatlay-canvas-stage"
+                  onClick={() => setSelectedCanvasItemId(null)}
+                >
+                  {canvasItems.length === 0 ? (
+                    <div style={{ display: 'flex', height: '100%', alignItems: 'center', justifyContent: 'center', color: 'rgba(255,255,255,0.4)', fontSize: '0.85rem' }}>
+                      Click &quot;+ Add&quot; on items from your closet to position them on the canvas.
+                    </div>
+                  ) : (
+                    canvasItems.map((elem) => {
+                      const isSelected = selectedCanvasItemId === elem.id;
+
+                      return (
+                        <div
+                          key={elem.id}
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            setSelectedCanvasItemId(elem.id);
+                          }}
+                          className={`flatlay-element ${isSelected ? 'selected' : ''}`}
+                          style={{
+                            left: `${elem.x}px`,
+                            top: `${elem.y}px`,
+                            transform: `scale(${elem.scale}) rotate(${elem.rotation}deg)`,
+                            zIndex: elem.zIndex,
+                            width: '130px',
+                            height: '130px',
+                          }}
+                          draggable
+                          onDragEnd={(e) => {
+                            const rect = e.currentTarget.parentElement?.getBoundingClientRect();
+                            if (rect) {
+                              const newX = Math.max(10, Math.min(rect.width - 140, e.clientX - rect.left - 65));
+                              const newY = Math.max(10, Math.min(rect.height - 140, e.clientY - rect.top - 65));
+                              setCanvasItems((prev) =>
+                                prev.map((item) => (item.id === elem.id ? { ...item, x: newX, y: newY } : item))
+                              );
+                            }
+                          }}
+                        >
+                          <div style={{ position: 'relative', width: '100%', height: '100%', borderRadius: '4px', overflow: 'hidden', boxShadow: '0 8px 20px rgba(0,0,0,0.4)' }}>
+                            <Image src={elem.imageUrl} alt={elem.label} fill style={{ objectFit: 'cover' }} unoptimized />
+                          </div>
+                        </div>
+                      );
+                    })
+                  )}
+                </div>
+              </div>
+            </div>
+
+            {/* Saved Lookbook Spreads Gallery */}
+            {loadingCollages ? (
+              <div className="lookbook-panel" style={{ padding: '1.5rem', textAlign: 'center' }}>Loading saved spreads...</div>
+            ) : collages.length > 0 && (
+              <div className="lookbook-panel" style={{ padding: '1.5rem' }}>
+                <h4 style={{ fontSize: '1rem', marginBottom: '1rem', textTransform: 'uppercase', letterSpacing: '0.06em' }}>
+                  📖 Saved Lookbook Spreads
+                </h4>
+                <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(200px, 1fr))', gap: '1rem' }}>
+                  {collages.map((c) => (
+                    <div key={c.id} style={{ border: '1px solid var(--border-color)', borderRadius: '6px', padding: '0.75rem', background: '#fafafa' }}>
+                      <h5 style={{ fontSize: '0.85rem', margin: '0 0 0.5rem 0' }}>{c.title}</h5>
+                      <span style={{ fontSize: '0.7rem', color: 'var(--text-secondary)', display: 'block', marginBottom: '0.5rem' }}>
+                        {c.canvasData?.length || 0} styled elements
+                      </span>
+                      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                        <button
+                          type="button"
+                          onClick={() => {
+                            setCanvasItems(c.canvasData);
+                            setCollageTitle(c.title);
+                            showToast(`Loaded spread: ${c.title}`);
+                          }}
+                          className="weather-pill-btn"
+                          style={{ fontSize: '0.65rem' }}
+                        >
+                          Load to Stage
+                        </button>
+                        <button
+                          type="button"
+                          onClick={() => handleDeleteCollage(c.id)}
+                          className="nav-action"
+                          style={{ color: '#ef4444', fontSize: '0.7rem', background: 'none', border: 'none', cursor: 'pointer' }}
+                        >
+                          Delete
+                        </button>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              </div>
+            )}
           </div>
         )}
 
@@ -3570,6 +4826,16 @@ export default function AtelierEditDashboard() {
                           value={profColorPalette}
                           onChange={(e) => setProfColorPalette(e.target.value)}
                           placeholder="e.g. Black, Cream, Camel, Charcoal, Forest Pine"
+                        />
+                      </div>
+
+                      <div className="form-field" style={{ maxWidth: '600px' }}>
+                        <label>Primary Styling Location & Climate (City)</label>
+                        <input
+                          type="text"
+                          value={profLocationCity}
+                          onChange={(e) => setProfLocationCity(e.target.value)}
+                          placeholder="e.g. London, Paris, New York, Tokyo"
                         />
                       </div>
                     </div>

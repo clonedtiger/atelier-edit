@@ -7,7 +7,7 @@ jest.mock('../src/lib/gemini', () => {
   return {
     ...actual,
     generateOutfitRecommendations: jest.fn().mockImplementation(
-      async (_wardrobe, _trends, userProfile, _vibe) => {
+      async (_wardrobe, _trends, userProfile) => {
         return [
           {
             title: `${userProfile?.styleAesthetic || 'Tailored'} Editorial Look`,

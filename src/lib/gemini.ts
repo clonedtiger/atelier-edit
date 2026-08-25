@@ -181,13 +181,24 @@ export async function generateOutfitRecommendations(
   userProfile?: UserStyleProfile,
   vibe?: string,
   inspirations?: Array<{ notes: string | null; tags: string[] }>,
-  anchorItem?: { id: string; category: string; brand?: string | null; color: string[]; detectedTags: string[]; styleNotes?: string | null }
+  anchorItem?: { id: string; category: string; brand?: string | null; color: string[]; detectedTags: string[]; styleNotes?: string | null },
+  weatherContext?: { city: string; tempCelsius: number; condition: string; stylingDirectives: string }
 ): Promise<RecommendedOutfit[]> {
   const wardrobeSummary = wardrobe.map(item => (
     `ID: ${item.id} | Category: ${item.category} | Colors: ${item.color.join(', ')} | Tags: ${item.detectedTags.join(', ')} | Notes: ${item.styleNotes || 'None'}`
   )).join('\n');
 
   const trendsSummary = trends.slice(0, 20).join(', ');
+
+  const weatherSummary = weatherContext
+    ? `
+    CURRENT LOCATION & LIVE WEATHER CONTEXT:
+    - City: ${weatherContext.city} (${weatherContext.tempCelsius}°C / ${Math.round((weatherContext.tempCelsius * 9) / 5 + 32)}°F)
+    - Condition: ${weatherContext.condition}
+    - Thermal & Practical Styling Rules: ${weatherContext.stylingDirectives}
+    Ensure all 3 outfits are functional and appropriate for these exact weather conditions (proper thermal weight, footwear practicality, layering transitions).
+    `
+    : '';
 
   const styleDnaSummary = `
     CLIENT'S UNIQUE STYLE DNA & AESTHETIC DIRECTIVES:
@@ -257,6 +268,7 @@ export async function generateOutfitRecommendations(
 
     ${styleDnaSummary}
     ${sizingSummary}
+    ${weatherSummary}
     ${vibeInstructions}
     ${inspirationsSummary}
     ${anchorInstructions}
@@ -366,4 +378,188 @@ export async function analyzeInspirationImage(base64Data: string, mimeType: stri
     };
   }
 }
+
+export interface CapsuleDaySchedule {
+  dayNumber: number;
+  date: string;
+  dayLook: {
+    title: string;
+    narrative: string;
+    itemIds: string[];
+  };
+  eveningLook: {
+    title: string;
+    narrative: string;
+    itemIds: string[];
+  };
+}
+
+export interface CapsulePackingResult {
+  selectedItemIds: string[];
+  packingChecklist: Array<{ id: string; category: string; brand: string | null; styleNotes: string | null }>;
+  outfitSchedule: CapsuleDaySchedule[];
+  stylistRationale: string;
+}
+
+/**
+ * Optimizes an interchange travel packing capsule from closet inventory.
+ */
+export async function generateCapsuleWardrobe(
+  wardrobe: Array<{ id: string; category: string; brand: string | null; color: string[]; detectedTags: string[]; styleNotes: string | null }>,
+  destination: string,
+  daysCount: number,
+  tripPurpose: string,
+  luggageType: string,
+  userProfile?: UserStyleProfile,
+  weatherForecast?: string
+): Promise<CapsulePackingResult> {
+  const wardrobeSummary = wardrobe.map(item => (
+    `ID: ${item.id} | Category: ${item.category} | Brand: ${item.brand || 'Unbranded'} | Colors: ${item.color.join(', ')} | Tags: ${item.detectedTags.join(', ')} | Notes: ${item.styleNotes || 'None'}`
+  )).join('\n');
+
+  const maxItems = luggageType === 'Carry-on Only' ? Math.min(10, Math.max(6, daysCount + 3)) : Math.min(16, Math.max(8, daysCount * 2));
+
+  const prompt = `
+    You are an expert luxury fashion stylist and jet-set travel curator.
+    Plan an optimal, interchangeable Travel Packing Capsule for a client trip:
+    - Destination: ${destination}
+    - Trip Length: ${daysCount} Days
+    - Purpose & Itinerary: ${tripPurpose}
+    - Luggage Constraint: ${luggageType} (Target maximum of ${maxItems} core garments total)
+    - Climate & Weather: ${weatherForecast || 'Standard seasonal climate'}
+    - Client Style DNA: ${userProfile?.styleAesthetic || 'Modern Quiet Luxury with Timeless Tailoring'}
+    - Favorite Brands: ${userProfile?.favoriteBrands || 'Curated luxury'}
+    - Color Palette: ${userProfile?.colorPalette || 'Neutral monochrome with earth tones'}
+
+    Client Wardrobe Inventory:
+    ${wardrobeSummary}
+
+    Tasks:
+    1. Select the tightest, highest-versatility set of existing wardrobe items (maximum ${maxItems} pieces) that can be mixed and matched seamlessly across all days.
+    2. Generate a Day-by-Day itinerary schedule (Day 1 through Day ${daysCount}). For EACH day, provide:
+       - Day Look (Title, styling narrative, and exact itemIds from chosen capsule).
+       - Evening / Dinner Look (Title, styling narrative, and exact itemIds transitioning from day).
+    3. Provide an overarching stylist rationale on how the capsule coordinates.
+
+    Output format JSON:
+    {
+      "selectedItemIds": ["uuid-1", "uuid-2", ...],
+      "stylistRationale": "Explanation of the capsule synergy...",
+      "outfitSchedule": [
+        {
+          "dayNumber": 1,
+          "date": "Day 1",
+          "dayLook": {
+            "title": "Daytime Look Title",
+            "narrative": "Styling breakdown...",
+            "itemIds": ["uuid-1", "uuid-2"]
+          },
+          "eveningLook": {
+            "title": "Evening Transition Look",
+            "narrative": "Styling breakdown...",
+            "itemIds": ["uuid-1", "uuid-3"]
+          }
+        }
+      ]
+    }
+  `;
+
+  try {
+    const response = await getAi().models.generateContent({
+      model: MODEL_NAME,
+      contents: prompt,
+      config: {
+        responseMimeType: 'application/json',
+      }
+    });
+
+    const text = response.text || '';
+    const parsed = safeParseGeminiJson<{ selectedItemIds?: string[]; stylistRationale?: string; outfitSchedule?: CapsuleDaySchedule[] }>(text);
+    const chosenIds = parsed.selectedItemIds || wardrobe.slice(0, maxItems).map(w => w.id);
+    const packingList = wardrobe
+      .filter(w => chosenIds.includes(w.id))
+      .map(w => ({ id: w.id, category: w.category, brand: w.brand, styleNotes: w.styleNotes }));
+
+    return {
+      selectedItemIds: chosenIds,
+      packingChecklist: packingList,
+      outfitSchedule: parsed.outfitSchedule || [],
+      stylistRationale: parsed.stylistRationale || 'A curated travel capsule designed for seamless day-to-night versatility.',
+    };
+  } catch (error) {
+    console.error('Error generating capsule wardrobe with Gemini:', error);
+    throw new Error('Capsule synthesis failed');
+  }
+}
+
+export interface WardrobeGapRecommendation {
+  purchaseName: string;
+  purchaseBrand: string;
+  category: string;
+  estimatedPrice: string;
+  stylingRationale: string;
+  unlocksLooksCount: number;
+}
+
+/**
+ * Analyzes closet inventory vs Style DNA to find 3 strategic missing staple gaps.
+ */
+export async function analyzeWardrobeGaps(
+  wardrobe: Array<{ id: string; category: string; brand: string | null; color: string[]; detectedTags: string[]; styleNotes: string | null }>,
+  userProfile?: UserStyleProfile
+): Promise<WardrobeGapRecommendation[]> {
+  const categoryCounts = wardrobe.reduce<Record<string, number>>((acc, item) => {
+    acc[item.category] = (acc[item.category] || 0) + 1;
+    return acc;
+  }, {});
+
+  const prompt = `
+    You are an elite fashion wardrobe consultant and investment piece analyst.
+    Analyze this client's current wardrobe inventory against their personal Style DNA to identify the TOP 3 high-leverage foundational missing pieces that would unlock the highest number of new outfit permutations.
+
+    Current Closet Inventory Summary (${wardrobe.length} total pieces):
+    - Category Distribution: ${JSON.stringify(categoryCounts)}
+    - Items:
+    ${wardrobe.map(item => `- ${item.category} (${item.brand || 'Unbranded'}, ${item.color.join('/')}): ${item.styleNotes || ''}`).join('\n')}
+
+    Client Style DNA:
+    - Aesthetic: ${userProfile?.styleAesthetic || 'Modern Quiet Luxury'}
+    - Favorite Brands: ${userProfile?.favoriteBrands || 'The Row, Toteme, Khaite, COS, Celine'}
+    - Avoided Styles: ${userProfile?.avoidedStyles || 'None'}
+    - Color Palette: ${userProfile?.colorPalette || 'Neutral monochrome with earth tones'}
+
+    Identify exactly 3 strategic staple acquisitions that fill critical gaps in their wardrobe.
+    Output JSON format:
+    {
+      "gaps": [
+        {
+          "purchaseName": "Structured Double-Breasted Camel Wool Coat",
+          "purchaseBrand": "Toteme",
+          "category": "Outerwear",
+          "estimatedPrice": "$1,100 - $1,400",
+          "stylingRationale": "Bridges the gap between your relaxed denim and tailored trousers, instantly elevating 8+ weekday and evening looks.",
+          "unlocksLooksCount": 8
+        }
+      ]
+    }
+  `;
+
+  try {
+    const response = await getAi().models.generateContent({
+      model: MODEL_NAME,
+      contents: prompt,
+      config: {
+        responseMimeType: 'application/json',
+      }
+    });
+
+    const text = response.text || '';
+    const parsed = safeParseGeminiJson<{ gaps?: WardrobeGapRecommendation[] }>(text);
+    return parsed.gaps || [];
+  } catch (error) {
+    console.error('Error analyzing wardrobe gaps with Gemini:', error);
+    return [];
+  }
+}
+
 

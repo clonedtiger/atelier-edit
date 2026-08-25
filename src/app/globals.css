@@ -1350,4 +1350,235 @@ p {
   flex-direction: column;
 }
 
+/* ==========================================================================
+   Weather Pill & Modal
+   ========================================================================== */
+.weather-pill-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.35rem;
+  background-color: #ffffff;
+  border: 1px solid var(--border-color);
+  color: var(--text-primary);
+  font-size: 0.65rem;
+  font-weight: 600;
+  padding: 0.3rem 0.65rem;
+  border-radius: 16px;
+  cursor: pointer;
+  transition: var(--transition-smooth);
+}
+
+.weather-pill-btn:hover {
+  border-color: var(--accent);
+  color: var(--accent);
+}
+
+/* ==========================================================================
+   PWA Install Prompt Banner
+   ========================================================================== */
+.pwa-install-banner {
+  background-color: #18181A;
+  border: 1px solid var(--accent);
+  border-radius: 6px;
+  padding: 0.75rem 1.25rem;
+  margin-bottom: 1.5rem;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 0.75rem;
+  box-shadow: var(--shadow-md);
+}
+
+.pwa-install-btn {
+  background-color: var(--accent);
+  color: #FAF8F4;
+  border: none;
+  font-size: 0.7rem;
+  font-weight: 700;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  padding: 0.4rem 0.85rem;
+  border-radius: 4px;
+  cursor: pointer;
+  transition: var(--transition-smooth);
+}
+
+.pwa-install-btn:hover {
+  background-color: var(--accent-hover);
+}
+
+.pwa-dismiss-btn {
+  background: transparent;
+  color: var(--text-muted);
+  border: none;
+  font-size: 0.7rem;
+  cursor: pointer;
+}
+
+/* ==========================================================================
+   Wardrobe Analytics & Gap Heatmaps
+   ========================================================================== */
+.analytics-grid {
+  display: grid;
+  grid-template-columns: 1fr;
+  gap: 1.5rem;
+  margin-top: 1rem;
+}
+
+@media (min-width: 850px) {
+  .analytics-grid {
+    grid-template-columns: repeat(2, 1fr);
+  }
+}
+
+.analytics-card {
+  background-color: #ffffff;
+  border: 1px solid var(--border-color);
+  border-radius: 6px;
+  padding: 1.5rem;
+  box-shadow: var(--shadow-sm);
+}
+
+.color-bar-row {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+  margin-bottom: 0.65rem;
+  font-size: 0.75rem;
+}
+
+.color-bar-track {
+  flex: 1;
+  height: 8px;
+  background-color: var(--bg-surface);
+  border-radius: 4px;
+  overflow: hidden;
+}
+
+.color-bar-fill {
+  height: 100%;
+  border-radius: 4px;
+  background-color: var(--accent);
+  transition: width 0.6s ease;
+}
+
+.unworn-gems-rack {
+  display: flex;
+  gap: 1rem;
+  overflow-x: auto;
+  padding-bottom: 0.75rem;
+  margin-top: 1rem;
+}
+
+.gap-card {
+  background-color: var(--bg-surface);
+  border: 1px solid var(--border-color);
+  border-radius: 6px;
+  padding: 1.25rem;
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+  transition: var(--transition-smooth);
+}
+
+.gap-card:hover {
+  border-color: var(--accent);
+}
+
+/* ==========================================================================
+   Capsule & Travel Itinerary Planner
+   ========================================================================== */
+.capsule-timeline {
+  display: grid;
+  grid-template-columns: 1fr;
+  gap: 1.25rem;
+  margin-top: 1.5rem;
+}
+
+@media (min-width: 768px) {
+  .capsule-timeline {
+    grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
+  }
+}
+
+.capsule-day-card {
+  background-color: #ffffff;
+  border: 1px solid var(--border-color);
+  border-radius: 6px;
+  padding: 1.25rem;
+  display: flex;
+  flex-direction: column;
+  gap: 0.85rem;
+}
+
+.capsule-look-box {
+  background-color: var(--bg-surface);
+  border-radius: 4px;
+  padding: 0.75rem;
+  font-size: 0.75rem;
+}
+
+/* ==========================================================================
+   Editorial Flat-Lay Canvas Studio
+   ========================================================================== */
+.flatlay-studio-container {
+  display: flex;
+  flex-direction: column;
+  gap: 1.25rem;
+  background-color: #ffffff;
+  border: 1px solid var(--border-color);
+  border-radius: 6px;
+  padding: 1.5rem;
+}
+
+@media (min-width: 900px) {
+  .flatlay-studio-container {
+    flex-direction: row;
+  }
+}
+
+.flatlay-sidebar {
+  width: 100%;
+  max-height: 550px;
+  overflow-y: auto;
+  border-right: 1px solid var(--border-color);
+  padding-right: 1rem;
+}
+
+@media (min-width: 900px) {
+  .flatlay-sidebar {
+    width: 260px;
+    flex-shrink: 0;
+  }
+}
+
+.flatlay-canvas-stage {
+  flex: 1;
+  height: 550px;
+  position: relative;
+  background-color: #18181A;
+  border: 1px solid var(--border-color);
+  border-radius: 4px;
+  overflow: hidden;
+  user-select: none;
+}
+
+.flatlay-element {
+  position: absolute;
+  cursor: grab;
+  transform-origin: center center;
+  transition: box-shadow 0.15s ease;
+}
+
+.flatlay-element:active {
+  cursor: grabbing;
+}
+
+.flatlay-element.selected {
+  outline: 2px dashed var(--accent);
+  outline-offset: 4px;
+}
+
+
 

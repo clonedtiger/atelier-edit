@@ -81,7 +81,8 @@ describe('Item-Anchored Outfit Generation Integration Tests', () => {
         id: testAnchorItemId,
         category: 'Outerwear',
         brand: 'Alexander McQueen',
-      })
+      }),
+      undefined
     );
 
     expect(recs).toHaveLength(1);

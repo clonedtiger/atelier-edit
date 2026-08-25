@@ -34,6 +34,7 @@ export async function GET() {
         favoriteBrands: true,
         avoidedStyles: true,
         colorPalette: true,
+        locationCity: true,
         mfaEnabled: true,
         marketingEmail: true,
         marketingSms: true,
@@ -89,6 +90,7 @@ export async function POST(req: NextRequest) {
       favoriteBrands,
       avoidedStyles,
       colorPalette,
+      locationCity,
       password,
     } = body;
 
@@ -111,6 +113,7 @@ export async function POST(req: NextRequest) {
       favoriteBrands?: string;
       avoidedStyles?: string;
       colorPalette?: string;
+      locationCity?: string;
       passwordHash?: string;
     } = {};
 
@@ -138,6 +141,7 @@ export async function POST(req: NextRequest) {
     if (favoriteBrands !== undefined) updateData.favoriteBrands = favoriteBrands;
     if (avoidedStyles !== undefined) updateData.avoidedStyles = avoidedStyles;
     if (colorPalette !== undefined) updateData.colorPalette = colorPalette;
+    if (locationCity !== undefined) updateData.locationCity = locationCity;
 
     // Handle profile password change
     if (password) {
