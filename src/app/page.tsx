@@ -660,17 +660,39 @@ export default function AtelierEditDashboard() {
   }, [fetchRecommendations]);
 
   const checkSession = useCallback(async () => {
-    setLoadingMe(true);
+    // 1. Instantly restore from localStorage if available
+    try {
+      if (typeof window !== 'undefined') {
+        const cached = localStorage.getItem('atelier_user');
+        if (cached) {
+          const parsed = JSON.parse(cached);
+          if (parsed && parsed.id) {
+            setUser(parsed);
+            populateProfileFields(parsed);
+          }
+        }
+      }
+    } catch {
+      // ignore parsing error
+    }
+
     try {
       const res = await fetch('/api/auth/me');
       if (res.ok) {
         const data = await res.json();
         if (data.authenticated && data.user) {
           setUser(data.user);
+          if (typeof window !== 'undefined') {
+            localStorage.setItem('atelier_user', JSON.stringify(data.user));
+          }
           populateProfileFields(data.user);
           triggerSilentFeedSync();
         } else {
-          setUser(null);
+          // If server explicitly returns authenticated: false and no local cookie, clear
+          if (typeof window !== 'undefined' && !document.cookie.includes('session=')) {
+            setUser(null);
+            localStorage.removeItem('atelier_user');
+          }
         }
       }
     } catch (err) {
@@ -1204,6 +1226,9 @@ export default function AtelierEditDashboard() {
           setAuthMode('mfa');
         } else {
           setUser(data.user);
+          if (typeof window !== 'undefined') {
+            localStorage.setItem('atelier_user', JSON.stringify(data.user));
+          }
           populateProfileFields(data.user);
           setActiveTab('account');
           showToast('Sign up successful!');
@@ -1239,6 +1264,9 @@ export default function AtelierEditDashboard() {
           setAuthMode('mfa');
         } else {
           setUser(data.user);
+          if (typeof window !== 'undefined') {
+            localStorage.setItem('atelier_user', JSON.stringify(data.user));
+          }
           populateProfileFields(data.user);
           showToast('Logged in successfully!');
           setActiveTab('feed');
@@ -1273,6 +1301,9 @@ export default function AtelierEditDashboard() {
         setSignupSecret2FA(null);
         setTempMfaUserId(null);
         setUser(data.user);
+        if (typeof window !== 'undefined') {
+          localStorage.setItem('atelier_user', JSON.stringify(data.user));
+        }
         populateProfileFields(data.user);
         showToast('MFA Verification Successful!');
         setActiveTab('feed');
@@ -1448,6 +1479,9 @@ export default function AtelierEditDashboard() {
       const res = await fetch('/api/auth/logout', { method: 'POST' });
       if (res.ok) {
         setUser(null);
+        if (typeof window !== 'undefined') {
+          localStorage.removeItem('atelier_user');
+        }
         setSignupSecret2FA(null);
         setActiveTab('feed');
         showToast('Logged out successfully.');
