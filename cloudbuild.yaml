@@ -26,7 +26,7 @@ steps:
           -e DATABASE_URL=postgresql://postgres:postgres@test-postgres:5432/fashionfeed \
           -v /workspace:/workspace \
           -w /workspace \
-          node:20 \
+          node:22 \
           sh -c "npm ci && npx prisma generate && npx prisma db push && npm run test"
     id: 'run-tests'
 

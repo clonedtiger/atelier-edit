@@ -31,7 +31,6 @@
     "@types/react": "^19",
     "@types/react-dom": "^19",
     "@types/sharp": "^0.31.1",
-    "@unrs/resolver-binding-darwin-x64": "^1.12.2",
     "eslint": "^9",
     "eslint-config-next": "16.2.10",
     "jest": "^30.4.2",
