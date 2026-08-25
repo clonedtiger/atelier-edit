@@ -43,7 +43,8 @@ export function decryptSession(sessionStr: string): SessionPayload | null {
   if (!sessionStr || typeof sessionStr !== 'string') return null;
 
   try {
-    const parts = sessionStr.split(':');
+    const decodedStr = sessionStr.includes('%') ? decodeURIComponent(sessionStr) : sessionStr;
+    const parts = decodedStr.split(':');
 
     // 1. AES-256-GCM Format (gcm:iv:tag:ciphertext)
     if (parts[0] === 'gcm' && parts.length === 4) {

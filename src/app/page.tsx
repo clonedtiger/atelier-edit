@@ -1239,7 +1239,7 @@ export default function AtelierEditDashboard() {
           setAuthMode('mfa');
         } else {
           setUser(data.user);
-          checkSession(); 
+          populateProfileFields(data.user);
           showToast('Logged in successfully!');
           setActiveTab('feed');
           fetchWardrobe();
@@ -1273,7 +1273,7 @@ export default function AtelierEditDashboard() {
         setSignupSecret2FA(null);
         setTempMfaUserId(null);
         setUser(data.user);
-        checkSession();
+        populateProfileFields(data.user);
         showToast('MFA Verification Successful!');
         setActiveTab('feed');
         fetchWardrobe();
