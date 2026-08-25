@@ -68,7 +68,7 @@ steps:
     id: 'deploy-to-cloud-run'
 
 substitutions:
-  _REGION: 'us-central1'
+  _REGION: 'europe-west2'
   _REPOSITORY: 'atelier-edit-repo'
   _SERVICE_NAME: 'atelier-edit'
   _INSTANCE_CONNECTION_NAME: ''
