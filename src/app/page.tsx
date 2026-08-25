@@ -689,7 +689,7 @@ export default function AtelierEditDashboard() {
           triggerSilentFeedSync();
         } else {
           // If server explicitly returns authenticated: false and no local cookie, clear
-          if (typeof window !== 'undefined' && !document.cookie.includes('session=')) {
+          if (typeof window !== 'undefined' && !document.cookie.includes('session=') && !document.cookie.includes('__session=')) {
             setUser(null);
             localStorage.removeItem('atelier_user');
           }

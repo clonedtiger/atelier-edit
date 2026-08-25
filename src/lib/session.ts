@@ -110,24 +110,32 @@ export function decryptSession(sessionStr: string): SessionPayload | null {
 
 /**
  * Creates and sets a secure HTTP-only cookie on the response store.
+ * Uses '__session' to ensure Firebase Hosting reverse proxy forwards it to Cloud Run.
  */
 export async function setSessionCookie(payload: SessionPayload) {
   const sessionStr = encryptSession(payload);
   const cookieStore = await cookies();
-  cookieStore.set('session', sessionStr, {
+  
+  const options = {
     httpOnly: true,
     secure: process.env.NODE_ENV === 'production',
-    sameSite: 'lax',
+    sameSite: 'lax' as const,
     maxAge: 60 * 60 * 24 * 7, // 7 days
     path: '/',
-  });
+  };
+
+  // Set Firebase Hosting standard __session cookie
+  cookieStore.set('__session', sessionStr, options);
+  // Also set legacy session cookie for backward compatibility
+  cookieStore.set('session', sessionStr, options);
 }
 
 /**
- * Clears the session cookie.
+ * Clears the session cookies.
  */
 export async function clearSessionCookie() {
   const cookieStore = await cookies();
+  cookieStore.delete('__session');
   cookieStore.delete('session');
 }
 
@@ -137,14 +145,14 @@ export async function clearSessionCookie() {
 export async function getSession(req?: NextRequest): Promise<SessionPayload | null> {
   // 1. If NextRequest was passed, check its parsed cookies and raw headers first
   if (req) {
-    const val = req.cookies.get('session')?.value;
+    const val = req.cookies.get('__session')?.value || req.cookies.get('session')?.value;
     if (val) {
       const decrypted = decryptSession(val);
       if (decrypted) return decrypted;
     }
     const rawHeader = req.headers.get('cookie');
     if (rawHeader) {
-      const match = rawHeader.match(/(?:^|;\s*)session=([^;]+)/);
+      const match = rawHeader.match(/(?:^|;\s*)(?:__session|session)=([^;]+)/);
       if (match) {
         const decrypted = decryptSession(match[1]);
         if (decrypted) return decrypted;
@@ -155,7 +163,7 @@ export async function getSession(req?: NextRequest): Promise<SessionPayload | nu
   // 2. Fallback to App Router cookies() store
   try {
     const cookieStore = await cookies();
-    const sessionVal = cookieStore.get('session')?.value;
+    const sessionVal = cookieStore.get('__session')?.value || cookieStore.get('session')?.value;
     if (sessionVal) {
       return decryptSession(sessionVal);
     }
@@ -170,14 +178,14 @@ export async function getSession(req?: NextRequest): Promise<SessionPayload | nu
  * Utility to extract user session from incoming request headers
  */
 export function getSessionFromRequest(req: NextRequest): SessionPayload | null {
-  const sessionVal = req.cookies.get('session')?.value;
+  const sessionVal = req.cookies.get('__session')?.value || req.cookies.get('session')?.value;
   if (sessionVal) {
     const decrypted = decryptSession(sessionVal);
     if (decrypted) return decrypted;
   }
   const rawHeader = req.headers.get('cookie');
   if (rawHeader) {
-    const match = rawHeader.match(/(?:^|;\s*)session=([^;]+)/);
+    const match = rawHeader.match(/(?:^|;\s*)(?:__session|session)=([^;]+)/);
     if (match) {
       return decryptSession(match[1]);
     }
