@@ -108,6 +108,14 @@ export default function AtelierEditDashboard() {
   const [compressionStatus, setCompressionStatus] = useState<string | null>(null);
   const [bulkUploadProgress, setBulkUploadProgress] = useState<string | null>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
+  const cameraInputRef = useRef<HTMLInputElement>(null);
+  const inspirationFileInputRef = useRef<HTMLInputElement>(null);
+  const inspirationCameraInputRef = useRef<HTMLInputElement>(null);
+  const videoRef = useRef<HTMLVideoElement>(null);
+  const streamRef = useRef<MediaStream | null>(null);
+  const [showCameraModal, setShowCameraModal] = useState(false);
+  const [cameraFacingMode, setCameraFacingMode] = useState<'environment' | 'user'>('environment');
+  const [cameraTarget, setCameraTarget] = useState<'wardrobe' | 'inspiration'>('wardrobe');
 
   // Spreadsheet Bulk Edit States
   const [isSpreadsheetMode, setIsSpreadsheetMode] = useState(false);
@@ -525,12 +533,131 @@ export default function AtelierEditDashboard() {
     });
   };
 
+  const stopCameraStream = useCallback(() => {
+    if (streamRef.current) {
+      streamRef.current.getTracks().forEach((track) => track.stop());
+      streamRef.current = null;
+    }
+    setShowCameraModal(false);
+  }, []);
+
+  const startCameraStream = useCallback(async (facing: 'environment' | 'user' = cameraFacingMode) => {
+    try {
+      if (streamRef.current) {
+        streamRef.current.getTracks().forEach((track) => track.stop());
+      }
+      const stream = await navigator.mediaDevices.getUserMedia({
+        video: {
+          facingMode: { ideal: facing },
+          width: { ideal: 1920 },
+          height: { ideal: 1440 },
+        },
+        audio: false,
+      });
+      streamRef.current = stream;
+      if (videoRef.current) {
+        videoRef.current.srcObject = stream;
+        await videoRef.current.play().catch(() => {});
+      }
+    } catch (err) {
+      console.warn('getUserMedia failed, falling back to native file capture:', err);
+      stopCameraStream();
+      if (cameraTarget === 'wardrobe') {
+        cameraInputRef.current?.click();
+      } else {
+        inspirationCameraInputRef.current?.click();
+      }
+    }
+  }, [cameraFacingMode, cameraTarget, stopCameraStream]);
+
+  const openCameraViewfinder = (target: 'wardrobe' | 'inspiration' = 'wardrobe') => {
+    setCameraTarget(target);
+    if (typeof navigator === 'undefined' || !navigator.mediaDevices || !navigator.mediaDevices.getUserMedia) {
+      if (target === 'wardrobe') {
+        cameraInputRef.current?.click();
+      } else {
+        inspirationCameraInputRef.current?.click();
+      }
+      return;
+    }
+    setShowCameraModal(true);
+    setTimeout(() => {
+      startCameraStream('environment');
+    }, 100);
+  };
+
+  const toggleCameraFacing = () => {
+    const nextMode = cameraFacingMode === 'environment' ? 'user' : 'environment';
+    setCameraFacingMode(nextMode);
+    startCameraStream(nextMode);
+  };
+
+  const capturePhotoFromStream = () => {
+    if (!videoRef.current) return;
+    const video = videoRef.current;
+    const canvas = document.createElement('canvas');
+    canvas.width = video.videoWidth || 1280;
+    canvas.height = video.videoHeight || 960;
+    const ctx = canvas.getContext('2d');
+    if (!ctx) return;
+
+    ctx.drawImage(video, 0, 0, canvas.width, canvas.height);
+    canvas.toBlob(
+      (blob) => {
+        if (!blob) return;
+        const filename = `garment-photo-${Date.now()}.jpg`;
+        const file = new File([blob], filename, { type: 'image/jpeg' });
+        const previewUrl = URL.createObjectURL(file);
+
+        if (cameraTarget === 'wardrobe') {
+          setSelectedFiles((prev) => [...prev, file]);
+          setPreviewUrls((prev) => [...prev, previewUrl]);
+          showToast('Captured photograph added to catalog queue.', 'success');
+        } else {
+          setInspirationFiles((prev) => [...prev, file]);
+          setInspirationPreviewUrls((prev) => [...prev, previewUrl]);
+          showToast('Captured inspiration photograph added.', 'success');
+        }
+        stopCameraStream();
+      },
+      'image/jpeg',
+      0.92
+    );
+  };
+
+  const handleCameraNativeCapture = (e: React.ChangeEvent<HTMLInputElement>, target: 'wardrobe' | 'inspiration' = 'wardrobe') => {
+    const files = e.target.files;
+    if (files && files.length > 0) {
+      const fileArr = Array.from(files);
+      const urls = fileArr.map((f) => URL.createObjectURL(f));
+      if (target === 'wardrobe') {
+        setSelectedFiles((prev) => [...prev, ...fileArr]);
+        setPreviewUrls((prev) => [...prev, ...urls]);
+        showToast(`Captured ${fileArr.length} photo(s) from camera.`, 'success');
+      } else {
+        setInspirationFiles((prev) => [...prev, ...fileArr]);
+        setInspirationPreviewUrls((prev) => [...prev, ...urls]);
+        showToast(`Captured ${fileArr.length} inspiration photo(s).`, 'success');
+      }
+    }
+  };
+
+  const handleRemovePreviewFile = (index: number) => {
+    setSelectedFiles((prev) => prev.filter((_, i) => i !== index));
+    setPreviewUrls((prev) => prev.filter((_, i) => i !== index));
+  };
+
+  const handleRemoveInspirationPreviewFile = (index: number) => {
+    setInspirationFiles((prev) => prev.filter((_, i) => i !== index));
+    setInspirationPreviewUrls((prev) => prev.filter((_, i) => i !== index));
+  };
+
   const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const files = e.target.files;
     if (files && files.length > 0) {
       const fileArr = Array.from(files);
-      setSelectedFiles(fileArr);
-      setPreviewUrls(fileArr.map(f => URL.createObjectURL(f)));
+      setSelectedFiles((prev) => [...prev, ...fileArr]);
+      setPreviewUrls((prev) => [...prev, ...fileArr.map((f) => URL.createObjectURL(f))]);
       setCompressionStatus(null);
       setBulkUploadProgress(null);
     }
@@ -2172,42 +2299,130 @@ export default function AtelierEditDashboard() {
                     </h3>
                     
                     <form onSubmit={handleUploadSubmit} className="form-group-stack">
+                      {/* Dual Action Buttons: Camera vs Library */}
+                      <div className="camera-actions-grid">
+                        <button
+                          type="button"
+                          onClick={() => openCameraViewfinder('wardrobe')}
+                          className="camera-action-btn primary"
+                        >
+                          <svg width="15" height="15" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 9a2 2 0 012-2h.93a2 2 0 001.664-.89l.812-1.22A2 2 0 0110.07 4h3.86a2 2 0 011.664.89l.812 1.22A2 2 0 0018.07 7H19a2 2 0 012 2v9a2 2 0 01-2 2H5a2 2 0 01-2-2V9z" />
+                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 13a3 3 0 11-6 0 3 3 0 016 0z" />
+                          </svg>
+                          <span>Take Photo</span>
+                        </button>
+
+                        <button
+                          type="button"
+                          onClick={() => fileInputRef.current?.click()}
+                          className="camera-action-btn"
+                        >
+                          <svg width="15" height="15" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z" />
+                          </svg>
+                          <span>Photo Library</span>
+                        </button>
+                      </div>
+
+                      {/* Upload & Staging Zone */}
                       <div
-                        onClick={() => fileInputRef.current?.click()}
+                        onClick={() => {
+                          if (previewUrls.length === 0) {
+                            fileInputRef.current?.click();
+                          }
+                        }}
                         className="image-upload-picker"
+                        style={{ cursor: previewUrls.length > 0 ? 'default' : 'pointer' }}
                       >
                         {previewUrls.length > 0 ? (
-                          <div style={{ position: 'relative', width: '100%', height: '100%' }}>
-                            <Image
-                               src={previewUrls[0]}
-                               alt="Upload Preview"
-                               fill
-                               style={{ objectFit: 'cover' }}
-                               unoptimized
-                             />
+                          <div style={{ width: '100%', height: '100%', display: 'flex', flexDirection: 'column', gap: '0.5rem' }}>
+                            <div style={{ position: 'relative', width: '100%', flex: 1, minHeight: '180px', borderRadius: '4px', overflow: 'hidden' }}>
+                              <Image
+                                src={previewUrls[0]}
+                                alt="Upload Preview"
+                                fill
+                                style={{ objectFit: 'cover' }}
+                                unoptimized
+                              />
+                              <button
+                                type="button"
+                                onClick={(e) => {
+                                  e.stopPropagation();
+                                  handleRemovePreviewFile(0);
+                                }}
+                                style={{ position: 'absolute', top: 6, right: 6, background: 'rgba(24,24,26,0.75)', color: '#fff', border: 'none', borderRadius: '50%', width: 22, height: 22, cursor: 'pointer', fontSize: '11px', display: 'flex', alignItems: 'center', justifyContent: 'center' }}
+                                title="Remove photo"
+                              >
+                                ✕
+                              </button>
+                            </div>
+
+                            {/* Additional staged photos */}
                             {previewUrls.length > 1 && (
-                              <div style={{ position: 'absolute', bottom: 10, right: 10, backgroundColor: 'var(--accent)', color: 'white', padding: '0.2rem 0.6rem', fontSize: '0.7rem', borderRadius: '4px', fontWeight: 'bold' }}>
-                                + {previewUrls.length - 1} more files
+                              <div style={{ display: 'flex', gap: '4px', overflowX: 'auto', paddingBottom: '2px' }}>
+                                {previewUrls.slice(1).map((url, idx) => (
+                                  <div key={idx + 1} style={{ position: 'relative', width: '48px', height: '48px', flexShrink: 0, borderRadius: '2px', overflow: 'hidden', border: '1px solid var(--border-color)' }}>
+                                    <Image src={url} alt="Preview" fill style={{ objectFit: 'cover' }} unoptimized />
+                                    <button
+                                      type="button"
+                                      onClick={(e) => {
+                                        e.stopPropagation();
+                                        handleRemovePreviewFile(idx + 1);
+                                      }}
+                                      style={{ position: 'absolute', top: 2, right: 2, background: 'rgba(24,24,26,0.75)', color: '#fff', border: 'none', borderRadius: '50%', width: 16, height: 16, cursor: 'pointer', fontSize: '9px', display: 'flex', alignItems: 'center', justifyContent: 'center' }}
+                                    >
+                                      ✕
+                                    </button>
+                                  </div>
+                                ))}
                               </div>
                             )}
+
+                            <div style={{ display: 'flex', gap: '0.5rem', justifyContent: 'center', marginTop: '0.25rem' }}>
+                              <button
+                                type="button"
+                                onClick={() => openCameraViewfinder('wardrobe')}
+                                style={{ background: 'none', border: '1px dashed var(--border-color)', borderRadius: '3px', fontSize: '0.6rem', padding: '0.25rem 0.5rem', color: 'var(--text-secondary)', cursor: 'pointer' }}
+                              >
+                                + Snap Another
+                              </button>
+                              <button
+                                type="button"
+                                onClick={() => fileInputRef.current?.click()}
+                                style={{ background: 'none', border: '1px dashed var(--border-color)', borderRadius: '3px', fontSize: '0.6rem', padding: '0.25rem 0.5rem', color: 'var(--text-secondary)', cursor: 'pointer' }}
+                              >
+                                + Add From Files
+                              </button>
+                            </div>
                           </div>
                         ) : (
                           <div className="picker-prompt">
                             <svg fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1} d="M12 4v16m8-8H4" />
+                              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1} d="M3 9a2 2 0 012-2h.93a2 2 0 001.664-.89l.812-1.22A2 2 0 0110.07 4h3.86a2 2 0 011.664.89l.812 1.22A2 2 0 0018.07 7H19a2 2 0 012 2v9a2 2 0 01-2 2H5a2 2 0 01-2-2V9z" />
+                              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1} d="M15 13a3 3 0 11-6 0 3 3 0 016 0z" />
                             </svg>
-                            <span className="picker-text-main">Choose Photographs</span>
-                            <span className="picker-text-sub">Supports multi-file select</span>
+                            <span className="picker-text-main">Take Photo or Upload</span>
+                            <span className="picker-text-sub">Mobile camera & multi-file ingest</span>
                           </div>
                         )}
                       </div>
 
+                      {/* Hidden Native File & Camera Inputs */}
                       <input
                         type="file"
                         ref={fileInputRef}
                         onChange={handleFileChange}
                         accept="image/*"
                         multiple
+                        style={{ display: 'none' }}
+                      />
+                      <input
+                        type="file"
+                        ref={cameraInputRef}
+                        onChange={(e) => handleCameraNativeCapture(e, 'wardrobe')}
+                        accept="image/*"
+                        capture="environment"
                         style={{ display: 'none' }}
                       />
 
@@ -2590,19 +2805,53 @@ export default function AtelierEditDashboard() {
 
                 {/* Upload Zone */}
                 <form onSubmit={handleUploadInspirationSubmit} style={{ border: '1px dashed var(--border-color)', padding: '1.25rem', borderRadius: '4px', background: 'rgba(255,255,255,0.01)', marginBottom: '1.5rem' }}>
+                  <div style={{ display: 'flex', gap: '0.75rem', marginBottom: '1rem', flexWrap: 'wrap' }}>
+                    <button
+                      type="button"
+                      onClick={() => openCameraViewfinder('inspiration')}
+                      className="camera-action-btn primary"
+                      style={{ padding: '0.5rem 0.85rem' }}
+                    >
+                      <svg width="14" height="14" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 9a2 2 0 012-2h.93a2 2 0 001.664-.89l.812-1.22A2 2 0 0110.07 4h3.86a2 2 0 011.664.89l.812 1.22A2 2 0 0018.07 7H19a2 2 0 012 2v9a2 2 0 01-2 2H5a2 2 0 01-2-2V9z" />
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 13a3 3 0 11-6 0 3 3 0 016 0z" />
+                      </svg>
+                      <span>Snap Inspiration</span>
+                    </button>
+
+                    <button
+                      type="button"
+                      onClick={() => inspirationFileInputRef.current?.click()}
+                      className="camera-action-btn"
+                      style={{ padding: '0.5rem 0.85rem' }}
+                    >
+                      <svg width="14" height="14" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z" />
+                      </svg>
+                      <span>Browse Library</span>
+                    </button>
+
+                    <input
+                      type="file"
+                      ref={inspirationFileInputRef}
+                      id="inspiration-file-input"
+                      accept="image/*"
+                      multiple
+                      onChange={handleInspirationFileSelect}
+                      style={{ display: 'none' }}
+                    />
+                    <input
+                      type="file"
+                      ref={inspirationCameraInputRef}
+                      accept="image/*"
+                      capture="environment"
+                      onChange={(e) => handleCameraNativeCapture(e, 'inspiration')}
+                      style={{ display: 'none' }}
+                    />
+                  </div>
+
                   <div style={{ display: 'flex', gap: '1rem', alignItems: 'center', flexWrap: 'wrap' }}>
-                    <div style={{ flex: '1', minWidth: '200px' }}>
-                      <label style={{ display: 'block', fontSize: '0.75rem', marginBottom: '4px', textTransform: 'uppercase', letterSpacing: '0.05em' }}>Select Inspiration Images</label>
-                      <input
-                        type="file"
-                        id="inspiration-file-input"
-                        accept="image/*"
-                        multiple
-                        onChange={handleInspirationFileSelect}
-                        style={{ fontSize: '0.8rem' }}
-                      />
-                    </div>
-                    <div style={{ flex: '1.5', minWidth: '250px' }}>
+                    <div style={{ flex: '1', minWidth: '250px' }}>
                       <label style={{ display: 'block', fontSize: '0.75rem', marginBottom: '4px', textTransform: 'uppercase', letterSpacing: '0.05em' }}>Notes / Context (Optional)</label>
                       <input
                         type="text"
@@ -2618,7 +2867,7 @@ export default function AtelierEditDashboard() {
                       className="accent-button"
                       style={{ padding: '0.55rem 1rem', width: 'auto', marginTop: '1.25rem' }}
                     >
-                      {isUploadingInspiration ? 'INGESTING...' : 'UPLOAD INSPIRATION'}
+                      {isUploadingInspiration ? 'INGESTING...' : `UPLOAD INSPIRATION (${inspirationFiles.length})`}
                     </button>
                   </div>
 
@@ -2627,6 +2876,14 @@ export default function AtelierEditDashboard() {
                       {inspirationPreviewUrls.map((url, idx) => (
                         <div key={idx} style={{ position: 'relative', width: '60px', height: '60px', border: '1px solid var(--border-color)', borderRadius: '3px', overflow: 'hidden' }}>
                           <Image src={url} alt="preview" fill style={{ objectFit: 'cover' }} unoptimized />
+                          <button
+                            type="button"
+                            onClick={() => handleRemoveInspirationPreviewFile(idx)}
+                            style={{ position: 'absolute', top: 2, right: 2, background: 'rgba(24,24,26,0.75)', color: '#fff', border: 'none', borderRadius: '50%', width: 16, height: 16, cursor: 'pointer', fontSize: '9px', display: 'flex', alignItems: 'center', justifyContent: 'center' }}
+                            title="Remove preview"
+                          >
+                            ✕
+                          </button>
                         </div>
                       ))}
                     </div>
@@ -3472,6 +3729,67 @@ export default function AtelierEditDashboard() {
                 </button>
               </div>
             </form>
+          </div>
+        </div>
+      )}
+
+      {/* Live Camera Viewfinder Modal */}
+      {showCameraModal && (
+        <div className="camera-modal-overlay" onClick={stopCameraStream}>
+          <div className="camera-viewfinder-container" onClick={(e) => e.stopPropagation()}>
+            <div className="camera-header-bar">
+              <span className="camera-title">
+                {cameraTarget === 'wardrobe' ? 'Wardrobe Camera' : 'Inspiration Camera'}
+              </span>
+              <button
+                type="button"
+                onClick={stopCameraStream}
+                className="camera-aux-btn"
+                style={{ border: 'none', fontSize: '1rem', padding: '0.2rem 0.5rem' }}
+                aria-label="Close Camera"
+              >
+                ✕
+              </button>
+            </div>
+
+            <div className="camera-video-frame">
+              <video
+                ref={videoRef}
+                autoPlay
+                playsInline
+                muted
+                className="camera-video-stream"
+              />
+              <div className="camera-guidelines" />
+            </div>
+
+            <div className="camera-controls-bar">
+              <button
+                type="button"
+                onClick={toggleCameraFacing}
+                className="camera-aux-btn"
+                title="Switch Camera (Front/Back)"
+              >
+                🔄 Flip
+              </button>
+
+              <button
+                type="button"
+                onClick={capturePhotoFromStream}
+                className="shutter-button"
+                aria-label="Take Photo"
+              >
+                <div className="shutter-inner" />
+              </button>
+
+              <button
+                type="button"
+                onClick={stopCameraStream}
+                className="camera-aux-btn"
+              >
+                Cancel
+              </button>
+            </div>
           </div>
         </div>
       )}
