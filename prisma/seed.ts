@@ -7,20 +7,44 @@ const pool = new Pool({ connectionString });
 const adapter = new PrismaPg(pool);
 const prisma = new PrismaClient({ adapter });
 
+import { CURATED_WARDROBE_CATALOG } from '../src/lib/curatedCatalog';
+
+export async function seedWardrobeForUsers(targetUserEmails?: string[]) {
+  console.log('Seeding curated 31-piece wardrobe across users...');
+
+  // Get all users if no specific email provided
+  const users = await prisma.user.findMany({
+    where: targetUserEmails && targetUserEmails.length > 0 ? { email: { in: targetUserEmails } } : {},
+  });
+
+  console.log(`Found ${users.length} user(s) to populate wardrobe for.`);
+
+  for (const user of users) {
+    // Clear existing wardrobe items for this user to avoid duplicates
+    await prisma.wardrobeItem.deleteMany({ where: { userId: user.id } });
+
+    // Seed all 31 items
+    const createdItems = await Promise.all(
+      CURATED_WARDROBE_CATALOG.map((item) =>
+        prisma.wardrobeItem.create({
+          data: {
+            ...item,
+            userId: user.id,
+          },
+        })
+      )
+    );
+
+    console.log(`✓ Seeded ${createdItems.length} wardrobe pieces for ${user.email} (${user.name})`);
+  }
+}
+
 async function main() {
   console.log('Seeding local PostgreSQL database via Prisma...');
 
-  // 1. Create default user
-  const user = await prisma.user.upsert({
-    where: { email: 'curator@atelieredit.com' },
-    update: {
-      role: 'admin',
-      styleAesthetic: 'Minimalist Quiet Luxury x Editorial Tailoring',
-      favoriteBrands: 'The Row, Toteme, Khaite, Chanel, AllSaints',
-      avoidedStyles: 'No neon colors, avoid synthetic fast-fashion polyester, no loud branding logos',
-      colorPalette: 'Black, Cream, Camel, Charcoal, Forest Pine',
-    },
-    create: {
+  // 1. Create/Ensure default users exist
+  const defaultUsers = [
+    {
       email: 'curator@atelieredit.com',
       name: 'Atelier Curator',
       role: 'admin',
@@ -31,24 +55,51 @@ async function main() {
       workLife: 'Creative Director & Fashion Editor traveling between London and Paris',
       inspirationNotes: 'Clean architectural silhouettes, textured knitwear, structural outerwear, refined hardware accents',
     },
-  });
-  console.log(`Default User created: ${user.email}`);
-
-  // Clear existing data
-  await prisma.userFeedSubscription.deleteMany({});
-  await prisma.recommendationItem.deleteMany({
-    where: {
-      recommendation: {
-        userId: user.id
-      }
+    {
+      email: 'demo_mobile@atelier.com',
+      name: 'Demo Mobile',
+      role: 'user',
+      styleAesthetic: 'Minimalist Quiet Luxury x Modern Parisian',
+      favoriteBrands: 'Toteme, The Row, Celine, Khaite',
+      colorPalette: 'Black, Camel, Ecru, Espresso, Navy',
+    },
+    {
+      email: 'keith@sparky.com',
+      name: 'Keith Misson',
+      role: 'admin',
+      styleAesthetic: 'Minimalist Tailoring & Quiet Luxury',
+      favoriteBrands: 'The Row, Toteme, Max Mara, AllSaints',
+      colorPalette: 'Black, Charcoal, Camel, Ivory',
+    },
+    {
+      email: 'wife@fashionfeed.com',
+      name: 'Wife',
+      role: 'user',
+      styleAesthetic: 'Contemporary Luxury & Haute Couture',
+      favoriteBrands: 'Chanel, Toteme, Khaite, Bottega Veneta',
+      colorPalette: 'Black, Cream, Champagne, Gold',
     }
-  });
-  await prisma.recommendation.deleteMany({ where: { userId: user.id } });
-  await prisma.wardrobeItem.deleteMany({ where: { userId: user.id } });
+  ];
+
+  for (const u of defaultUsers) {
+    await prisma.user.upsert({
+      where: { email: u.email },
+      update: {
+        role: u.role,
+        styleAesthetic: u.styleAesthetic,
+        favoriteBrands: u.favoriteBrands,
+        colorPalette: u.colorPalette,
+      },
+      create: u,
+    });
+  }
+
+  // 2. Clear old feed subscriptions & recreations
+  await prisma.userFeedSubscription.deleteMany({});
   await prisma.feedSource.deleteMany({});
   await prisma.trendArticle.deleteMany({});
 
-  // 2. Seed Curated Starter Feed Channels
+  // 3. Seed Curated Starter Feed Channels
   const feedSources = [
     { name: 'Magasin (Laura Reilly)', url: 'https://magasin.substack.com/feed', type: 'rss', category: 'Editorial Substacks' },
     { name: 'The Cereal Aisle (Leandra Medine Cohen)', url: 'https://thecerealaisle.substack.com/feed', type: 'rss', category: 'Editorial Substacks' },
@@ -59,105 +110,25 @@ async function main() {
     { name: 'Highsnobiety Editorial', url: 'https://www.highsnobiety.com/feed/', type: 'rss', category: 'Streetwear & Contemporary' },
   ];
 
+  const allUsers = await prisma.user.findMany();
+
   for (const fs of feedSources) {
     const createdFeed = await prisma.feedSource.create({ data: fs });
-    // Subscribe default user to starter feeds
-    await prisma.userFeedSubscription.create({
-      data: {
-        userId: user.id,
-        feedSourceId: createdFeed.id,
-        isMuted: false,
-      },
-    });
+    for (const u of allUsers) {
+      await prisma.userFeedSubscription.create({
+        data: {
+          userId: u.id,
+          feedSourceId: createdFeed.id,
+          isMuted: false,
+        },
+      });
+    }
   }
-  console.log(`Seeded ${feedSources.length} curated feed channels with subscriptions.`);
 
-  // 3. Seed Wardrobe Items
-  const items = [
-    {
-      userId: user.id,
-      imageUrl: 'https://images.unsplash.com/photo-1591047139829-d91aecb6caea?q=80&w=600&auto=format&fit=crop',
-      category: 'Outerwear',
-      color: ['Black', 'Gold'],
-      brand: 'Zara Studio',
-      styleNotes: 'Structured double-breasted tweed blazer with ornate gold button closures. Features defined shoulders reminiscent of classic Chanel.',
-      detectedTags: ['tweed', 'blazer', 'double-breasted', 'gold-buttons', 'chanel-coded', 'tailoring'],
-    },
-    {
-      userId: user.id,
-      imageUrl: 'https://images.unsplash.com/photo-1608256246200-53e635b5b65f?q=80&w=600&auto=format&fit=crop',
-      category: 'Shoes',
-      color: ['Black'],
-      brand: 'AllSaints',
-      styleNotes: 'Chunky sole combat boots in textured matte black leather. Multiple buckle straps and high silver zipper details providing an industrial grunge vibe.',
-      detectedTags: ['leather', 'boots', 'buckles', 'hardware', 'grunge', 'mcqueen-coded'],
-    },
-    {
-      userId: user.id,
-      imageUrl: 'https://images.unsplash.com/photo-1434389677669-e08b4cac3105?q=80&w=600&auto=format&fit=crop',
-      category: 'Tops',
-      color: ['Cream', 'Ivory'],
-      brand: 'Mango Capsule',
-      styleNotes: 'Fine ribbed-knit sleeveless top in soft cream ivory. Features a draped cowl neck and an asymmetrical wrap-hem silhouette.',
-      detectedTags: ['knit', 'draped', 'asymmetric', 'minimalist', 'ivory'],
-    },
-  ];
+  // 4. Seed 31 Wardrobe Items for All Users
+  await seedWardrobeForUsers();
 
-  const seededItems = [];
-  for (const item of items) {
-    const created = await prisma.wardrobeItem.create({ data: item });
-    seededItems.push(created);
-  }
-  console.log(`Seeded ${seededItems.length} wardrobe items.`);
-
-  // 4. Seed structured lookbook recommendation linking items
-  const rec = await prisma.recommendation.create({
-    data: {
-      userId: user.id,
-      title: 'Tweed Tailoring meets Rebel Hardware',
-      narrative: 'A striking structural contrast that balances Chanel elegance with Alexander McQueen grunge. Pair the defined shoulders of your Zara Studio Tweed Blazer with the heavy hardware buckle straps of your AllSaints Combat Boots. Ground the contrast using the draped cowl neck asymmetry of the Mango Ivory Knit top. To elevate the McQueen grunge undertone, add an asymmetric buckled leather handbag as the final accent.',
-    },
-  });
-
-  // Attach Outfit Items
-  await prisma.recommendationItem.create({
-    data: {
-      recommendationId: rec.id,
-      wardrobeItemId: seededItems[0].id,
-      stylingRationale: 'Layer this over the ivory knit. The structured shoulder tailoring frames the relaxed drape underneath.',
-    },
-  });
-
-  await prisma.recommendationItem.create({
-    data: {
-      recommendationId: rec.id,
-      wardrobeItemId: seededItems[2].id,
-      stylingRationale: 'Adds a soft cowl-neck texture contrast against the stiff structure of the blazer.',
-    },
-  });
-
-  await prisma.recommendationItem.create({
-    data: {
-      recommendationId: rec.id,
-      wardrobeItemId: seededItems[1].id,
-      stylingRationale: 'Tuck denim or trousers directly into the buckled shaft to add raw edge weight to the clean tailoring.',
-    },
-  });
-
-  await prisma.recommendationItem.create({
-    data: {
-      recommendationId: rec.id,
-      purchaseName: 'Asymmetric Leather Buckle Crossbody Bag',
-      purchaseBrand: 'AllSaints',
-      purchaseUrl: 'https://www.allsaints.com/search?q=asymmetric+leather+bag',
-      purchaseImageUrl: 'https://images.unsplash.com/photo-1584917865442-de89df76afd3?q=80&w=600&auto=format&fit=crop',
-      priceEstimate: '$248',
-      stylingRationale: 'A custom hardware bag that pulls together the silver zippers on the boots and reinforces the asymmetric McQueen design rules.',
-    },
-  });
-
-  console.log('Seeded recommendation matching Chanel x McQueen guidelines.');
-  console.log('Seeding complete.');
+  console.log('✨ All users now have 31 high-resolution wardrobe pieces across all categories.');
 }
 
 main()

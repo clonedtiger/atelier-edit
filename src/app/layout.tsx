@@ -1,4 +1,4 @@
-import type { Metadata } from "next";
+import type { Metadata, Viewport } from "next";
 import { Cormorant_Garamond, Inter } from "next/font/google";
 import "./globals.css";
 
@@ -18,6 +18,14 @@ const inter = Inter({
 export const metadata: Metadata = {
   title: "Atelier Edit | The Personal Wardrobe Journal",
   description: "A private, clean, luxury fashion editor blending structured tailoring with rebel hardware elements.",
+};
+
+export const viewport: Viewport = {
+  width: "device-width",
+  initialScale: 1,
+  maximumScale: 5,
+  viewportFit: "cover",
+  themeColor: "#FAF8F4",
 };
 
 export default function RootLayout({

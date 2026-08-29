@@ -41,19 +41,19 @@ describe('GDPR & UK DPA 2018 Data Protection Integration Tests', () => {
       },
     });
 
-    const rec = await prisma.recommendation.create({
+    await prisma.recommendation.create({
       data: {
         userId: testUserId,
         title: 'Minimalist Bouclé Suit',
         narrative: 'Tailored luxury styling.',
-      },
-    });
-
-    await prisma.recommendationItem.create({
-      data: {
-        recommendationId: rec.id,
-        purchaseName: 'Chanel Silk Scarf',
-        stylingRationale: 'Accent piece.',
+        outfitItems: {
+          create: [
+            {
+              purchaseName: 'Chanel Silk Scarf',
+              stylingRationale: 'Accent piece.',
+            },
+          ],
+        },
       },
     });
   });

@@ -1,4 +1,5 @@
 import { prisma } from './db';
+import { CURATED_WARDROBE_CATALOG } from './curatedCatalog';
 
 export async function seedDatabase() {
   console.log('Starting database seed...');
@@ -36,40 +37,15 @@ export async function seedDatabase() {
   }
   console.log('Seeded 5 Feed Sources.');
 
-  // 4. Seed Wardrobe Items
-  const items = [
-    {
-      userId: user.id,
-      imageUrl: 'https://images.unsplash.com/photo-1591047139829-d91aecb6caea?q=80&w=600&auto=format&fit=crop',
-      category: 'Outerwear',
-      color: ['#000000', 'Gold'],
-      brand: 'Zara Studio',
-      styleNotes: 'Structured double-breasted tweed blazer with ornate gold button closures. Features defined shoulders reminiscent of classic Chanel.',
-      detectedTags: ['tweed', 'blazer', 'double-breasted', 'gold-buttons', 'chanel-coded', 'tailoring'],
-    },
-    {
-      userId: user.id,
-      imageUrl: 'https://images.unsplash.com/photo-1608256246200-53e635b5b65f?q=80&w=600&auto=format&fit=crop',
-      category: 'Shoes',
-      color: ['#111111'],
-      brand: 'AllSaints',
-      styleNotes: 'Chunky sole combat boots in textured matte black leather. Multiple buckle straps and high silver zipper details providing an industrial grunge vibe.',
-      detectedTags: ['leather', 'boots', 'buckles', 'hardware', 'grunge', 'mcqueen-coded'],
-    },
-    {
-      userId: user.id,
-      imageUrl: 'https://images.unsplash.com/photo-1434389677669-e08b4cac3105?q=80&w=600&auto=format&fit=crop',
-      category: 'Tops',
-      color: ['#E5E5E5', 'Ivory'],
-      brand: 'Mango Capsule',
-      styleNotes: 'Fine ribbed-knit sleeveless top in soft cream ivory. Features a draped cowl neck and an asymmetrical wrap-hem silhouette.',
-      detectedTags: ['knit', 'draped', 'asymmetric', 'minimalist', 'ivory'],
-    },
-  ];
-
+  // 4. Seed Wardrobe Items from shared curated catalog
   const seededItems = [];
-  for (const item of items) {
-    const created = await prisma.wardrobeItem.create({ data: item });
+  for (const item of CURATED_WARDROBE_CATALOG) {
+    const created = await prisma.wardrobeItem.create({
+      data: {
+        ...item,
+        userId: user.id,
+      },
+    });
     seededItems.push(created);
   }
   console.log(`Seeded ${seededItems.length} wardrobe items.`);

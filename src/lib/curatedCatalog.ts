@@ -1,0 +1,278 @@
+export interface CuratedGarment {
+  category: string;
+  color: string[];
+  brand: string;
+  styleNotes: string;
+  detectedTags: string[];
+  imageUrl: string;
+}
+
+export const CURATED_WARDROBE_CATALOG: CuratedGarment[] = [
+  // Outerwear (6)
+  {
+    category: 'Outerwear',
+    color: ['Black', 'Gold'],
+    brand: 'Zara Studio',
+    styleNotes: 'Structured double-breasted tweed blazer with ornate gold button closures. Features defined shoulders reminiscent of classic Chanel.',
+    detectedTags: ['tweed', 'blazer', 'double-breasted', 'gold-buttons', 'chanel-coded', 'tailoring'],
+    imageUrl: 'https://images.unsplash.com/photo-1591047139829-d91aecb6caea?q=80&w=800&auto=format&fit=crop',
+  },
+  {
+    category: 'Outerwear',
+    color: ['Camel'],
+    brand: 'Toteme',
+    styleNotes: 'Signature oversized double-breasted coat in heavyweight double-faced wool. Features drop shoulders and wide lapels.',
+    detectedTags: ['wool-coat', 'camel', 'oversized', 'double-breasted', 'minimalist', 'toteme-coded'],
+    imageUrl: 'https://images.unsplash.com/photo-1539533018447-63fcce667883?q=80&w=800&auto=format&fit=crop',
+  },
+  {
+    category: 'Outerwear',
+    color: ['Charcoal'],
+    brand: 'The Row',
+    styleNotes: 'Minimalist single-breasted wool blazer with sharp peak lapels and clean bespoke darting.',
+    detectedTags: ['blazer', 'charcoal', 'wool', 'quiet-luxury', 'tailored', 'the-row-coded'],
+    imageUrl: 'https://images.unsplash.com/photo-1548624149-f74b43346d0a?q=80&w=800&auto=format&fit=crop',
+  },
+  {
+    category: 'Outerwear',
+    color: ['Black'],
+    brand: 'AllSaints',
+    styleNotes: 'Washed lambskin moto biker jacket with asymmetrical silver hardware zippers and snap epaulettes.',
+    detectedTags: ['leather-jacket', 'biker', 'silver-hardware', 'grunge', 'mcqueen-coded'],
+    imageUrl: 'https://images.unsplash.com/photo-1551028719-00167b16eac5?q=80&w=800&auto=format&fit=crop',
+  },
+  {
+    category: 'Outerwear',
+    color: ['Sand', 'Beige'],
+    brand: 'Max Mara',
+    styleNotes: 'Classic double-breasted trench coat in water-repellent cotton gabardine with horn buttons and waist belt.',
+    detectedTags: ['trench-coat', 'belted', 'sand', 'classic', 'timeless'],
+    imageUrl: 'https://images.unsplash.com/photo-1544441893-675973e31985?q=80&w=800&auto=format&fit=crop',
+  },
+  {
+    category: 'Outerwear',
+    color: ['Espresso', 'Cream'],
+    brand: 'Acne Studios',
+    styleNotes: 'Oversized aviator jacket crafted from crackled espresso leather with thick cream shearling lining and collar.',
+    detectedTags: ['shearling', 'aviator', 'leather', 'winter', 'textured'],
+    imageUrl: 'https://images.unsplash.com/photo-1520975954732-35dd22299614?q=80&w=800&auto=format&fit=crop',
+  },
+
+  // Tops (6)
+  {
+    category: 'Tops',
+    color: ['Cream', 'Ivory'],
+    brand: 'Mango Capsule',
+    styleNotes: 'Fine ribbed-knit sleeveless top in soft cream ivory. Features a draped cowl neck and an asymmetrical wrap-hem silhouette.',
+    detectedTags: ['knit', 'draped', 'asymmetric', 'minimalist', 'ivory'],
+    imageUrl: 'https://images.unsplash.com/photo-1434389677669-e08b4cac3105?q=80&w=800&auto=format&fit=crop',
+  },
+  {
+    category: 'Tops',
+    color: ['Black'],
+    brand: 'Khaite',
+    styleNotes: 'Sculpted sweetheart neckline bodysuit in matte ribbed knit with supportive architectural bust shaping.',
+    detectedTags: ['bodysuit', 'sweetheart-neck', 'ribbed', 'sculptural', 'evening'],
+    imageUrl: 'https://images.unsplash.com/photo-1503342217505-b0a15ec3261c?q=80&w=800&auto=format&fit=crop',
+  },
+  {
+    category: 'Tops',
+    color: ['Oatmeal'],
+    brand: 'Loro Piana',
+    styleNotes: 'Chunky cable-knit turtleneck sweater spun from pure Italian baby cashmere in a relaxed silhouette.',
+    detectedTags: ['cashmere', 'cable-knit', 'turtleneck', 'quiet-luxury', 'cozy'],
+    imageUrl: 'https://images.unsplash.com/photo-1576566588028-4147f3842f27?q=80&w=800&auto=format&fit=crop',
+  },
+  {
+    category: 'Tops',
+    color: ['Optic White'],
+    brand: 'The Row',
+    styleNotes: 'Relaxed oversized cotton poplin button-down shirt with elongated french cuffs and mother-of-pearl buttons.',
+    detectedTags: ['poplin-shirt', 'button-down', 'oversized', 'white-shirt', 'clean-lines'],
+    imageUrl: 'https://images.unsplash.com/photo-1598033129183-c4f50c736f10?q=80&w=800&auto=format&fit=crop',
+  },
+  {
+    category: 'Tops',
+    color: ['Navy', 'Ivory'],
+    brand: 'Toteme',
+    styleNotes: 'Organic cotton Breton striped long-sleeve tee with high boat neckline and straight side slits.',
+    detectedTags: ['breton-stripes', 'boat-neck', 'nautical', 'casual-chic', 'french-aesthetic'],
+    imageUrl: 'https://images.unsplash.com/photo-1521572267360-ee0c2909d518?q=80&w=800&auto=format&fit=crop',
+  },
+  {
+    category: 'Tops',
+    color: ['Espresso'],
+    brand: 'Saint Laurent',
+    styleNotes: 'Semi-sheer silk chiffon blouse with tie-neck lavallière bow and billowing gathered shoulders.',
+    detectedTags: ['silk-chiffon', 'bow-blouse', 'sheer', 'parisian', 'sophisticated'],
+    imageUrl: 'https://images.unsplash.com/photo-1564257631407-4deb1f99d992?q=80&w=800&auto=format&fit=crop',
+  },
+
+  // Bottoms (6)
+  {
+    category: 'Bottoms',
+    color: ['Black'],
+    brand: 'COS',
+    styleNotes: 'High-waisted tailored wide-leg trousers in wool blend with sharp front pleats and fluid drape.',
+    detectedTags: ['wide-leg', 'pleated', 'high-waist', 'tailored-trousers', 'workwear'],
+    imageUrl: 'https://images.unsplash.com/photo-1509551388413-e18d0ac5d495?q=80&w=800&auto=format&fit=crop',
+  },
+  {
+    category: 'Bottoms',
+    color: ['Indigo Blue'],
+    brand: 'Khaite',
+    styleNotes: 'Rigid 100% cotton denim straight-leg jeans with high-rise waist and clean vintage indigo rinse.',
+    detectedTags: ['straight-leg', 'rigid-denim', 'high-rise', 'indigo', 'essential'],
+    imageUrl: 'https://images.unsplash.com/photo-1541099649105-f69ad21f3246?q=80&w=800&auto=format&fit=crop',
+  },
+  {
+    category: 'Bottoms',
+    color: ['Camel'],
+    brand: 'Toteme',
+    styleNotes: 'Relaxed straight-leg wool slacks with invisible hook-and-bar closure and pressed front creases.',
+    detectedTags: ['wool-slacks', 'camel', 'minimalist', 'relaxed-tailoring'],
+    imageUrl: 'https://images.unsplash.com/photo-1594633312681-425c7b97ccd1?q=80&w=800&auto=format&fit=crop',
+  },
+  {
+    category: 'Bottoms',
+    color: ['Champagne', 'Ecru'],
+    brand: 'The Row',
+    styleNotes: 'Fluid bias-cut silk satin midi skirt with elasticized waistband and soft asymmetric hem swing.',
+    detectedTags: ['silk-skirt', 'slip-skirt', 'bias-cut', 'midi', 'evening-chic'],
+    imageUrl: 'https://images.unsplash.com/photo-1583496661160-fb5886a0aaaa?q=80&w=800&auto=format&fit=crop',
+  },
+  {
+    category: 'Bottoms',
+    color: ['Black'],
+    brand: 'AllSaints',
+    styleNotes: 'Straight-leg trousers cut from buttery matte lamb leather with raw cut ankles and five-pocket styling.',
+    detectedTags: ['leather-trousers', 'matte-black', 'edgy', 'grunge-tailoring'],
+    imageUrl: 'https://images.unsplash.com/photo-1506630448388-4e683c67ddb0?q=80&w=800&auto=format&fit=crop',
+  },
+  {
+    category: 'Bottoms',
+    color: ['Ecru', 'Off-White'],
+    brand: 'Agolde',
+    styleNotes: 'High-waisted curved barrel-leg jeans in heavy unbleached ecru cotton twill.',
+    detectedTags: ['barrel-leg', 'ecru', 'denim', 'contemporary-cut'],
+    imageUrl: 'https://images.unsplash.com/photo-1475178626620-a4d074967452?q=80&w=800&auto=format&fit=crop',
+  },
+
+  // Dresses (4)
+  {
+    category: 'Dresses',
+    color: ['Black'],
+    brand: 'The Row',
+    styleNotes: 'Minimalist 90s square-neck midi slip dress in heavyweight washed silk with delicate spaghetti straps.',
+    detectedTags: ['slip-dress', 'minimalist', '90s-style', 'silk', 'cocktail'],
+    imageUrl: 'https://images.unsplash.com/photo-1496747611176-843222e1e57c?q=80&w=800&auto=format&fit=crop',
+  },
+  {
+    category: 'Dresses',
+    color: ['Charcoal'],
+    brand: 'Toteme',
+    styleNotes: 'Fine-ribbed knit midi dress with high mock neck, long slim sleeves, and flattering body-contouring seams.',
+    detectedTags: ['knit-dress', 'mock-neck', 'charcoal', 'autumn-essential'],
+    imageUrl: 'https://images.unsplash.com/photo-1515886657613-9f3515b0c78f?q=80&w=800&auto=format&fit=crop',
+  },
+  {
+    category: 'Dresses',
+    color: ['Ivory', 'Black'],
+    brand: 'Chanel',
+    styleNotes: 'Structured bouclé tweed shift mini dress with braided ribbon trims and faux pearl buttons.',
+    detectedTags: ['tweed-dress', 'boucle', 'chanel-coded', 'heritage', 'structured'],
+    imageUrl: 'https://images.unsplash.com/photo-1539109136881-3be0616acf4b?q=80&w=800&auto=format&fit=crop',
+  },
+  {
+    category: 'Dresses',
+    color: ['Burgundy', 'Multi'],
+    brand: 'Isabel Marant',
+    styleNotes: 'Tiered bohemian silk midi dress with dark floral print, draped ruched waist, and ruffled cap sleeves.',
+    detectedTags: ['floral-dress', 'silk', 'boho-luxe', 'burgundy', 'wrap-silhouette'],
+    imageUrl: 'https://images.unsplash.com/photo-1572804013309-59a88b7e92f1?q=80&w=800&auto=format&fit=crop',
+  },
+
+  // Shoes (5)
+  {
+    category: 'Shoes',
+    color: ['Black'],
+    brand: 'AllSaints',
+    styleNotes: 'Chunky sole combat boots in textured matte black leather. Multiple buckle straps and high silver zipper details providing an industrial grunge vibe.',
+    detectedTags: ['leather', 'boots', 'buckles', 'hardware', 'grunge', 'mcqueen-coded'],
+    imageUrl: 'https://images.unsplash.com/photo-1608256246200-53e635b5b65f?q=80&w=800&auto=format&fit=crop',
+  },
+  {
+    category: 'Shoes',
+    color: ['Espresso Brown'],
+    brand: 'The Row',
+    styleNotes: 'Minimalist leather penny loafers with hand-stitched apron toe and discreet low stacked leather heel.',
+    detectedTags: ['loafers', 'penny-loafer', 'polished-leather', 'androgynous', 'quiet-luxury'],
+    imageUrl: 'https://images.unsplash.com/photo-1533867617858-e7b97e060509?q=80&w=800&auto=format&fit=crop',
+  },
+  {
+    category: 'Shoes',
+    color: ['Taupe'],
+    brand: 'Khaite',
+    styleNotes: 'Sculptural pointed-toe ankle boots in velvety Italian taupe suede with 50mm curved kitten heel.',
+    detectedTags: ['ankle-boots', 'suede', 'kitten-heel', 'pointed-toe', 'sculptural'],
+    imageUrl: 'https://images.unsplash.com/photo-1543163521-1bf539c55dd2?q=80&w=800&auto=format&fit=crop',
+  },
+  {
+    category: 'Shoes',
+    color: ['Black'],
+    brand: 'Toteme',
+    styleNotes: 'Square-toe glove ballet flats in supple nappa leather with elasticated throat line.',
+    detectedTags: ['ballet-flats', 'square-toe', 'nappa-leather', 'everyday-chic'],
+    imageUrl: 'https://images.unsplash.com/photo-1560343090-f0409e92791a?q=80&w=800&auto=format&fit=crop',
+  },
+  {
+    category: 'Shoes',
+    color: ['White'],
+    brand: 'Common Projects',
+    styleNotes: 'Original Achilles low sneakers in pristine Italian leather with gold foil serial number stamp on the heel counter.',
+    detectedTags: ['sneakers', 'white-sneakers', 'leather', 'minimalist-footwear'],
+    imageUrl: 'https://images.unsplash.com/photo-1525966222134-fcfa99b8ae77?q=80&w=800&auto=format&fit=crop',
+  },
+
+  // Bags & Accessories (5)
+  {
+    category: 'Accessories',
+    color: ['Forest Pine'],
+    brand: 'Bottega Veneta',
+    styleNotes: 'Padded Cassette shoulder bag in signature woven Intreccio calfskin with silver-tone triangle buckle.',
+    detectedTags: ['handbag', 'intreccio', 'crossbody', 'forest-green', 'statement-bag'],
+    imageUrl: 'https://images.unsplash.com/photo-1548036328-c9fa89d128fa?q=80&w=800&auto=format&fit=crop',
+  },
+  {
+    category: 'Accessories',
+    color: ['Espresso Brown'],
+    brand: 'The Row',
+    styleNotes: 'Slouchy half-moon hobo bag in velvety calf suede with wide ergonomic shoulder strap.',
+    detectedTags: ['suede-bag', 'hobo', 'slouchy', 'espresso', 'minimalist-tote'],
+    imageUrl: 'https://images.unsplash.com/photo-1584917865442-de89df76afd3?q=80&w=800&auto=format&fit=crop',
+  },
+  {
+    category: 'Accessories',
+    color: ['Burgundy'],
+    brand: 'Celine',
+    styleNotes: 'Structured Triomphe box shoulder bag in polished shiny calfskin with gold metallic clasp.',
+    detectedTags: ['box-bag', 'gold-hardware', 'triomphe', 'burgundy', 'luxury-heritage'],
+    imageUrl: 'https://images.unsplash.com/photo-1590874103328-eac38a683ce7?q=80&w=800&auto=format&fit=crop',
+  },
+  {
+    category: 'Accessories',
+    color: ['Black', 'Gold'],
+    brand: 'Saint Laurent',
+    styleNotes: 'Narrow 20mm waist belt in smooth glazed leather with square brushed gold buckle and metal loop.',
+    detectedTags: ['leather-belt', 'gold-buckle', 'waist-cincher', 'accessory'],
+    imageUrl: 'https://images.unsplash.com/photo-1624222247344-550fb60583dc?q=80&w=800&auto=format&fit=crop',
+  },
+  {
+    category: 'Accessories',
+    color: ['Camel', 'Ivory'],
+    brand: 'Toteme',
+    styleNotes: 'Oversized monogram jacquard blanket scarf spun from plush wool and cashmere blend with raw fringe edges.',
+    detectedTags: ['blanket-scarf', 'wool-cashmere', 'camel', 'winter-layering', 'toteme-monogram'],
+    imageUrl: 'https://images.unsplash.com/photo-1601924994987-69e26d50dc26?q=80&w=800&auto=format&fit=crop',
+  },
+];

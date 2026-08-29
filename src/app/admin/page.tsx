@@ -226,18 +226,20 @@ export default function AdminPortal() {
         </div>
       )}
 
-      {/* Top Banner */}
+      {/* Admin Header */}
       <header style={{
         display: 'flex',
-        alignItems: 'center',
         justifyContent: 'space-between',
-        padding: '1.5rem 2rem',
+        alignItems: 'center',
+        padding: '1.25rem 1.5rem',
         borderBottom: '1px solid var(--border)',
-        background: 'var(--bg-panel)'
+        background: 'var(--bg-panel)',
+        flexWrap: 'wrap',
+        gap: '1rem',
       }}>
         <div>
-          <h1 style={{ fontSize: '1.5rem', fontWeight: '800', letterSpacing: '0.05em', color: 'var(--accent-gold)' }}>
-            ATELIER EDIT <span style={{ color: 'var(--text-main)', fontWeight: 300, fontSize: '1rem', marginLeft: '0.5rem' }}>ADMIN PORTAL</span>
+          <h1 style={{ fontSize: '1.35rem', fontWeight: '800', letterSpacing: '0.05em', color: 'var(--accent-gold)' }}>
+            ATELIER EDIT <span style={{ color: 'var(--text-main)', fontWeight: 300, fontSize: '0.9rem', marginLeft: '0.5rem' }}>ADMIN PORTAL</span>
           </h1>
         </div>
         <Link href="/" className="btn-secondary" style={{ textDecoration: 'none', padding: '0.5rem 1rem', fontSize: '0.8rem' }}>
@@ -246,49 +248,44 @@ export default function AdminPortal() {
       </header>
 
       {/* Main Body */}
-      <main style={{ padding: '2rem' }}>
+      <main style={{ padding: '1.25rem 1rem', maxWidth: '1400px', margin: '0 auto', width: '100%', boxSizing: 'border-box' }}>
         {/* Metric Cards Grid */}
-        <section className="admin-grid" style={{
-          display: 'grid',
-          gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))',
-          gap: '1.5rem',
-          marginBottom: '2rem'
-        }}>
-          <div className="metric-card" style={{ background: 'var(--bg-panel)', padding: '1.5rem', borderRadius: '8px', border: '1px solid var(--border)' }}>
+        <section className="admin-metrics-grid">
+          <div className="metric-card" style={{ background: 'var(--bg-panel)', padding: '1.25rem', borderRadius: '8px', border: '1px solid var(--border)' }}>
             <span style={{ fontSize: '0.75rem', textTransform: 'uppercase', letterSpacing: '0.05em', color: 'var(--text-muted)' }}>Total Registered Users</span>
-            <div style={{ fontSize: '2.5rem', fontWeight: 900, marginTop: '0.5rem', color: '#fff' }}>{loadingData ? '...' : stats?.totalUsers}</div>
+            <div style={{ fontSize: '2rem', fontWeight: 900, marginTop: '0.5rem', color: '#fff' }}>{loadingData ? '...' : stats?.totalUsers}</div>
           </div>
-          <div className="metric-card" style={{ background: 'var(--bg-panel)', padding: '1.5rem', borderRadius: '8px', border: '1px solid var(--border)' }}>
+          <div className="metric-card" style={{ background: 'var(--bg-panel)', padding: '1.25rem', borderRadius: '8px', border: '1px solid var(--border)' }}>
             <span style={{ fontSize: '0.75rem', textTransform: 'uppercase', letterSpacing: '0.05em', color: 'var(--text-muted)' }}>Active Users (7d)</span>
-            <div style={{ fontSize: '2.5rem', fontWeight: 900, marginTop: '0.5rem', color: 'var(--accent-gold)' }}>{loadingData ? '...' : stats?.activeUsersCount}</div>
+            <div style={{ fontSize: '2rem', fontWeight: 900, marginTop: '0.5rem', color: 'var(--accent-gold)' }}>{loadingData ? '...' : stats?.activeUsersCount}</div>
           </div>
-          <div className="metric-card" style={{ background: 'var(--bg-panel)', padding: '1.5rem', borderRadius: '8px', border: '1px solid var(--border)' }}>
+          <div className="metric-card" style={{ background: 'var(--bg-panel)', padding: '1.25rem', borderRadius: '8px', border: '1px solid var(--border)' }}>
             <span style={{ fontSize: '0.75rem', textTransform: 'uppercase', letterSpacing: '0.05em', color: 'var(--text-muted)' }}>Average Session Time</span>
-            <div style={{ fontSize: '2.5rem', fontWeight: 900, marginTop: '0.5rem', color: '#fff' }}>{loadingData ? '...' : stats ? formatDuration(stats.avgSessionDuration) : '0s'}</div>
+            <div style={{ fontSize: '2rem', fontWeight: 900, marginTop: '0.5rem', color: '#fff' }}>{loadingData ? '...' : stats ? formatDuration(stats.avgSessionDuration) : '0s'}</div>
           </div>
-          <div className="metric-card" style={{ background: 'var(--bg-panel)', padding: '1.5rem', borderRadius: '8px', border: '1px solid var(--border)' }}>
+          <div className="metric-card" style={{ background: 'var(--bg-panel)', padding: '1.25rem', borderRadius: '8px', border: '1px solid var(--border)' }}>
             <span style={{ fontSize: '0.75rem', textTransform: 'uppercase', letterSpacing: '0.05em', color: 'var(--text-muted)' }}>Total Wardrobe Items</span>
-            <div style={{ fontSize: '2.5rem', fontWeight: 900, marginTop: '0.5rem', color: '#fff' }}>{loadingData ? '...' : stats?.totalWardrobeItems}</div>
+            <div style={{ fontSize: '2rem', fontWeight: 900, marginTop: '0.5rem', color: '#fff' }}>{loadingData ? '...' : stats?.totalWardrobeItems}</div>
           </div>
-          <div className="metric-card" style={{ background: 'var(--bg-panel)', padding: '1.5rem', borderRadius: '8px', border: '1px solid var(--border)' }}>
+          <div className="metric-card" style={{ background: 'var(--bg-panel)', padding: '1.25rem', borderRadius: '8px', border: '1px solid var(--border)' }}>
             <span style={{ fontSize: '0.75rem', textTransform: 'uppercase', letterSpacing: '0.05em', color: 'var(--text-muted)' }}>Outfit Lookbooks Generated</span>
-            <div style={{ fontSize: '2.5rem', fontWeight: 900, marginTop: '0.5rem', color: '#fff' }}>{loadingData ? '...' : stats?.totalOutfitRecommendations}</div>
+            <div style={{ fontSize: '2rem', fontWeight: 900, marginTop: '0.5rem', color: '#fff' }}>{loadingData ? '...' : stats?.totalOutfitRecommendations}</div>
           </div>
         </section>
 
-        <div style={{ display: 'grid', gridTemplateColumns: '3fr 1fr', gap: '2rem' }}>
+        <div className="admin-layout-grid">
           {/* Left Column: User Directory */}
           <section style={{ display: 'flex', flexDirection: 'column', gap: '2rem' }}>
             {/* User Directory Card */}
             <div className="admin-panel" style={{ background: 'var(--bg-panel)', borderRadius: '8px', border: '1px solid var(--border)', overflow: 'hidden' }}>
-              <div style={{ padding: '1rem 1.5rem', borderBottom: '1px solid var(--border)', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+              <div style={{ padding: '1rem 1.5rem', borderBottom: '1px solid var(--border)', display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: '0.5rem' }}>
                 <h2 style={{ fontSize: '1rem', fontWeight: '800', textTransform: 'uppercase', letterSpacing: '0.05em' }}>User Directory</h2>
                 <button onClick={fetchAdminData} className="btn-secondary" style={{ fontSize: '0.75rem', padding: '0.3rem 0.6rem' }} disabled={loadingData}>
                   Refresh Data
                 </button>
               </div>
 
-              <div style={{ overflowX: 'auto' }}>
+              <div className="responsive-table-wrapper" style={{ border: 'none', borderRadius: 0 }}>
                 <table style={{ width: '100%', borderCollapse: 'collapse', textAlign: 'left', fontSize: '0.85rem' }}>
                   <thead>
                     <tr style={{ background: 'rgba(255,255,255,0.02)', borderBottom: '1px solid var(--border)' }}>

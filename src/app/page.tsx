@@ -2038,7 +2038,7 @@ export default function AtelierEditDashboard() {
               onClick={() => setActiveTab('closet')}
               className={`nav-link ${activeTab === 'closet' ? 'active' : ''}`}
             >
-              Wardrobe ({wardrobe.length})
+              Wardrobe
             </button>
 
             <button
@@ -2048,7 +2048,7 @@ export default function AtelierEditDashboard() {
               }}
               className={`nav-link ${activeTab === 'capsule' ? 'active' : ''}`}
             >
-              Capsules ({capsules.length})
+              Capsules
             </button>
 
             <button
@@ -2058,14 +2058,14 @@ export default function AtelierEditDashboard() {
               }}
               className={`nav-link ${activeTab === 'studio' ? 'active' : ''}`}
             >
-              Studio ({collages.length})
+              Studio
             </button>
             
             <button
               onClick={() => setActiveTab('trends')}
               className={`nav-link ${activeTab === 'trends' ? 'active' : ''}`}
             >
-              Inspirations ({inspirations.length})
+              Inspirations
             </button>
 
             <span className="nav-divider">|</span>
@@ -2464,7 +2464,7 @@ export default function AtelierEditDashboard() {
               <p style={{ fontSize: '0.8rem', color: 'var(--text-muted)', marginBottom: '1.25rem' }}>
                 Recommendations synthesize your <strong>{user?.styleAesthetic || 'Personalized'}</strong> aesthetic, closet collection, and active fashion channels. You can also specify an occasion, destination, or mood below:
               </p>
-              <div style={{ display: 'flex', gap: '1rem', alignItems: 'center' }}>
+              <div className="consultation-input-row">
                 <input
                   type="text"
                   value={styleVibePrompt}
@@ -2477,17 +2477,25 @@ export default function AtelierEditDashboard() {
                     border: '1px solid var(--border-color)',
                     background: 'rgba(255,255,255,0.05)',
                     color: 'var(--text)',
+                    fontSize: '16px',
                   }}
                 />
                 <button
                   onClick={() => triggerRecommendations(styleVibePrompt)}
                   disabled={isGenerating || wardrobe.length === 0}
                   className="accent-button"
-                  style={{ width: 'auto', padding: '0.75rem 1.5rem', marginTop: 0 }}
+                  style={{ width: 'auto', padding: '0.75rem 1.5rem', marginTop: 0, minHeight: '44px' }}
+                  title={wardrobe.length === 0 ? "Upload garments to your Wardrobe to enable styling consultations" : "Request styling recommendations"}
                 >
                   {isGenerating ? 'Styling...' : 'Advise Me'}
                 </button>
               </div>
+              {wardrobe.length === 0 && (
+                <p style={{ fontSize: '0.72rem', color: 'var(--accent-gold)', marginTop: '0.75rem', display: 'flex', alignItems: 'center', gap: '0.35rem' }}>
+                  <span>ℹ️</span>
+                  <span>Add at least 1 clothing item to your <button type="button" onClick={() => setActiveTab('closet')} style={{ background: 'none', border: 'none', color: 'var(--accent-gold)', textDecoration: 'underline', cursor: 'pointer', padding: 0, font: 'inherit', fontWeight: 'bold' }}>Wardrobe</button> to unlock personal styling consultations.</span>
+                </p>
+              )}
             </div>
 
             {loadingRecommendations ? (
@@ -3537,7 +3545,7 @@ export default function AtelierEditDashboard() {
                         placeholder="e.g. Paris, France or Tokyo, Japan"
                       />
                     </div>
-                    <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '1rem' }}>
+                    <div className="form-row-grid cols-2">
                       <div className="form-field">
                         <label>Start Date</label>
                         <input
@@ -4047,7 +4055,7 @@ export default function AtelierEditDashboard() {
           <div className="ingest-layout-grid">
             
             {/* Left Column: RSS/Trend feeds configuration */}
-            <div style={{ display: 'flex', flexDirection: 'column', gap: '2rem' }}>
+            <div style={{ display: 'flex', flexDirection: 'column', gap: '2rem', minWidth: 0, width: '100%', boxSizing: 'border-box' }}>
               
               {/* Add Feed Source */}
               <div className="lookbook-panel" style={{ padding: '1.5rem' }}>
@@ -4078,7 +4086,7 @@ export default function AtelierEditDashboard() {
                     />
                   </div>
 
-                  <div className="form-row-grid cols-2" style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '0.75rem' }}>
+                  <div className="form-row-grid cols-2">
                     <div className="form-field">
                       <label>Feed Classification</label>
                       <select
@@ -4108,7 +4116,7 @@ export default function AtelierEditDashboard() {
                     </div>
                   </div>
 
-                  <button type="submit" className="accent-button">
+                  <button type="submit" className="accent-button" style={{ width: '100%', minHeight: '44px' }}>
                     ADD INSPIRATION CHANNEL
                   </button>
                 </form>
@@ -4126,7 +4134,7 @@ export default function AtelierEditDashboard() {
                 </div>
 
                 {/* Feed Category Filter Pills */}
-                <div className="category-filter-bar" style={{ display: 'flex', gap: '0.35rem', overflowX: 'auto', paddingBottom: '0.5rem', marginBottom: '1rem' }}>
+                <div className="category-filter-bar">
                   {['All', 'Editorial Substacks', 'Luxury & Haute Couture', 'Contemporary Style', 'Streetwear & Contemporary', 'Custom Feeds'].map((cat) => (
                     <button
                       key={cat}
@@ -4155,7 +4163,7 @@ export default function AtelierEditDashboard() {
                       .map((feed) => (
                       <div key={feed.id} className="ingest-item-row" style={{ opacity: feed.isSubscribed ? (feed.isMuted ? 0.6 : 1) : 0.45 }}>
                         <div className="ingest-item-meta">
-                          <div className="ingest-item-header" style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', flexWrap: 'wrap' }}>
+                          <div className="ingest-item-header">
                             <span className={`ingest-item-title ${feed.isMuted ? 'muted' : ''}`}>
                               {feed.name}
                             </span>
@@ -4168,7 +4176,7 @@ export default function AtelierEditDashboard() {
                           <span className="ingest-item-url">{feed.url}</span>
                         </div>
 
-                        <div className="ingest-actions" style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
+                        <div className="ingest-actions">
                           {feed.isSubscribed ? (
                             <>
                               <label className="mute-toggle">
@@ -4221,7 +4229,7 @@ export default function AtelierEditDashboard() {
             </div>
 
             {/* Right Column: Visual Inspiration Board Uploads & Grid Gallery */}
-            <div>
+            <div style={{ minWidth: 0, width: '100%', boxSizing: 'border-box' }}>
               <div className="lookbook-panel" style={{ padding: '1.5rem' }}>
                 <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', borderBottom: '1px solid var(--border-color)', paddingBottom: '0.5rem', marginBottom: '1.25rem', flexWrap: 'wrap', gap: '0.5rem' }}>
                   <div>
@@ -4235,7 +4243,7 @@ export default function AtelierEditDashboard() {
                 </div>
 
                 {/* Upload Zone */}
-                <form onSubmit={handleUploadInspirationSubmit} style={{ border: '1px dashed var(--border-color)', padding: '1.25rem', borderRadius: '4px', background: 'rgba(255,255,255,0.01)', marginBottom: '1.5rem' }}>
+                <form onSubmit={handleUploadInspirationSubmit} style={{ border: '1px dashed var(--border-color)', padding: '1.25rem', borderRadius: '4px', background: 'rgba(255,255,255,0.01)', marginBottom: '1.5rem', width: '100%', boxSizing: 'border-box' }}>
                   <div style={{ display: 'flex', gap: '0.75rem', marginBottom: '1rem', flexWrap: 'wrap' }}>
                     <button
                       type="button"
@@ -4281,22 +4289,22 @@ export default function AtelierEditDashboard() {
                     />
                   </div>
 
-                  <div style={{ display: 'flex', gap: '1rem', alignItems: 'center', flexWrap: 'wrap' }}>
-                    <div style={{ flex: '1', minWidth: '250px' }}>
-                      <label style={{ display: 'block', fontSize: '0.75rem', marginBottom: '4px', textTransform: 'uppercase', letterSpacing: '0.05em' }}>Notes / Context (Optional)</label>
+                  <div style={{ display: 'flex', flexDirection: 'column', gap: '0.85rem', width: '100%', boxSizing: 'border-box' }}>
+                    <div className="form-field">
+                      <label>Notes / Context (Optional)</label>
                       <input
                         type="text"
                         value={insCustomNotes}
                         onChange={(e) => setInsCustomNotes(e.target.value)}
                         placeholder="e.g. Vintage leather biker jacket in boutique, love the oversized collar"
-                        style={{ fontSize: '0.8rem', padding: '0.45rem', width: '100%' }}
+                        style={{ width: '100%', boxSizing: 'border-box' }}
                       />
                     </div>
                     <button
                       type="submit"
                       disabled={isUploadingInspiration || inspirationFiles.length === 0}
                       className="accent-button"
-                      style={{ padding: '0.55rem 1rem', width: 'auto', marginTop: '1.25rem' }}
+                      style={{ width: '100%', minHeight: '44px', marginTop: 0 }}
                     >
                       {isUploadingInspiration ? 'INGESTING...' : `ADD TO MOODBOARD (${inspirationFiles.length})`}
                     </button>
@@ -4359,7 +4367,7 @@ export default function AtelierEditDashboard() {
                     <p style={{ fontSize: '0.75rem', marginTop: '4px' }}>Use your phone camera or the snap button above to capture garments on shop racks, magazine pages, or street styles.</p>
                   </div>
                 ) : (
-                  <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(180px, 1fr))', gap: '1rem' }}>
+                  <div className="moodboard-gallery-grid">
                     {inspirations
                       .filter((ins) => inspirationTagFilter === 'All' || (ins.tags && ins.tags.includes(inspirationTagFilter)))
                       .map((ins) => (
@@ -4437,7 +4445,7 @@ export default function AtelierEditDashboard() {
           const { userCroquis, avgCroquis } = getCroquisPath();
           return (
             <div className="auth-panel-wrapper" style={{ maxWidth: '1200px', margin: '0 auto' }}>
-              <div style={{ display: 'grid', gridTemplateColumns: '1fr 380px', gap: '2.5rem', alignItems: 'start' }}>
+              <div className="account-profile-grid">
                 
                 {/* Left Column: Interactive Stacked Form */}
                 <div className="lookbook-panel" style={{ padding: '2rem' }}>
@@ -5004,7 +5012,7 @@ export default function AtelierEditDashboard() {
                     Under General Data Protection Regulation (GDPR) and UK Data Protection Act 2018, you retain total ownership of your data.
                   </p>
 
-                  <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(280px, 1fr))', gap: '1.5rem' }}>
+                  <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(240px, 1fr))', gap: '1rem' }}>
                     
                     {/* Data Access Request Export */}
                     <div style={{ background: 'rgba(255,255,255,0.02)', padding: '1.25rem', borderRadius: '4px', border: '1px solid var(--border-color)', display: 'flex', flexDirection: 'column' }}>
@@ -5043,13 +5051,13 @@ export default function AtelierEditDashboard() {
                 </div>
 
                 {/* Right Column: Haute Couture Designer Sketch Card */}
-                <div className="lookbook-panel croquis-sticky-card" style={{ padding: '2rem', textAlign: 'center', position: 'sticky', top: '2rem', display: 'flex', flexDirection: 'column', alignItems: 'center', backgroundColor: '#FAF8F4', border: '1px solid var(--border-color)', borderRadius: '4px' }}>
+                <div className="croquis-responsive-card">
                   <h4 style={{ fontSize: '0.8rem', textTransform: 'uppercase', letterSpacing: '0.2em', marginBottom: '1.5rem', color: 'var(--accent)', borderBottom: '1px solid var(--border-color)', width: '100%', paddingBottom: '0.75rem' }}>
                     Haute Couture Croquis
                   </h4>
                   
-                  <div className="croquis-canvas" style={{ display: 'flex', justifyContent: 'center', alignItems: 'center', height: '460px', width: '100%', overflow: 'hidden' }}>
-                    <svg width="340" height="460" viewBox="0 0 300 450" style={{ filter: 'drop-shadow(0px 8px 16px rgba(0, 0, 0, 0.03))' }}>
+                  <div className="croquis-canvas-wrapper">
+                    <svg viewBox="0 0 300 450" style={{ filter: 'drop-shadow(0px 8px 16px rgba(0, 0, 0, 0.03))' }}>
                       {/* Grid overlay for designer's draft sketch journal effect */}
                       <line x1="150" y1="10" x2="150" y2="440" stroke="#E6E3DB" strokeWidth="0.5" strokeDasharray="3 6" />
                       <line x1="20" y1="225" x2="280" y2="225" stroke="#E6E3DB" strokeWidth="0.5" strokeDasharray="3 6" />

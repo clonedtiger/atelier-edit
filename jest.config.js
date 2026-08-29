@@ -6,6 +6,7 @@ const config = {
     '^@/(.*)$': '<rootDir>/src/$1',
   },
   testMatch: ['**/__tests__/**/*.test.ts'],
+  modulePathIgnorePatterns: ['<rootDir>/.next/'],
 };
 
 module.exports = config;
