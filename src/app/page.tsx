@@ -3,6 +3,7 @@
 import { useState, useEffect, useRef, useCallback } from 'react';
 import Image from 'next/image';
 import { WhatsNewPost } from '@/lib/whatsNew';
+import { GuidesCenter } from '@/components/GuidesCenter';
 
 interface UserProfile {
   id: string;
@@ -170,7 +171,8 @@ export interface BeforeInstallPromptEvent extends Event {
 }
 
 export default function AtelierEditDashboard() {
-  const [activeTab, setActiveTab] = useState<'feed' | 'closet' | 'capsule' | 'studio' | 'trends' | 'account' | 'whats-new'>('whats-new');
+  const [activeTab, setActiveTab] = useState<'feed' | 'closet' | 'capsule' | 'studio' | 'trends' | 'account' | 'whats-new' | 'guides'>('whats-new');
+  const [selectedGuideCategory, setSelectedGuideCategory] = useState<string>('all');
   const [user, setUser] = useState<UserProfile | null>(null);
   
   // Data lists
@@ -2078,6 +2080,16 @@ export default function AtelierEditDashboard() {
             </button>
 
             <button
+              onClick={() => {
+                setActiveTab('guides');
+                setSelectedGuideCategory('all');
+              }}
+              className={`nav-link ${activeTab === 'guides' ? 'active' : ''}`}
+            >
+              Guides
+            </button>
+
+            <button
               type="button"
               onClick={() => openCameraViewfinder('inspiration')}
               className="header-snap-btn"
@@ -2452,9 +2464,21 @@ export default function AtelierEditDashboard() {
             {/* Custom Vibe Input Card */}
             <div className="lookbook-panel" style={{ padding: '1.5rem', marginBottom: '2rem' }}>
               <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: '0.5rem', borderBottom: '1px solid var(--border-color)', paddingBottom: '0.5rem', marginBottom: '0.75rem' }}>
-                <h3 style={{ fontSize: '1.25rem' }}>
-                  Personal Stylist Consultation
-                </h3>
+                <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem' }}>
+                  <h3 style={{ fontSize: '1.25rem', margin: 0 }}>
+                    Personal Stylist Consultation
+                  </h3>
+                  <button
+                    type="button"
+                    onClick={() => {
+                      setSelectedGuideCategory('stylist');
+                      setActiveTab('guides');
+                    }}
+                    className="guide-helper-btn"
+                  >
+                    📖 Stylist Guide
+                  </button>
+                </div>
                 <div className="stylist-dna-badge" style={{ marginBottom: 0 }}>
                   <span>✦ Aesthetic: <strong>{user?.styleAesthetic || 'Personalized Tailoring'}</strong></span>
                   <span style={{ opacity: 0.5 }}>|</span>
@@ -2716,7 +2740,7 @@ export default function AtelierEditDashboard() {
         {activeTab === 'closet' && (
           <div style={{ display: 'flex', flexDirection: 'column', gap: '1.5rem' }}>
             {/* Sub-Tab Navigation Bar */}
-            <div style={{ display: 'flex', gap: '1rem', borderBottom: '1px solid var(--border-color)', paddingBottom: '0.5rem' }}>
+            <div style={{ display: 'flex', gap: '1rem', alignItems: 'center', borderBottom: '1px solid var(--border-color)', paddingBottom: '0.5rem', flexWrap: 'wrap' }}>
               <button
                 type="button"
                 onClick={() => setWardrobeViewMode('grid')}
@@ -2744,7 +2768,18 @@ export default function AtelierEditDashboard() {
                   padding: '0.4rem 0.8rem',
                 }}
               >
-                📊 Wardrobe Intelligence & Gaps
+                📊 Wardrobe Intelligence &amp; Gaps
+              </button>
+              <button
+                type="button"
+                onClick={() => {
+                  setSelectedGuideCategory('wardrobe');
+                  setActiveTab('guides');
+                }}
+                className="guide-helper-btn"
+                style={{ marginLeft: 'auto' }}
+              >
+                📖 Wardrobe Guide
               </button>
             </div>
 
@@ -3511,7 +3546,19 @@ export default function AtelierEditDashboard() {
             {/* Header & Trip Launcher */}
             <div className="lookbook-panel" style={{ padding: '1.5rem', display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: '1rem' }}>
               <div>
-                <h3 style={{ fontSize: '1.25rem', color: 'var(--accent-gold)' }}>✈️ Travel Packing Capsule Assistant</h3>
+                <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem', marginBottom: '0.25rem' }}>
+                  <h3 style={{ fontSize: '1.25rem', color: 'var(--accent-gold)', margin: 0 }}>✈️ Travel Packing Capsule Assistant</h3>
+                  <button
+                    type="button"
+                    onClick={() => {
+                      setSelectedGuideCategory('capsule');
+                      setActiveTab('guides');
+                    }}
+                    className="guide-helper-btn"
+                  >
+                    📖 Capsule Guide
+                  </button>
+                </div>
                 <p style={{ fontSize: '0.8rem', color: 'var(--text-muted)' }}>
                   Synthesize an interchange capsule wardrobe (6–12 pieces) with day-by-day outfits for your upcoming trips.
                 </p>
@@ -3775,7 +3822,19 @@ export default function AtelierEditDashboard() {
             {/* Studio Header */}
             <div className="lookbook-panel" style={{ padding: '1.5rem', display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: '1rem' }}>
               <div>
-                <h3 style={{ fontSize: '1.25rem', color: 'var(--accent-gold)' }}>🎨 Editorial Flat-Lay Canvas Studio</h3>
+                <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem', marginBottom: '0.25rem' }}>
+                  <h3 style={{ fontSize: '1.25rem', color: 'var(--accent-gold)', margin: 0 }}>🎨 Editorial Flat-Lay Canvas Studio</h3>
+                  <button
+                    type="button"
+                    onClick={() => {
+                      setSelectedGuideCategory('studio');
+                      setActiveTab('guides');
+                    }}
+                    className="guide-helper-btn"
+                  >
+                    📖 Studio Guide
+                  </button>
+                </div>
                 <p style={{ fontSize: '0.8rem', color: 'var(--text-muted)' }}>
                   Drag, layer, scale, and rotate garments from your wardrobe and inspiration moodboards to compose editorial magazine spreads.
                 </p>
@@ -4455,7 +4514,19 @@ export default function AtelierEditDashboard() {
                     
                     <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', borderBottom: '1px solid var(--border-color)', paddingBottom: '1rem', marginBottom: '2rem' }}>
                       <div>
-                        <h3 style={{ fontSize: '1.75rem' }}>Sizing &amp; Style Profile</h3>
+                        <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem', marginBottom: '0.25rem' }}>
+                          <h3 style={{ fontSize: '1.75rem', margin: 0 }}>Sizing &amp; Style Profile</h3>
+                          <button
+                            type="button"
+                            onClick={() => {
+                              setSelectedGuideCategory('profile');
+                              setActiveTab('guides');
+                            }}
+                            className="guide-helper-btn"
+                          >
+                            📖 Profile &amp; Password Guide
+                          </button>
+                        </div>
                         <p style={{ fontSize: '0.75rem', color: 'var(--text-muted)' }}>
                           Configure your measurements to customize Gemini outfit personalization.
                         </p>
@@ -5118,6 +5189,30 @@ export default function AtelierEditDashboard() {
             </div>
           );
         })()}
+
+        {/* Guides & Help Center tab */}
+        {activeTab === 'guides' && (
+          <GuidesCenter
+            initialCategory={selectedGuideCategory}
+            onNavigateTab={(tab) => {
+              if (tab === 'account') setActiveTab('account');
+              else if (tab === 'stylist') setActiveTab('feed');
+              else if (tab === 'wardrobe') setActiveTab('closet');
+              else if (tab === 'capsule') {
+                setActiveTab('capsule');
+                fetchCapsules();
+              } else if (tab === 'studio') {
+                setActiveTab('studio');
+                fetchCollages();
+              } else if (tab === 'whatsnew') {
+                setActiveTab('whats-new');
+                fetchWhatsNew(false);
+              } else if (tab === 'trends') {
+                setActiveTab('trends');
+              }
+            }}
+          />
+        )}
           </>
         )}
 

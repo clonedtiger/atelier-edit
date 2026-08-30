@@ -1916,5 +1916,71 @@ p {
   background-color: #ffffff;
 }
 
+/* Guides & Documentation Center */
+.guides-wrapper {
+  width: 100%;
+  box-sizing: border-box;
+}
+
+.guides-hero-panel {
+  background: linear-gradient(180deg, rgba(250, 248, 244, 0.9) 0%, rgba(255, 255, 255, 0.95) 100%);
+  border: 1px solid var(--border-color);
+  border-radius: 6px;
+}
+
+.guides-search-input:focus {
+  border-color: var(--accent, #D4AF37) !important;
+  box-shadow: 0 0 0 2px rgba(212, 175, 55, 0.15) !important;
+}
+
+.guides-category-pill:hover {
+  border-color: var(--accent, #D4AF37) !important;
+}
+
+.guide-article-card {
+  transition: transform 0.2s ease, box-shadow 0.2s ease;
+}
+
+.guide-action-pill {
+  font-size: 0.75rem;
+  padding: 0.35rem 0.75rem;
+  border-radius: 16px;
+  background: rgba(255, 255, 255, 0.8);
+  border: 1px solid var(--border-color);
+  color: var(--foreground);
+  cursor: pointer;
+  font-weight: 500;
+  transition: all 0.2s ease;
+  white-space: nowrap;
+}
+
+.guide-action-pill:hover {
+  background: var(--foreground);
+  color: #FFFFFF;
+  border-color: var(--foreground);
+}
+
+.guide-helper-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.35rem;
+  font-size: 0.75rem;
+  color: var(--accent, #D4AF37);
+  background: rgba(212, 175, 55, 0.08);
+  border: 1px solid rgba(212, 175, 55, 0.25);
+  border-radius: 14px;
+  padding: 0.25rem 0.65rem;
+  cursor: pointer;
+  text-decoration: none;
+  font-weight: 500;
+  transition: all 0.2s ease;
+}
+
+.guide-helper-btn:hover {
+  background: rgba(212, 175, 55, 0.18);
+  border-color: var(--accent, #D4AF37);
+}
+
+
 
 
