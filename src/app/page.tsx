@@ -4447,661 +4447,671 @@ export default function AtelierEditDashboard() {
             <div className="auth-panel-wrapper" style={{ maxWidth: '1200px', margin: '0 auto' }}>
               <div className="account-profile-grid">
                 
-                {/* Left Column: Interactive Stacked Form */}
-                <div className="lookbook-panel" style={{ padding: '2rem' }}>
+                {/* Left Column: Sizing Profile & GDPR Rights */}
+                <div className="account-profile-col">
                   
-                  <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', borderBottom: '1px solid var(--border-color)', paddingBottom: '1rem', marginBottom: '2rem' }}>
-                    <div>
-                      <h3 style={{ fontSize: '1.75rem' }}>Sizing &amp; Style Profile</h3>
-                      <p style={{ fontSize: '0.75rem', color: 'var(--text-muted)' }}>
-                        Configure your measurements to customize Gemini outfit personalization.
-                      </p>
-                    </div>
-                    <button onClick={handleLogout} className="delete-action-btn" style={{ border: '1px solid rgba(225, 29, 72, 0.2)', padding: '0.4rem 0.8rem', borderRadius: '4px' }}>
-                      Sign Out
-                    </button>
-                  </div>
-
-                  <form onSubmit={handleSaveProfile} className="form-group-stack">
+                  {/* Sizing & Style Profile */}
+                  <div className="lookbook-panel" style={{ padding: '2rem', marginBottom: 0 }}>
                     
-                    {/* Part 1 */}
-                    <div className="form-group-stack" style={{ gap: '1rem' }}>
-                      <h4 style={{ fontSize: '1.15rem', color: 'var(--accent)', borderBottom: '1px solid var(--border-color)', paddingBottom: '0.25rem' }}>
-                        1. Contact Details
-                      </h4>
-                      <div className="form-group-stack" style={{ gap: '1rem', maxWidth: '400px' }}>
-                        <div className="form-field">
-                          <label>Full Name</label>
-                          <input
-                            type="text"
-                            required
-                            value={profName}
-                            onChange={(e) => setProfName(e.target.value)}
-                          />
-                        </div>
-                        <div className="form-field">
-                          <label>Email Address</label>
-                          <input
-                            type="email"
-                            disabled
-                            value={user.email}
-                            style={{ opacity: 0.6, cursor: 'not-allowed' }}
-                          />
-                        </div>
-                        <div className="form-field">
-                          <label>Phone / Mobile Number</label>
-                          <input
-                            type="text"
-                            value={profPhone}
-                            onChange={(e) => setProfPhone(e.target.value)}
-                            placeholder="e.g. +1 555-0199"
-                          />
-                        </div>
-                      </div>
-                    </div>
-
-                    {/* Part 2 */}
-                    <div className="form-group-stack" style={{ gap: '1.25rem', marginTop: '1.5rem' }}>
-                      <h4 style={{ fontSize: '1.15rem', color: 'var(--accent)', borderBottom: '1px solid var(--border-color)', paddingBottom: '0.25rem' }}>
-                        2. Sizing &amp; Measurements
-                      </h4>
-
-                      <div className="form-group-stack" style={{ gap: '1.25rem', maxWidth: '400px' }}>
-                        
-                        <div className="form-field">
-                          <label>Biological Sex</label>
-                          <select
-                            value={profSex}
-                            onChange={(e) => setProfSex(e.target.value)}
-                          >
-                            <option value="Female">Female</option>
-                            <option value="Male">Male</option>
-                            <option value="Other">Other</option>
-                          </select>
-                        </div>
-
-                        {/* Height Unit */}
-                        <div className="form-field">
-                          <label>Height Unit</label>
-                          <select value={heightUnit} onChange={(e) => setHeightUnit(e.target.value as 'cm' | 'ftin')}>
-                            <option value="cm">Metric (cm)</option>
-                            <option value="ftin">Imperial (ft/in)</option>
-                          </select>
-                        </div>
-
-                        {/* Height Value */}
-                        {heightUnit === 'cm' ? (
-                          <div className="form-field">
-                            <label>Height (cm)</label>
-                            <input
-                              type="number"
-                              value={heightCm}
-                              onChange={(e) => setHeightCm(e.target.value)}
-                              placeholder="e.g. 175"
-                              min="50"
-                              max="250"
-                            />
-                          </div>
-                        ) : (
-                          <div className="form-field">
-                            <label>Height (Feet / Inches)</label>
-                            <div style={{ display: 'flex', gap: '0.5rem' }}>
-                              <input
-                                type="number"
-                                value={heightFt}
-                                onChange={(e) => setHeightFt(e.target.value)}
-                                placeholder="ft"
-                                style={{ width: '50%' }}
-                                min="2"
-                                max="8"
-                              />
-                              <input
-                                type="number"
-                                value={heightIn}
-                                onChange={(e) => setHeightIn(e.target.value)}
-                                placeholder="in"
-                                style={{ width: '50%' }}
-                                min="0"
-                                max="11"
-                              />
-                            </div>
-                          </div>
-                        )}
-
-                        {/* Weight Unit */}
-                        <div className="form-field">
-                          <label>Weight Unit</label>
-                          <select value={weightUnit} onChange={(e) => setWeightUnit(e.target.value as 'kg' | 'lbs' | 'st')}>
-                            <option value="kg">Metric (kg)</option>
-                            <option value="lbs">Imperial (lbs)</option>
-                            <option value="st">UK Imperial (stones)</option>
-                          </select>
-                        </div>
-
-                        {/* Weight Value */}
-                        {weightUnit === 'kg' && (
-                          <div className="form-field">
-                            <label>Weight (kg)</label>
-                            <input
-                              type="number"
-                              value={weightKg}
-                              onChange={(e) => setWeightKg(e.target.value)}
-                              placeholder="e.g. 62"
-                              min="20"
-                              max="300"
-                        />
-                          </div>
-                        )}
-                        {weightUnit === 'lbs' && (
-                          <div className="form-field">
-                            <label>Weight (lbs)</label>
-                            <input
-                              type="number"
-                              value={weightLbs}
-                              onChange={(e) => setWeightLbs(e.target.value)}
-                              placeholder="e.g. 135"
-                              min="40"
-                              max="600"
-                            />
-                          </div>
-                        )}
-                        {weightUnit === 'st' && (
-                          <div className="form-field">
-                            <label>Weight (Stones &amp; lbs)</label>
-                            <div style={{ display: 'flex', gap: '0.5rem' }}>
-                              <input
-                                type="number"
-                                value={weightStValue}
-                                onChange={(e) => setWeightStValue(e.target.value)}
-                                placeholder="st"
-                                style={{ width: '50%' }}
-                                min="1"
-                                max="50"
-                              />
-                              <input
-                                type="number"
-                                value={weightStLbs}
-                                onChange={(e) => setWeightStLbs(e.target.value)}
-                                placeholder="lbs"
-                                style={{ width: '50%' }}
-                                min="0"
-                                max="13"
-                              />
-                            </div>
-                          </div>
-                        )}
-
-                        {/* Waist Unit */}
-                        <div className="form-field">
-                          <label>Waist Unit</label>
-                          <select value={waistUnit} onChange={(e) => setWaistUnit(e.target.value as 'in' | 'cm')}>
-                            <option value="in">Inches (in)</option>
-                            <option value="cm">Centimeters (cm)</option>
-                          </select>
-                        </div>
-
-                        {/* Waist Size */}
-                        <div className="form-field">
-                          <label>Waist Size ({waistUnit})</label>
-                          <input
-                            type="number"
-                            value={waistVal}
-                            onChange={(e) => setWaistVal(e.target.value)}
-                            placeholder={waistUnit === 'in' ? 'e.g. 28' : 'e.g. 71'}
-                            min="10"
-                            max="200"
-                          />
-                        </div>
-
-                        {/* Bra Size (Female only) */}
-                        {profSex === 'Female' && (
-                          <div className="form-field">
-                            <label>Bra Size</label>
-                            <input
-                              type="text"
-                              value={profBra}
-                              onChange={(e) => setProfBra(e.target.value)}
-                              placeholder="e.g. 32C"
-                            />
-                          </div>
-                        )}
-
-                        {/* Shoe Sizing System */}
-                        <div className="form-field">
-                          <label>Shoe Sizing System</label>
-                          <select value={shoeSystem} onChange={(e) => setShoeSystem(e.target.value as 'EU' | 'UK' | 'USW' | 'USM')}>
-                            <option value="EU">European (EU)</option>
-                            <option value="UK">United Kingdom (UK)</option>
-                            <option value="USW">US Women (US W)</option>
-                            <option value="USM">US Men (US M)</option>
-                          </select>
-                        </div>
-
-                        {/* Shoe Size */}
-                        <div className="form-field">
-                          <label>Shoe Size ({shoeSystem})</label>
-                          <select value={shoeVal} onChange={(e) => setShoeVal(e.target.value)}>
-                            <option value="">Select size...</option>
-                            {shoeSystem === 'EU' && [35, 36, 37, 37.5, 38, 38.5, 39, 40, 41, 42, 43, 44, 45, 46, 47, 48].map(s => (
-                              <option key={s} value={s}>{s}</option>
-                            ))}
-                            {shoeSystem === 'UK' && [2, 3, 4, 4.5, 5, 5.5, 6, 6.5, 7, 7.5, 8, 8.5, 9, 10, 11, 12, 13].map(s => (
-                              <option key={s} value={s}>{s}</option>
-                            ))}
-                            {shoeSystem === 'USW' && [4, 5, 6, 6.5, 7, 7.5, 8, 8.5, 9, 9.5, 10, 10.5, 11, 12, 13].map(s => (
-                              <option key={s} value={s}>{s}</option>
-                            ))}
-                            {shoeSystem === 'USM' && [6, 7, 8, 8.5, 9, 9.5, 10, 10.5, 11, 11.5, 12, 13, 14, 15].map(s => (
-                              <option key={s} value={s}>{s}</option>
-                            ))}
-                          </select>
-                        </div>
-
-                        {/* Clothing System */}
-                        <div className="form-field">
-                          <label>Clothing / Dress System</label>
-                          <select value={clothingSystem} onChange={(e) => setClothingSystem(e.target.value as 'EU' | 'UK' | 'US' | 'Letter')}>
-                            <option value="UK">United Kingdom (UK)</option>
-                            <option value="EU">European (EU)</option>
-                            <option value="US">United States (US)</option>
-                            <option value="Letter">Generic (XS/S/M/L)</option>
-                          </select>
-                        </div>
-
-                        {/* Clothing Size */}
-                        <div className="form-field">
-                          <label>Clothing Size ({clothingSystem})</label>
-                          <select value={clothingVal} onChange={(e) => setClothingVal(e.target.value)}>
-                            <option value="">Select size...</option>
-                            {clothingSystem === 'UK' && [4, 6, 8, 10, 12, 14, 16, 18, 20].map(s => (
-                              <option key={s} value={s}>{s}</option>
-                            ))}
-                            {clothingSystem === 'EU' && [32, 34, 36, 38, 40, 42, 44, 46, 48].map(s => (
-                              <option key={s} value={s}>{s}</option>
-                            ))}
-                            {clothingSystem === 'US' && [0, 2, 4, 6, 8, 10, 12, 14, 16].map(s => (
-                              <option key={s} value={s}>{s}</option>
-                            ))}
-                            {clothingSystem === 'Letter' && ['XXS', 'XS', 'S', 'M', 'L', 'XL', 'XXL'].map(s => (
-                              <option key={s} value={s}>{s}</option>
-                            ))}
-                          </select>
-                        </div>
-
-                        {/* Hat System */}
-                        <div className="form-field">
-                          <label>Hat Sizing System</label>
-                          <select value={hatSystem} onChange={(e) => setHatSystem(e.target.value as 'cm' | 'US' | 'Letter')}>
-                            <option value="cm">Metric (cm)</option>
-                            <option value="US">Imperial (US Inches)</option>
-                            <option value="Letter">Generic (XS/S/M/L)</option>
-                          </select>
-                        </div>
-
-                        {/* Hat Size */}
-                        <div className="form-field">
-                          <label>Hat Size ({hatSystem})</label>
-                          {hatSystem === 'Letter' ? (
-                            <select value={hatVal} onChange={(e) => setHatVal(e.target.value)}>
-                              <option value="">Select size...</option>
-                              {['S', 'M', 'L', 'XL'].map(s => (
-                                <option key={s} value={s}>{s}</option>
-                              ))}
-                            </select>
-                          ) : hatSystem === 'US' ? (
-                            <select value={hatVal} onChange={(e) => setHatVal(e.target.value)}>
-                              <option value="">Select size...</option>
-                              {['6 1/2', '6 5/8', '6 3/4', '6 7/8', '7', '7 1/8', '7 1/4', '7 3/8', '7 1/2', '7 5/8', '7 3/4'].map(s => (
-                                <option key={s} value={s}>{s}</option>
-                              ))}
-                            </select>
-                          ) : (
-                            <input
-                              type="number"
-                              value={hatVal}
-                              onChange={(e) => setHatVal(e.target.value)}
-                              placeholder="e.g. 57"
-                              min="40"
-                              max="70"
-                            />
-                          )}
-                        </div>
-
-                        {/* Glove System */}
-                        <div className="form-field">
-                          <label>Glove Sizing System</label>
-                          <select value={gloveSystem} onChange={(e) => setGloveSystem(e.target.value as 'EU' | 'Letter')}>
-                            <option value="EU">European (Half Inches)</option>
-                            <option value="Letter">Generic (XS/S/M/L)</option>
-                          </select>
-                        </div>
-
-                        {/* Glove Size */}
-                        <div className="form-field">
-                          <label>Glove Size ({gloveSystem})</label>
-                          {gloveSystem === 'Letter' ? (
-                            <select value={gloveVal} onChange={(e) => setGloveVal(e.target.value)}>
-                              <option value="">Select size...</option>
-                              {['S', 'M', 'L', 'XL'].map(s => (
-                                <option key={s} value={s}>{s}</option>
-                              ))}
-                            </select>
-                          ) : (
-                            <select value={gloveVal} onChange={(e) => setGloveVal(e.target.value)}>
-                              <option value="">Select size...</option>
-                              {['6', '6.5', '7', '7.5', '8', '8.5', '9', '9.5', '10'].map(s => (
-                                <option key={s} value={s}>{s}</option>
-                              ))}
-                            </select>
-                          )}
-                        </div>
-
-                      </div>
-                    </div>
-
-                    {/* Part 3: Style DNA & Aesthetic Archetype */}
-                    <div className="form-group-stack" style={{ gap: '1.25rem', marginTop: '1.5rem' }}>
-                      <div style={{ borderBottom: '1px solid var(--border-color)', paddingBottom: '0.5rem' }}>
-                        <h4 style={{ fontSize: '1.15rem', color: 'var(--accent)', marginBottom: '0.25rem' }}>
-                          3. Style DNA &amp; Aesthetic Archetype
-                        </h4>
+                    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', borderBottom: '1px solid var(--border-color)', paddingBottom: '1rem', marginBottom: '2rem' }}>
+                      <div>
+                        <h3 style={{ fontSize: '1.75rem' }}>Sizing &amp; Style Profile</h3>
                         <p style={{ fontSize: '0.75rem', color: 'var(--text-muted)' }}>
-                          Define your unique styling philosophy, design rules, and brand universe so Gemini recommendations match your personal taste.
+                          Configure your measurements to customize Gemini outfit personalization.
                         </p>
                       </div>
+                      <button onClick={handleLogout} className="delete-action-btn" style={{ border: '1px solid rgba(225, 29, 72, 0.2)', padding: '0.4rem 0.8rem', borderRadius: '4px' }}>
+                        Sign Out
+                      </button>
+                    </div>
 
-                      <div className="form-field" style={{ maxWidth: '600px' }}>
-                        <label>Select Aesthetic Archetype</label>
-                        <div className="style-archetype-chips">
-                          {STYLE_ARCHETYPES.map((arch) => (
-                            <button
-                              type="button"
-                              key={arch.id}
-                              className={`style-chip ${profStyleAesthetic === arch.label ? 'active' : ''}`}
-                              onClick={() => setProfStyleAesthetic(arch.label)}
-                              title={arch.desc}
+                    <form onSubmit={handleSaveProfile} className="form-group-stack">
+                      
+                      {/* Part 1 */}
+                      <div className="form-group-stack" style={{ gap: '1rem' }}>
+                        <h4 style={{ fontSize: '1.15rem', color: 'var(--accent)', borderBottom: '1px solid var(--border-color)', paddingBottom: '0.25rem' }}>
+                          1. Contact Details
+                        </h4>
+                        <div className="form-group-stack" style={{ gap: '1rem', maxWidth: '400px' }}>
+                          <div className="form-field">
+                            <label>Full Name</label>
+                            <input
+                              type="text"
+                              required
+                              value={profName}
+                              onChange={(e) => setProfName(e.target.value)}
+                            />
+                          </div>
+                          <div className="form-field">
+                            <label>Email Address</label>
+                            <input
+                              type="email"
+                              disabled
+                              value={user.email}
+                              style={{ opacity: 0.6, cursor: 'not-allowed' }}
+                            />
+                          </div>
+                          <div className="form-field">
+                            <label>Phone / Mobile Number</label>
+                            <input
+                              type="text"
+                              value={profPhone}
+                              onChange={(e) => setProfPhone(e.target.value)}
+                              placeholder="e.g. +1 555-0199"
+                            />
+                          </div>
+                        </div>
+                      </div>
+
+                      {/* Part 2 */}
+                      <div className="form-group-stack" style={{ gap: '1.25rem', marginTop: '1.5rem' }}>
+                        <h4 style={{ fontSize: '1.15rem', color: 'var(--accent)', borderBottom: '1px solid var(--border-color)', paddingBottom: '0.25rem' }}>
+                          2. Sizing &amp; Measurements
+                        </h4>
+
+                        <div className="form-group-stack" style={{ gap: '1.25rem', maxWidth: '400px' }}>
+                          
+                          <div className="form-field">
+                            <label>Biological Sex</label>
+                            <select
+                              value={profSex}
+                              onChange={(e) => setProfSex(e.target.value)}
                             >
-                              {arch.label}
-                            </button>
-                          ))}
+                              <option value="Female">Female</option>
+                              <option value="Male">Male</option>
+                              <option value="Other">Other</option>
+                            </select>
+                          </div>
+
+                          {/* Height Unit */}
+                          <div className="form-field">
+                            <label>Height Unit</label>
+                            <select value={heightUnit} onChange={(e) => setHeightUnit(e.target.value as 'cm' | 'ftin')}>
+                              <option value="cm">Metric (cm)</option>
+                              <option value="ftin">Imperial (ft/in)</option>
+                            </select>
+                          </div>
+
+                          {/* Height Value */}
+                          {heightUnit === 'cm' ? (
+                            <div className="form-field">
+                              <label>Height (cm)</label>
+                              <input
+                                type="number"
+                                value={heightCm}
+                                onChange={(e) => setHeightCm(e.target.value)}
+                                placeholder="e.g. 175"
+                                min="50"
+                                max="250"
+                              />
+                            </div>
+                          ) : (
+                            <div className="form-field">
+                              <label>Height (Feet / Inches)</label>
+                              <div style={{ display: 'flex', gap: '0.5rem' }}>
+                                <input
+                                  type="number"
+                                  value={heightFt}
+                                  onChange={(e) => setHeightFt(e.target.value)}
+                                  placeholder="ft"
+                                  style={{ width: '50%' }}
+                                  min="2"
+                                  max="8"
+                                />
+                                <input
+                                  type="number"
+                                  value={heightIn}
+                                  onChange={(e) => setHeightIn(e.target.value)}
+                                  placeholder="in"
+                                  style={{ width: '50%' }}
+                                  min="0"
+                                  max="11"
+                                />
+                              </div>
+                            </div>
+                          )}
+
+                          {/* Weight Unit */}
+                          <div className="form-field">
+                            <label>Weight Unit</label>
+                            <select value={weightUnit} onChange={(e) => setWeightUnit(e.target.value as 'kg' | 'lbs' | 'st')}>
+                              <option value="kg">Metric (kg)</option>
+                              <option value="lbs">Imperial (lbs)</option>
+                              <option value="st">UK Imperial (stones)</option>
+                            </select>
+                          </div>
+
+                          {/* Weight Value */}
+                          {weightUnit === 'kg' && (
+                            <div className="form-field">
+                              <label>Weight (kg)</label>
+                              <input
+                                type="number"
+                                value={weightKg}
+                                onChange={(e) => setWeightKg(e.target.value)}
+                                placeholder="e.g. 62"
+                                min="20"
+                                max="300"
+                              />
+                            </div>
+                          )}
+                          {weightUnit === 'lbs' && (
+                            <div className="form-field">
+                              <label>Weight (lbs)</label>
+                              <input
+                                type="number"
+                                value={weightLbs}
+                                onChange={(e) => setWeightLbs(e.target.value)}
+                                placeholder="e.g. 135"
+                                min="40"
+                                max="600"
+                              />
+                            </div>
+                          )}
+                          {weightUnit === 'st' && (
+                            <div className="form-field">
+                              <label>Weight (Stones &amp; lbs)</label>
+                              <div style={{ display: 'flex', gap: '0.5rem' }}>
+                                <input
+                                  type="number"
+                                  value={weightStValue}
+                                  onChange={(e) => setWeightStValue(e.target.value)}
+                                  placeholder="st"
+                                  style={{ width: '50%' }}
+                                  min="1"
+                                  max="50"
+                                />
+                                <input
+                                  type="number"
+                                  value={weightStLbs}
+                                  onChange={(e) => setWeightStLbs(e.target.value)}
+                                  placeholder="lbs"
+                                  style={{ width: '50%' }}
+                                  min="0"
+                                  max="13"
+                                />
+                              </div>
+                            </div>
+                          )}
+
+                          {/* Waist Unit */}
+                          <div className="form-field">
+                            <label>Waist Unit</label>
+                            <select value={waistUnit} onChange={(e) => setWaistUnit(e.target.value as 'in' | 'cm')}>
+                              <option value="in">Inches (in)</option>
+                              <option value="cm">Centimeters (cm)</option>
+                            </select>
+                          </div>
+
+                          {/* Waist Size */}
+                          <div className="form-field">
+                            <label>Waist Size ({waistUnit})</label>
+                            <input
+                              type="number"
+                              value={waistVal}
+                              onChange={(e) => setWaistVal(e.target.value)}
+                              placeholder={waistUnit === 'in' ? 'e.g. 28' : 'e.g. 71'}
+                              min="10"
+                              max="200"
+                            />
+                          </div>
+
+                          {/* Bra Size (Female only) */}
+                          {profSex === 'Female' && (
+                            <div className="form-field">
+                              <label>Bra Size</label>
+                              <input
+                                type="text"
+                                value={profBra}
+                                onChange={(e) => setProfBra(e.target.value)}
+                                placeholder="e.g. 32C"
+                              />
+                            </div>
+                          )}
+
+                          {/* Shoe Sizing System */}
+                          <div className="form-field">
+                            <label>Shoe Sizing System</label>
+                            <select value={shoeSystem} onChange={(e) => setShoeSystem(e.target.value as 'EU' | 'UK' | 'USW' | 'USM')}>
+                              <option value="EU">European (EU)</option>
+                              <option value="UK">United Kingdom (UK)</option>
+                              <option value="USW">US Women (US W)</option>
+                              <option value="USM">US Men (US M)</option>
+                            </select>
+                          </div>
+
+                          {/* Shoe Size */}
+                          <div className="form-field">
+                            <label>Shoe Size ({shoeSystem})</label>
+                            <select value={shoeVal} onChange={(e) => setShoeVal(e.target.value)}>
+                              <option value="">Select size...</option>
+                              {shoeSystem === 'EU' && [35, 36, 37, 37.5, 38, 38.5, 39, 40, 41, 42, 43, 44, 45, 46, 47, 48].map(s => (
+                                <option key={s} value={s}>{s}</option>
+                              ))}
+                              {shoeSystem === 'UK' && [2, 3, 4, 4.5, 5, 5.5, 6, 6.5, 7, 7.5, 8, 8.5, 9, 10, 11, 12, 13].map(s => (
+                                <option key={s} value={s}>{s}</option>
+                              ))}
+                              {shoeSystem === 'USW' && [4, 5, 6, 6.5, 7, 7.5, 8, 8.5, 9, 9.5, 10, 10.5, 11, 12, 13].map(s => (
+                                <option key={s} value={s}>{s}</option>
+                              ))}
+                              {shoeSystem === 'USM' && [6, 7, 8, 8.5, 9, 9.5, 10, 10.5, 11, 11.5, 12, 13, 14, 15].map(s => (
+                                <option key={s} value={s}>{s}</option>
+                              ))}
+                            </select>
+                          </div>
+
+                          {/* Clothing System */}
+                          <div className="form-field">
+                            <label>Clothing / Dress System</label>
+                            <select value={clothingSystem} onChange={(e) => setClothingSystem(e.target.value as 'EU' | 'UK' | 'US' | 'Letter')}>
+                              <option value="UK">United Kingdom (UK)</option>
+                              <option value="EU">European (EU)</option>
+                              <option value="US">United States (US)</option>
+                              <option value="Letter">Generic (XS/S/M/L)</option>
+                            </select>
+                          </div>
+
+                          {/* Clothing Size */}
+                          <div className="form-field">
+                            <label>Clothing Size ({clothingSystem})</label>
+                            <select value={clothingVal} onChange={(e) => setClothingVal(e.target.value)}>
+                              <option value="">Select size...</option>
+                              {clothingSystem === 'UK' && [4, 6, 8, 10, 12, 14, 16, 18, 20].map(s => (
+                                <option key={s} value={s}>{s}</option>
+                              ))}
+                              {clothingSystem === 'EU' && [32, 34, 36, 38, 40, 42, 44, 46, 48].map(s => (
+                                <option key={s} value={s}>{s}</option>
+                              ))}
+                              {clothingSystem === 'US' && [0, 2, 4, 6, 8, 10, 12, 14, 16].map(s => (
+                                <option key={s} value={s}>{s}</option>
+                              ))}
+                              {clothingSystem === 'Letter' && ['XXS', 'XS', 'S', 'M', 'L', 'XL', 'XXL'].map(s => (
+                                <option key={s} value={s}>{s}</option>
+                              ))}
+                            </select>
+                          </div>
+
+                          {/* Hat System */}
+                          <div className="form-field">
+                            <label>Hat Sizing System</label>
+                            <select value={hatSystem} onChange={(e) => setHatSystem(e.target.value as 'cm' | 'US' | 'Letter')}>
+                              <option value="cm">Metric (cm)</option>
+                              <option value="US">Imperial (US Inches)</option>
+                              <option value="Letter">Generic (XS/S/M/L)</option>
+                            </select>
+                          </div>
+
+                          {/* Hat Size */}
+                          <div className="form-field">
+                            <label>Hat Size ({hatSystem})</label>
+                            {hatSystem === 'Letter' ? (
+                              <select value={hatVal} onChange={(e) => setHatVal(e.target.value)}>
+                                <option value="">Select size...</option>
+                                {['S', 'M', 'L', 'XL'].map(s => (
+                                  <option key={s} value={s}>{s}</option>
+                                ))}
+                              </select>
+                            ) : hatSystem === 'US' ? (
+                              <select value={hatVal} onChange={(e) => setHatVal(e.target.value)}>
+                                <option value="">Select size...</option>
+                                {['6 1/2', '6 5/8', '6 3/4', '6 7/8', '7', '7 1/8', '7 1/4', '7 3/8', '7 1/2', '7 5/8', '7 3/4'].map(s => (
+                                  <option key={s} value={s}>{s}</option>
+                                ))}
+                              </select>
+                            ) : (
+                              <input
+                                type="number"
+                                value={hatVal}
+                                onChange={(e) => setHatVal(e.target.value)}
+                                placeholder="e.g. 57"
+                                min="40"
+                                max="70"
+                              />
+                            )}
+                          </div>
+
+                          {/* Glove System */}
+                          <div className="form-field">
+                            <label>Glove Sizing System</label>
+                            <select value={gloveSystem} onChange={(e) => setGloveSystem(e.target.value as 'EU' | 'Letter')}>
+                              <option value="EU">European (Half Inches)</option>
+                              <option value="Letter">Generic (XS/S/M/L)</option>
+                            </select>
+                          </div>
+
+                          {/* Glove Size */}
+                          <div className="form-field">
+                            <label>Glove Size ({gloveSystem})</label>
+                            {gloveSystem === 'Letter' ? (
+                              <select value={gloveVal} onChange={(e) => setGloveVal(e.target.value)}>
+                                <option value="">Select size...</option>
+                                {['S', 'M', 'L', 'XL'].map(s => (
+                                  <option key={s} value={s}>{s}</option>
+                                ))}
+                              </select>
+                            ) : (
+                              <select value={gloveVal} onChange={(e) => setGloveVal(e.target.value)}>
+                                <option value="">Select size...</option>
+                                {['6', '6.5', '7', '7.5', '8', '8.5', '9', '9.5', '10'].map(s => (
+                                  <option key={s} value={s}>{s}</option>
+                                ))}
+                              </select>
+                            )}
+                          </div>
+
                         </div>
                       </div>
 
-                      <div className="form-field" style={{ maxWidth: '600px' }}>
-                        <label>Custom Style Aesthetic / Narrative</label>
-                        <input
-                          type="text"
-                          value={profStyleAesthetic}
-                          onChange={(e) => setProfStyleAesthetic(e.target.value)}
-                          placeholder="e.g. Minimalist Quiet Luxury with Architectural Silhouettes"
-                        />
+                      {/* Part 3: Style DNA & Aesthetic Archetype */}
+                      <div className="form-group-stack" style={{ gap: '1.25rem', marginTop: '1.5rem' }}>
+                        <div style={{ borderBottom: '1px solid var(--border-color)', paddingBottom: '0.5rem' }}>
+                          <h4 style={{ fontSize: '1.15rem', color: 'var(--accent)', marginBottom: '0.25rem' }}>
+                            3. Style DNA &amp; Aesthetic Archetype
+                          </h4>
+                          <p style={{ fontSize: '0.75rem', color: 'var(--text-muted)' }}>
+                            Define your unique styling philosophy, design rules, and brand universe so Gemini recommendations match your personal taste.
+                          </p>
+                        </div>
+
+                        <div className="form-field" style={{ maxWidth: '600px' }}>
+                          <label>Select Aesthetic Archetype</label>
+                          <div className="style-archetype-chips">
+                            {STYLE_ARCHETYPES.map((arch) => (
+                              <button
+                                type="button"
+                                key={arch.id}
+                                className={`style-chip ${profStyleAesthetic === arch.label ? 'active' : ''}`}
+                                onClick={() => setProfStyleAesthetic(arch.label)}
+                                title={arch.desc}
+                              >
+                                {arch.label}
+                              </button>
+                            ))}
+                          </div>
+                        </div>
+
+                        <div className="form-field" style={{ maxWidth: '600px' }}>
+                          <label>Custom Style Aesthetic / Narrative</label>
+                          <input
+                            type="text"
+                            value={profStyleAesthetic}
+                            onChange={(e) => setProfStyleAesthetic(e.target.value)}
+                            placeholder="e.g. Minimalist Quiet Luxury with Architectural Silhouettes"
+                          />
+                        </div>
+
+                        <div className="form-field" style={{ maxWidth: '600px' }}>
+                          <label>Favorite Brands &amp; Designers</label>
+                          <input
+                            type="text"
+                            value={profFavoriteBrands}
+                            onChange={(e) => setProfFavoriteBrands(e.target.value)}
+                            placeholder="e.g. The Row, Toteme, Khaite, COS, Celine, Loro Piana, Zara"
+                          />
+                        </div>
+
+                        <div className="form-field" style={{ maxWidth: '600px' }}>
+                          <label>Style Rules &amp; Avoided Aesthetics</label>
+                          <input
+                            type="text"
+                            value={profAvoidedStyles}
+                            onChange={(e) => setProfAvoidedStyles(e.target.value)}
+                            placeholder="e.g. Avoid neon colors, no loud logos, avoid synthetic polyester"
+                          />
+                        </div>
+
+                        <div className="form-field" style={{ maxWidth: '600px' }}>
+                          <label>Signature Color Palette</label>
+                          <input
+                            type="text"
+                            value={profColorPalette}
+                            onChange={(e) => setProfColorPalette(e.target.value)}
+                            placeholder="e.g. Black, Cream, Camel, Charcoal, Forest Pine"
+                          />
+                        </div>
+
+                        <div className="form-field" style={{ maxWidth: '600px' }}>
+                          <label>Primary Styling Location & Climate (City)</label>
+                          <input
+                            type="text"
+                            value={profLocationCity}
+                            onChange={(e) => setProfLocationCity(e.target.value)}
+                            placeholder="e.g. London, Paris, New York, Tokyo"
+                          />
+                        </div>
                       </div>
 
-                      <div className="form-field" style={{ maxWidth: '600px' }}>
-                        <label>Favorite Brands &amp; Designers</label>
-                        <input
-                          type="text"
-                          value={profFavoriteBrands}
-                          onChange={(e) => setProfFavoriteBrands(e.target.value)}
-                          placeholder="e.g. The Row, Toteme, Khaite, COS, Celine, Loro Piana, Zara"
-                        />
+                      {/* Part 4: Lifestyle & Context */}
+                      <div className="form-group-stack" style={{ gap: '1rem', marginTop: '1.5rem' }}>
+                        <h4 style={{ fontSize: '1.15rem', color: 'var(--accent)', borderBottom: '1px solid var(--border-color)', paddingBottom: '0.25rem' }}>
+                          4. Lifestyle &amp; Visual Inspirations
+                        </h4>
+                        
+                        <div className="form-field" style={{ maxWidth: '600px' }}>
+                          <label>Type of Work / Daily Lifestyle</label>
+                          <input
+                            type="text"
+                            value={profWorkLife}
+                            onChange={(e) => setProfWorkLife(e.target.value)}
+                            placeholder="e.g. Creative director, travels frequently between London and Paris, corporate boardrooms..."
+                          />
+                        </div>
+
+                        <div className="form-field" style={{ maxWidth: '600px' }}>
+                          <label>Styling Notes &amp; Moodboard Guidelines</label>
+                          <textarea
+                            value={profInspirations}
+                            onChange={(e) => setProfInspirations(e.target.value)}
+                            placeholder="Detail specific texture preferences, silhouettes, layering rules, or visual concepts..."
+                            rows={3}
+                          />
+                        </div>
+
+                        {/* Secure Password Update inside profile */}
+                        <div className="form-field" style={{ maxWidth: '400px', marginTop: '1.5rem', borderTop: '1px solid var(--border-color)', paddingTop: '1.5rem' }}>
+                          <label>Change Password (Leave blank to keep current)</label>
+                          <input
+                            type="password"
+                            value={profPassword}
+                            onChange={(e) => setProfPassword(e.target.value)}
+                            placeholder="Enter new password (min 6 characters)"
+                          />
+                        </div>
                       </div>
 
-                      <div className="form-field" style={{ maxWidth: '600px' }}>
-                        <label>Style Rules &amp; Avoided Aesthetics</label>
-                        <input
-                          type="text"
-                          value={profAvoidedStyles}
-                          onChange={(e) => setProfAvoidedStyles(e.target.value)}
-                          placeholder="e.g. Avoid neon colors, no loud logos, avoid synthetic polyester"
-                        />
+                      {/* Save profile */}
+                      <div className="action-row" style={{ marginTop: '1.5rem' }}>
+                        <span className="security-indicator">
+                          {user.mfaEnabled ? 'MFA Security Active' : 'Basic Login'}
+                        </span>
+                        <button type="submit" className="accent-button" style={{ width: 'auto' }}>
+                          {isSavingProfile ? 'Saving Style Profile...' : 'SAVE STYLE DNA & PROFILE'}
+                        </button>
                       </div>
 
-                      <div className="form-field" style={{ maxWidth: '600px' }}>
-                        <label>Signature Color Palette</label>
-                        <input
-                          type="text"
-                          value={profColorPalette}
-                          onChange={(e) => setProfColorPalette(e.target.value)}
-                          placeholder="e.g. Black, Cream, Camel, Charcoal, Forest Pine"
-                        />
-                      </div>
+                    </form>
 
-                      <div className="form-field" style={{ maxWidth: '600px' }}>
-                        <label>Primary Styling Location & Climate (City)</label>
-                        <input
-                          type="text"
-                          value={profLocationCity}
-                          onChange={(e) => setProfLocationCity(e.target.value)}
-                          placeholder="e.g. London, Paris, New York, Tokyo"
-                        />
-                      </div>
-                    </div>
+                  </div>
 
-                    {/* Part 4: Lifestyle & Context */}
-                    <div className="form-group-stack" style={{ gap: '1rem', marginTop: '1.5rem' }}>
-                      <h4 style={{ fontSize: '1.15rem', color: 'var(--accent)', borderBottom: '1px solid var(--border-color)', paddingBottom: '0.25rem' }}>
-                        4. Lifestyle &amp; Visual Inspirations
-                      </h4>
+                  {/* GDPR & Data Privacy Rights Panel (UK DPA 2018) */}
+                  <div className="lookbook-panel" style={{ padding: '2rem', marginBottom: 0 }}>
+                    <h3 style={{ fontSize: '1.25rem', marginBottom: '0.5rem', borderBottom: '1px solid var(--border-color)', paddingBottom: '0.5rem', color: 'var(--accent-gold)' }}>
+                      Data Privacy &amp; GDPR Rights (UK DPA 2018)
+                    </h3>
+                    <p style={{ fontSize: '0.8rem', color: 'var(--text-muted)', marginBottom: '1.5rem' }}>
+                      Under General Data Protection Regulation (GDPR) and UK Data Protection Act 2018, you retain total ownership of your data.
+                    </p>
+
+                    <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(240px, 1fr))', gap: '1rem' }}>
                       
-                      <div className="form-field" style={{ maxWidth: '600px' }}>
-                        <label>Type of Work / Daily Lifestyle</label>
-                        <input
-                          type="text"
-                          value={profWorkLife}
-                          onChange={(e) => setProfWorkLife(e.target.value)}
-                          placeholder="e.g. Creative director, travels frequently between London and Paris, corporate boardrooms..."
-                        />
+                      {/* Data Access Request Export */}
+                      <div style={{ background: 'rgba(255,255,255,0.02)', padding: '1.25rem', borderRadius: '4px', border: '1px solid var(--border-color)', display: 'flex', flexDirection: 'column' }}>
+                        <h4 style={{ fontSize: '0.95rem', marginBottom: '0.5rem' }}>📦 Data Portability &amp; Export (Article 20)</h4>
+                        <p style={{ fontSize: '0.75rem', color: 'var(--text-muted)', flex: 1, marginBottom: '1rem' }}>
+                          Download a machine-readable JSON data package containing your profile, physical measurements, wardrobe items, visual inspiration boards, generated lookbooks, and consent logs.
+                        </p>
+                        <button
+                          type="button"
+                          onClick={handleExportGdprData}
+                          disabled={isExportingData}
+                          className="accent-button"
+                          style={{ fontSize: '0.75rem', padding: '0.5rem 1rem' }}
+                        >
+                          {isExportingData ? 'EXPORTING PACKAGE...' : '📥 DOWNLOAD MY DATA PACKAGE'}
+                        </button>
                       </div>
 
-                      <div className="form-field" style={{ maxWidth: '600px' }}>
-                        <label>Styling Notes &amp; Moodboard Guidelines</label>
-                        <textarea
-                          value={profInspirations}
-                          onChange={(e) => setProfInspirations(e.target.value)}
-                          placeholder="Detail specific texture preferences, silhouettes, layering rules, or visual concepts..."
-                          rows={3}
-                        />
+                      {/* Right to be Forgotten */}
+                      <div style={{ background: 'rgba(239, 68, 68, 0.05)', padding: '1.25rem', borderRadius: '4px', border: '1px solid rgba(239, 68, 68, 0.3)', display: 'flex', flexDirection: 'column' }}>
+                        <h4 style={{ fontSize: '0.95rem', marginBottom: '0.5rem', color: '#ef4444' }}>🗑️ Right to be Forgotten (Article 17)</h4>
+                        <p style={{ fontSize: '0.75rem', color: 'var(--text-muted)', flex: 1, marginBottom: '1rem' }}>
+                          Permanently purge your account, uploaded clothing photos from Google Cloud Storage, lookbooks, and session history from Atelier Edit databases. This action is immediate and non-reversible.
+                        </p>
+                        <button
+                          type="button"
+                          onClick={() => setShowGdprDeleteModal(true)}
+                          className="delete-action-btn"
+                          style={{ fontSize: '0.75rem', padding: '0.5rem 1rem', width: '100%', textTransform: 'uppercase', letterSpacing: '0.05em' }}
+                        >
+                          PERMANENTLY DELETE ACCOUNT &amp; ERASE DATA
+                        </button>
                       </div>
 
-                      {/* Secure Password Update inside profile */}
-                      <div className="form-field" style={{ maxWidth: '400px', marginTop: '1.5rem', borderTop: '1px solid var(--border-color)', paddingTop: '1.5rem' }}>
-                        <label>Change Password (Leave blank to keep current)</label>
-                        <input
-                          type="password"
-                          value={profPassword}
-                          onChange={(e) => setProfPassword(e.target.value)}
-                          placeholder="Enter new password (min 6 characters)"
-                        />
-                      </div>
                     </div>
-
-                    {/* Save profile */}
-                    <div className="action-row" style={{ marginTop: '1.5rem' }}>
-                      <span className="security-indicator">
-                        {user.mfaEnabled ? 'MFA Security Active' : 'Basic Login'}
-                      </span>
-                      <button type="submit" className="accent-button" style={{ width: 'auto' }}>
-                        {isSavingProfile ? 'Saving Style Profile...' : 'SAVE STYLE DNA & PROFILE'}
-                      </button>
-                    </div>
-
-                  </form>
+                  </div>
 
                 </div>
 
-                {/* Marketing & Communication Preferences Panel */}
-                <div className="lookbook-panel" style={{ padding: '2rem', marginTop: '2rem' }}>
-                  <h3 style={{ fontSize: '1.25rem', marginBottom: '0.5rem', borderBottom: '1px solid var(--border-color)', paddingBottom: '0.5rem' }}>
-                    Marketing &amp; Communication Preferences
-                  </h3>
-                  <p style={{ fontSize: '0.8rem', color: 'var(--text-muted)', marginBottom: '1.5rem' }}>
-                    Choose how you would like to receive personal styling updates, trend digests, and partner offers from Atelier Edit under UK DPA 2018.
-                  </p>
+                {/* Right Column: Marketing Preferences & Haute Couture Croquis */}
+                <div className="account-profile-col">
 
-                  <form onSubmit={handleSaveMarketingConsent} className="form-group-stack">
-                    <div style={{ display: 'flex', flexDirection: 'column', gap: '1rem', background: 'rgba(255,255,255,0.02)', padding: '1.25rem', borderRadius: '4px', border: '1px solid var(--border-color)' }}>
-                      
-                      <label style={{ display: 'flex', alignItems: 'center', gap: '0.75rem', cursor: 'pointer', fontSize: '0.85rem' }}>
-                        <input
-                          type="checkbox"
-                          checked={marketingEmail}
-                          onChange={(e) => setMarketingEmail(e.target.checked)}
-                          style={{ width: '18px', height: '18px', accentColor: 'var(--accent-gold)' }}
-                        />
-                        <div>
-                          <strong>📧 Email Newsletters &amp; Editorial Digests</strong>
-                          <span style={{ display: 'block', fontSize: '0.75rem', color: 'var(--text-muted)' }}>
-                            Receive weekly style stream trends, seasonal capsule lookbooks, and haute couture runway breakdowns.
-                          </span>
-                        </div>
-                      </label>
+                  {/* Marketing & Communication Preferences Panel */}
+                  <div className="lookbook-panel" style={{ padding: '2rem', marginBottom: 0 }}>
+                    <h3 style={{ fontSize: '1.25rem', marginBottom: '0.5rem', borderBottom: '1px solid var(--border-color)', paddingBottom: '0.5rem' }}>
+                      Marketing &amp; Communication Preferences
+                    </h3>
+                    <p style={{ fontSize: '0.8rem', color: 'var(--text-muted)', marginBottom: '1.5rem' }}>
+                      Choose how you would like to receive personal styling updates, trend digests, and partner offers from Atelier Edit under UK DPA 2018.
+                    </p>
 
-                      <label style={{ display: 'flex', alignItems: 'center', gap: '0.75rem', cursor: 'pointer', fontSize: '0.85rem' }}>
-                        <input
-                          type="checkbox"
-                          checked={marketingSms}
-                          onChange={(e) => setMarketingSms(e.target.checked)}
-                          style={{ width: '18px', height: '18px', accentColor: 'var(--accent-gold)' }}
-                        />
-                        <div>
-                          <strong>📱 Mobile &amp; SMS Notifications</strong>
-                          <span style={{ display: 'block', fontSize: '0.75rem', color: 'var(--text-muted)' }}>
-                            Receive urgent mobile notifications for luxury item drops and instant stylist consultation updates.
-                          </span>
-                        </div>
-                      </label>
+                    <form onSubmit={handleSaveMarketingConsent} className="form-group-stack">
+                      <div style={{ display: 'flex', flexDirection: 'column', gap: '1rem', background: 'rgba(255,255,255,0.02)', padding: '1.25rem', borderRadius: '4px', border: '1px solid var(--border-color)' }}>
+                        
+                        <label style={{ display: 'flex', alignItems: 'center', gap: '0.75rem', cursor: 'pointer', fontSize: '0.85rem' }}>
+                          <input
+                            type="checkbox"
+                            checked={marketingEmail}
+                            onChange={(e) => setMarketingEmail(e.target.checked)}
+                            style={{ width: '18px', height: '18px', accentColor: 'var(--accent-gold)' }}
+                          />
+                          <div>
+                            <strong>📧 Email Newsletters &amp; Editorial Digests</strong>
+                            <span style={{ display: 'block', fontSize: '0.75rem', color: 'var(--text-muted)' }}>
+                              Receive weekly style stream trends, seasonal capsule lookbooks, and haute couture runway breakdowns.
+                            </span>
+                          </div>
+                        </label>
 
-                      <label style={{ display: 'flex', alignItems: 'center', gap: '0.75rem', cursor: 'pointer', fontSize: '0.85rem' }}>
-                        <input
-                          type="checkbox"
-                          checked={marketingPartners}
-                          onChange={(e) => setMarketingPartners(e.target.checked)}
-                          style={{ width: '18px', height: '18px', accentColor: 'var(--accent-gold)' }}
-                        />
-                        <div>
-                          <strong>🤝 Carefully Selected Partners &amp; Collaborations</strong>
-                          <span style={{ display: 'block', fontSize: '0.75rem', color: 'var(--text-muted)' }}>
-                            Allow Atelier Edit to share non-sensitive aesthetic recommendations with carefully vetted luxury fashion houses.
-                          </span>
-                        </div>
-                      </label>
+                        <label style={{ display: 'flex', alignItems: 'center', gap: '0.75rem', cursor: 'pointer', fontSize: '0.85rem' }}>
+                          <input
+                            type="checkbox"
+                            checked={marketingSms}
+                            onChange={(e) => setMarketingSms(e.target.checked)}
+                            style={{ width: '18px', height: '18px', accentColor: 'var(--accent-gold)' }}
+                          />
+                          <div>
+                            <strong>📱 Mobile &amp; SMS Notifications</strong>
+                            <span style={{ display: 'block', fontSize: '0.75rem', color: 'var(--text-muted)' }}>
+                              Receive urgent mobile notifications for luxury item drops and instant stylist consultation updates.
+                            </span>
+                          </div>
+                        </label>
 
-                    </div>
+                        <label style={{ display: 'flex', alignItems: 'center', gap: '0.75rem', cursor: 'pointer', fontSize: '0.85rem' }}>
+                          <input
+                            type="checkbox"
+                            checked={marketingPartners}
+                            onChange={(e) => setMarketingPartners(e.target.checked)}
+                            style={{ width: '18px', height: '18px', accentColor: 'var(--accent-gold)' }}
+                          />
+                          <div>
+                            <strong>🤝 Carefully Selected Partners &amp; Collaborations</strong>
+                            <span style={{ display: 'block', fontSize: '0.75rem', color: 'var(--text-muted)' }}>
+                              Allow Atelier Edit to share non-sensitive aesthetic recommendations with carefully vetted luxury fashion houses.
+                            </span>
+                          </div>
+                        </label>
 
-                    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginTop: '1rem' }}>
-                      <span style={{ fontSize: '0.7rem', color: 'var(--text-muted)', fontStyle: 'italic' }}>
-                        {marketingConsentUpdatedAt
-                          ? `Preferences last updated: ${new Date(marketingConsentUpdatedAt).toLocaleString()}`
-                          : 'Consent preferences not yet configured.'}
-                      </span>
+                      </div>
 
-                      <button type="submit" className="accent-button" disabled={isSavingConsent} style={{ width: 'auto', padding: '0.55rem 1.25rem' }}>
-                        {isSavingConsent ? 'SAVING...' : 'SAVE PREFERENCES'}
-                      </button>
-                    </div>
-                  </form>
-                </div>
+                      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginTop: '1rem' }}>
+                        <span style={{ fontSize: '0.7rem', color: 'var(--text-muted)', fontStyle: 'italic' }}>
+                          {marketingConsentUpdatedAt
+                            ? `Preferences last updated: ${new Date(marketingConsentUpdatedAt).toLocaleString()}`
+                            : 'Consent preferences not yet configured.'}
+                        </span>
 
-                {/* GDPR & Data Privacy Rights Panel (UK DPA 2018) */}
-                <div className="lookbook-panel" style={{ padding: '2rem', marginTop: '2rem' }}>
-                  <h3 style={{ fontSize: '1.25rem', marginBottom: '0.5rem', borderBottom: '1px solid var(--border-color)', paddingBottom: '0.5rem', color: 'var(--accent-gold)' }}>
-                    Data Privacy &amp; GDPR Rights (UK DPA 2018)
-                  </h3>
-                  <p style={{ fontSize: '0.8rem', color: 'var(--text-muted)', marginBottom: '1.5rem' }}>
-                    Under General Data Protection Regulation (GDPR) and UK Data Protection Act 2018, you retain total ownership of your data.
-                  </p>
+                        <button type="submit" className="accent-button" disabled={isSavingConsent} style={{ width: 'auto', padding: '0.55rem 1.25rem' }}>
+                          {isSavingConsent ? 'SAVING...' : 'SAVE PREFERENCES'}
+                        </button>
+                      </div>
+                    </form>
+                  </div>
 
-                  <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(240px, 1fr))', gap: '1rem' }}>
+                  {/* Haute Couture Designer Sketch Card */}
+                  <div className="croquis-responsive-card">
+                    <h4 style={{ fontSize: '0.8rem', textTransform: 'uppercase', letterSpacing: '0.2em', marginBottom: '1.5rem', color: 'var(--accent)', borderBottom: '1px solid var(--border-color)', width: '100%', paddingBottom: '0.75rem' }}>
+                      Haute Couture Croquis
+                    </h4>
                     
-                    {/* Data Access Request Export */}
-                    <div style={{ background: 'rgba(255,255,255,0.02)', padding: '1.25rem', borderRadius: '4px', border: '1px solid var(--border-color)', display: 'flex', flexDirection: 'column' }}>
-                      <h4 style={{ fontSize: '0.95rem', marginBottom: '0.5rem' }}>📦 Data Portability &amp; Export (Article 20)</h4>
-                      <p style={{ fontSize: '0.75rem', color: 'var(--text-muted)', flex: 1, marginBottom: '1rem' }}>
-                        Download a machine-readable JSON data package containing your profile, physical measurements, wardrobe items, visual inspiration boards, generated lookbooks, and consent logs.
-                      </p>
-                      <button
-                        type="button"
-                        onClick={handleExportGdprData}
-                        disabled={isExportingData}
-                        className="accent-button"
-                        style={{ fontSize: '0.75rem', padding: '0.5rem 1rem' }}
-                      >
-                        {isExportingData ? 'EXPORTING PACKAGE...' : '📥 DOWNLOAD MY DATA PACKAGE'}
-                      </button>
+                    <div className="croquis-canvas-wrapper">
+                      <svg viewBox="0 0 300 450" style={{ filter: 'drop-shadow(0px 8px 16px rgba(0, 0, 0, 0.03))' }}>
+                        {/* Grid overlay for designer's draft sketch journal effect */}
+                        <line x1="150" y1="10" x2="150" y2="440" stroke="#E6E3DB" strokeWidth="0.5" strokeDasharray="3 6" />
+                        <line x1="20" y1="225" x2="280" y2="225" stroke="#E6E3DB" strokeWidth="0.5" strokeDasharray="3 6" />
+
+                        {/* Chic gesture draft curve */}
+                        <path d="M 153,20 Q 146,225 151,430" stroke="rgba(122, 122, 122, 0.15)" strokeWidth="0.8" fill="none" strokeDasharray="1 3" />
+                        
+                        {/* 1. AVERAGE PERSON BENCHMARK SILHOUETTE (BACKGROUND - LIGHTER COLOUR) */}
+                        <g opacity="0.65">
+                          <path d={avgCroquis.headPath} stroke="#B5AFA6" strokeWidth="1.2" fill="rgba(230, 225, 215, 0.3)" strokeDasharray="3 3" />
+                          <path d={avgCroquis.outlinePath} stroke="#B5AFA6" strokeWidth="1.5" fill="rgba(230, 225, 215, 0.3)" strokeDasharray="4 3" strokeLinecap="round" strokeLinejoin="round" />
+                          <path d={avgCroquis.leftCollarbone} stroke="#C5BFB6" strokeWidth="0.8" fill="none" opacity="0.6" />
+                          <path d={avgCroquis.rightCollarbone} stroke="#C5BFB6" strokeWidth="0.8" fill="none" opacity="0.6" />
+                        </g>
+
+                        {/* 2. USER PERSONAL SILHOUETTE (FOREGROUND - CRISP DARKER HAUTE COUTURE) */}
+                        <g>
+                          <path d={userCroquis.headPath} stroke="#1A1A1A" strokeWidth="1.6" fill="none" />
+                          <path d={userCroquis.outlinePath} stroke="#1A1A1A" strokeWidth="2.0" fill="none" strokeLinecap="round" strokeLinejoin="round" />
+                          <path d={userCroquis.leftCollarbone} stroke="#7A7A7A" strokeWidth="1.0" fill="none" opacity="0.8" />
+                          <path d={userCroquis.rightCollarbone} stroke="#7A7A7A" strokeWidth="1.0" fill="none" opacity="0.8" />
+                          <path d={userCroquis.centerLine} stroke="#7A7A7A" strokeWidth="0.8" fill="none" opacity="0.5" strokeDasharray="2 2" />
+                        </g>
+
+                        {/* Shared Ground Reference Line for Feet Level (Both Feet Aligned at Y = 410) */}
+                        <line x1="20" y1="410" x2="280" y2="410" stroke="#9E988D" strokeWidth="1.2" strokeDasharray="4 2" />
+                        <text x="150" y="425" textAnchor="middle" fontSize="9" fill="#888075" letterSpacing="0.05em" fontFamily="sans-serif">
+                          SHARED FOOT BASELINE LEVEL
+                        </text>
+                      </svg>
                     </div>
-
-                    {/* Right to be Forgotten */}
-                    <div style={{ background: 'rgba(239, 68, 68, 0.05)', padding: '1.25rem', borderRadius: '4px', border: '1px solid rgba(239, 68, 68, 0.3)', display: 'flex', flexDirection: 'column' }}>
-                      <h4 style={{ fontSize: '0.95rem', marginBottom: '0.5rem', color: '#ef4444' }}>🗑️ Right to be Forgotten (Article 17)</h4>
-                      <p style={{ fontSize: '0.75rem', color: 'var(--text-muted)', flex: 1, marginBottom: '1rem' }}>
-                        Permanently purge your account, uploaded clothing photos from Google Cloud Storage, lookbooks, and session history from Atelier Edit databases. This action is immediate and non-reversible.
-                      </p>
-                      <button
-                        type="button"
-                        onClick={() => setShowGdprDeleteModal(true)}
-                        className="delete-action-btn"
-                        style={{ fontSize: '0.75rem', padding: '0.5rem 1rem', width: '100%', textTransform: 'uppercase', letterSpacing: '0.05em' }}
-                      >
-                        PERMANENTLY DELETE ACCOUNT &amp; ERASE DATA
-                      </button>
-                    </div>
-
-                  </div>
-                </div>
-
-                {/* Right Column: Haute Couture Designer Sketch Card */}
-                <div className="croquis-responsive-card">
-                  <h4 style={{ fontSize: '0.8rem', textTransform: 'uppercase', letterSpacing: '0.2em', marginBottom: '1.5rem', color: 'var(--accent)', borderBottom: '1px solid var(--border-color)', width: '100%', paddingBottom: '0.75rem' }}>
-                    Haute Couture Croquis
-                  </h4>
-                  
-                  <div className="croquis-canvas-wrapper">
-                    <svg viewBox="0 0 300 450" style={{ filter: 'drop-shadow(0px 8px 16px rgba(0, 0, 0, 0.03))' }}>
-                      {/* Grid overlay for designer's draft sketch journal effect */}
-                      <line x1="150" y1="10" x2="150" y2="440" stroke="#E6E3DB" strokeWidth="0.5" strokeDasharray="3 6" />
-                      <line x1="20" y1="225" x2="280" y2="225" stroke="#E6E3DB" strokeWidth="0.5" strokeDasharray="3 6" />
-
-                      {/* Chic gesture draft curve */}
-                      <path d="M 153,20 Q 146,225 151,430" stroke="rgba(122, 122, 122, 0.15)" strokeWidth="0.8" fill="none" strokeDasharray="1 3" />
-                      
-                      {/* 1. AVERAGE PERSON BENCHMARK SILHOUETTE (BACKGROUND - LIGHTER COLOUR) */}
-                      <g opacity="0.65">
-                        <path d={avgCroquis.headPath} stroke="#B5AFA6" strokeWidth="1.2" fill="rgba(230, 225, 215, 0.3)" strokeDasharray="3 3" />
-                        <path d={avgCroquis.outlinePath} stroke="#B5AFA6" strokeWidth="1.5" fill="rgba(230, 225, 215, 0.3)" strokeDasharray="4 3" strokeLinecap="round" strokeLinejoin="round" />
-                        <path d={avgCroquis.leftCollarbone} stroke="#C5BFB6" strokeWidth="0.8" fill="none" opacity="0.6" />
-                        <path d={avgCroquis.rightCollarbone} stroke="#C5BFB6" strokeWidth="0.8" fill="none" opacity="0.6" />
-                      </g>
-
-                      {/* 2. USER PERSONAL SILHOUETTE (FOREGROUND - CRISP DARKER HAUTE COUTURE) */}
-                      <g>
-                        <path d={userCroquis.headPath} stroke="#1A1A1A" strokeWidth="1.6" fill="none" />
-                        <path d={userCroquis.outlinePath} stroke="#1A1A1A" strokeWidth="2.0" fill="none" strokeLinecap="round" strokeLinejoin="round" />
-                        <path d={userCroquis.leftCollarbone} stroke="#7A7A7A" strokeWidth="1.0" fill="none" opacity="0.8" />
-                        <path d={userCroquis.rightCollarbone} stroke="#7A7A7A" strokeWidth="1.0" fill="none" opacity="0.8" />
-                        <path d={userCroquis.centerLine} stroke="#7A7A7A" strokeWidth="0.8" fill="none" opacity="0.5" strokeDasharray="2 2" />
-                      </g>
-
-                      {/* Shared Ground Reference Line for Feet Level (Both Feet Aligned at Y = 410) */}
-                      <line x1="20" y1="410" x2="280" y2="410" stroke="#9E988D" strokeWidth="1.2" strokeDasharray="4 2" />
-                      <text x="150" y="425" textAnchor="middle" fontSize="9" fill="#888075" letterSpacing="0.05em" fontFamily="sans-serif">
-                        SHARED FOOT BASELINE LEVEL
-                      </text>
-                    </svg>
-                  </div>
-                  
-                  <div style={{ marginTop: '1.25rem', width: '100%', borderTop: '1px solid var(--border-color)', paddingTop: '0.75rem' }}>
-                    <div style={{ display: 'flex', flexDirection: 'column', gap: '0.35rem', fontSize: '0.65rem', textTransform: 'uppercase', letterSpacing: '0.08em', alignItems: 'center' }}>
-                      <span style={{ color: '#1A1A1A', fontWeight: 'bold', display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
-                        <span style={{ display: 'inline-block', width: '16px', height: '3px', backgroundColor: '#1A1A1A' }}></span>
-                        Your Personal Silhouette ({profSex === 'Male' ? 'Homme' : 'Femme'})
-                      </span>
-                      <span style={{ color: '#8E877D', display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
-                        <span style={{ display: 'inline-block', width: '16px', height: '3px', backgroundColor: '#B5AFA6' }}></span>
-                        Average Benchmark Silhouette (Aligned)
-                      </span>
+                    
+                    <div style={{ marginTop: '1.25rem', width: '100%', borderTop: '1px solid var(--border-color)', paddingTop: '0.75rem' }}>
+                      <div style={{ display: 'flex', flexDirection: 'column', gap: '0.35rem', fontSize: '0.65rem', textTransform: 'uppercase', letterSpacing: '0.08em', alignItems: 'center' }}>
+                        <span style={{ color: '#1A1A1A', fontWeight: 'bold', display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
+                          <span style={{ display: 'inline-block', width: '16px', height: '3px', backgroundColor: '#1A1A1A' }}></span>
+                          Your Personal Silhouette ({profSex === 'Male' ? 'Homme' : 'Femme'})
+                        </span>
+                        <span style={{ color: '#8E877D', display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
+                          <span style={{ display: 'inline-block', width: '16px', height: '3px', backgroundColor: '#B5AFA6' }}></span>
+                          Average Benchmark Silhouette (Aligned)
+                        </span>
+                      </div>
                     </div>
                   </div>
+
                 </div>
 
               </div>

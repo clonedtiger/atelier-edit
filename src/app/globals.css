@@ -1808,9 +1808,19 @@ p {
 
 @media (min-width: 1024px) {
   .account-profile-grid {
-    grid-template-columns: 1fr 380px;
+    grid-template-columns: 1fr 420px;
     gap: 2.5rem;
+    align-items: start;
   }
+}
+
+.account-profile-col {
+  display: flex;
+  flex-direction: column;
+  gap: 2rem;
+  min-width: 0;
+  width: 100%;
+  box-sizing: border-box;
 }
 
 .croquis-responsive-card {
