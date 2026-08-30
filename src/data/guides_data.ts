@@ -72,7 +72,7 @@ export const GUIDE_CATEGORIES: GuideCategory[] = [
   },
   {
     id: 'profile',
-    title: 'Profile, Sizing & Passwords',
+    title: 'Profile Guide',
     icon: '👤',
     description: 'Style DNA archetypes, international sizing systems, and password management.'
   },

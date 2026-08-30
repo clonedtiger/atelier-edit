@@ -2110,6 +2110,17 @@ export default function AtelierEditDashboard() {
                 </a>
               </>
             )}
+
+            <span className="nav-divider">|</span>
+
+            <button
+              onClick={handleLogout}
+              className="nav-link"
+              style={{ color: 'var(--text-muted)' }}
+              title="Sign out of Atelier Edit"
+            >
+              Sign Out
+            </button>
           </nav>
         )}
       </header>
@@ -2398,7 +2409,7 @@ export default function AtelierEditDashboard() {
                   }}
                   className="weather-pill-btn"
                 >
-                  📍 Change Climate
+                  📍 Change Weather
                 </button>
               </div>
             )}
@@ -4524,16 +4535,13 @@ export default function AtelierEditDashboard() {
                             }}
                             className="guide-helper-btn"
                           >
-                            📖 Profile &amp; Password Guide
+                            📖 Profile Guide
                           </button>
                         </div>
                         <p style={{ fontSize: '0.75rem', color: 'var(--text-muted)' }}>
                           Configure your measurements to customize Gemini outfit personalization.
                         </p>
                       </div>
-                      <button onClick={handleLogout} className="delete-action-btn" style={{ border: '1px solid rgba(225, 29, 72, 0.2)', padding: '0.4rem 0.8rem', borderRadius: '4px' }}>
-                        Sign Out
-                      </button>
                     </div>
 
                     <form onSubmit={handleSaveProfile} className="form-group-stack">
@@ -4991,10 +4999,20 @@ export default function AtelierEditDashboard() {
                       </div>
 
                       {/* Save profile */}
-                      <div className="action-row" style={{ marginTop: '1.5rem' }}>
-                        <span className="security-indicator">
-                          {user.mfaEnabled ? 'MFA Security Active' : 'Basic Login'}
-                        </span>
+                      <div className="action-row" style={{ marginTop: '1.5rem', display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: '1rem' }}>
+                        <div style={{ display: 'flex', alignItems: 'center', gap: '1rem' }}>
+                          <span className="security-indicator">
+                            {user.mfaEnabled ? 'MFA Security Active' : 'Basic Login'}
+                          </span>
+                          <button
+                            type="button"
+                            onClick={handleLogout}
+                            className="delete-action-btn"
+                            style={{ border: '1px solid rgba(225, 29, 72, 0.25)', padding: '0.45rem 1rem', borderRadius: '4px', fontSize: '0.8rem' }}
+                          >
+                            Sign Out
+                          </button>
+                        </div>
                         <button type="submit" className="accent-button" style={{ width: 'auto' }}>
                           {isSavingProfile ? 'Saving Style Profile...' : 'SAVE STYLE DNA & PROFILE'}
                         </button>

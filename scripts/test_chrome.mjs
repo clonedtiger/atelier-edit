@@ -27,48 +27,36 @@ async function main() {
 
   const artifactDir = '/Users/keithmisson/.gemini/antigravity-ide/brain/a04c8d48-0b98-46e4-919d-199df8c6b893';
 
-  // 1. Click Guides Tab
-  console.log('Switching to Guides tab...');
+  // 1. Stylist tab (check Change Weather button)
+  console.log('Switching to Stylist tab...');
   await page.evaluate(() => {
     const tabs = Array.from(document.querySelectorAll('.nav-link'));
-    const guideTab = tabs.find(t => t.textContent && t.textContent.includes('Guides'));
-    if (guideTab) guideTab.click();
+    const stylistTab = tabs.find(t => t.textContent && t.textContent.trim() === 'Stylist');
+    if (stylistTab) stylistTab.click();
   });
-  await new Promise((r) => setTimeout(r, 1500));
+  await new Promise((r) => setTimeout(r, 1200));
 
-  const desktopScreenshot = path.join(artifactDir, 'guides_desktop_view.png');
-  await page.screenshot({ path: desktopScreenshot, fullPage: true });
-  console.log('Captured desktop guides screenshot at:', desktopScreenshot);
+  const stylistScreenshot = path.join(artifactDir, 'stylist_change_weather.png');
+  await page.screenshot({ path: stylistScreenshot, fullPage: false });
+  console.log('Captured Stylist tab screenshot at:', stylistScreenshot);
 
-  // 2. Test Search in Guides
-  console.log('Testing search filter with query "password"...');
-  await page.type('.guides-search-input', 'password');
-  await new Promise((r) => setTimeout(r, 800));
-
-  const searchScreenshot = path.join(artifactDir, 'guides_search_filter.png');
-  await page.screenshot({ path: searchScreenshot, fullPage: true });
-  console.log('Captured guides search screenshot at:', searchScreenshot);
-
-  // 3. Test Mobile View
-  console.log('Testing mobile viewport (390px)...');
-  await page.setViewport({ width: 390, height: 844 });
+  // 2. My Profile tab (check Profile Guide button and Sign Out placement)
+  console.log('Switching to My Profile tab...');
   await page.evaluate(() => {
-    const clearBtn = document.querySelector('.guides-search-input');
-    if (clearBtn) {
-      clearBtn.value = '';
-      clearBtn.dispatchEvent(new Event('input', { bubbles: true }));
-    }
+    const tabs = Array.from(document.querySelectorAll('.nav-link'));
+    const profileTab = tabs.find(t => t.textContent && t.textContent.trim() === 'My Profile');
+    if (profileTab) profileTab.click();
   });
-  await new Promise((r) => setTimeout(r, 1000));
+  await new Promise((r) => setTimeout(r, 1200));
 
-  const mobileScreenshot = path.join(artifactDir, 'guides_mobile_view.png');
-  await page.screenshot({ path: mobileScreenshot, fullPage: true });
-  console.log('Captured mobile guides screenshot at:', mobileScreenshot);
+  const profileScreenshot = path.join(artifactDir, 'profile_updated_signout.png');
+  await page.screenshot({ path: profileScreenshot, fullPage: true });
+  console.log('Captured Profile tab screenshot at:', profileScreenshot);
 
   const title = await page.title();
   console.log('Page title:', title);
   await browser.close();
-  console.log('Guides browser test complete.');
+  console.log('Local Chrome test complete.');
 }
 
 main().catch(err => {
