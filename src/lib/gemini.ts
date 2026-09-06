@@ -18,6 +18,10 @@ export interface TaggedWardrobeItem {
   detectedTags: string[];
 }
 
+export interface DetectedWardrobeItem extends TaggedWardrobeItem {
+  box2d?: [number, number, number, number] | null;
+}
+
 export interface ExtractedTrends {
   title: string;
   extractedTrends: string[];
@@ -115,6 +119,255 @@ export async function analyzeWardrobeImage(base64Data: string, mimeType: string)
   } catch (error) {
     console.error('Error analyzing wardrobe image with Gemini:', error);
     throw new Error('Gemini vision analysis failed');
+  }
+}
+
+export type RawBoundingBox =
+  | [number, number, number, number]
+  | { ymin?: number; xmin?: number; ymax?: number; xmax?: number; top?: number; left?: number; bottom?: number; right?: number; y?: number; x?: number; width?: number; height?: number; y1?: number; x1?: number; y2?: number; x2?: number };
+
+export function normalizeBox2d(rawBox: unknown): [number, number, number, number] | null {
+  if (!rawBox) return null;
+  let ymin: number, xmin: number, ymax: number, xmax: number;
+
+  if (Array.isArray(rawBox) && rawBox.length >= 4) {
+    [ymin, xmin, ymax, xmax] = rawBox.map(Number);
+  } else if (typeof rawBox === 'object' && rawBox !== null) {
+    const boxObj = rawBox as Record<string, unknown>;
+    const h = typeof boxObj.height === 'number' ? boxObj.height : undefined;
+    const w = typeof boxObj.width === 'number' ? boxObj.width : undefined;
+    const yVal = boxObj.ymin ?? boxObj.top ?? boxObj.y1 ?? boxObj.y;
+    const xVal = boxObj.xmin ?? boxObj.left ?? boxObj.x1 ?? boxObj.x;
+    const yNum = Number(yVal);
+    const xNum = Number(xVal);
+
+    ymin = yNum;
+    xmin = xNum;
+    ymax = Number(boxObj.ymax ?? boxObj.bottom ?? boxObj.y2 ?? (!isNaN(yNum) && h !== undefined ? yNum + h : NaN));
+    xmax = Number(boxObj.xmax ?? boxObj.right ?? boxObj.x2 ?? (!isNaN(xNum) && w !== undefined ? xNum + w : NaN));
+  } else {
+    return null;
+  }
+
+  if (isNaN(ymin) || isNaN(xmin) || isNaN(ymax) || isNaN(xmax)) {
+    return null;
+  }
+
+  // If coordinates are normalized floats (0..1), scale to 0..1000
+  if (ymin <= 1 && ymax <= 1 && xmin <= 1 && xmax <= 1 && (ymax > 0 || xmax > 0)) {
+    ymin = Math.round(ymin * 1000);
+    xmin = Math.round(xmin * 1000);
+    ymax = Math.round(ymax * 1000);
+    xmax = Math.round(xmax * 1000);
+  }
+
+  ymin = Math.max(0, Math.min(1000, Math.round(ymin)));
+  xmin = Math.max(0, Math.min(1000, Math.round(xmin)));
+  ymax = Math.max(0, Math.min(1000, Math.round(ymax)));
+  xmax = Math.max(0, Math.min(1000, Math.round(xmax)));
+
+  if (ymin > ymax) {
+    const tmp = ymin;
+    ymin = ymax;
+    ymax = tmp;
+  }
+  if (xmin > xmax) {
+    const tmp = xmin;
+    xmin = xmax;
+    xmax = tmp;
+  }
+
+  if (ymax - ymin < 10 || xmax - xmin < 10) {
+    return null;
+  }
+
+  return [ymin, xmin, ymax, xmax];
+}
+
+const VALID_CATEGORIES = [
+  'Outerwear',
+  'Tops',
+  'Bottoms',
+  'Dresses',
+  'Shoes',
+  'Bags',
+  'Jewelry',
+  'Accessories',
+];
+
+export function normalizeCategory(cat?: string | null): string {
+  if (!cat) return 'Tops';
+  const c = cat.trim().toLowerCase();
+  if (c.includes('jacket') || c.includes('coat') || c.includes('outer') || c.includes('blazer') || c.includes('vest') || c.includes('cardigan') || c.includes('parka')) {
+    return 'Outerwear';
+  }
+  if (c.includes('dress') || c.includes('gown')) {
+    return 'Dresses';
+  }
+  if (c.includes('bottom') || c.includes('pant') || c.includes('jean') || c.includes('trouser') || c.includes('skirt') || c.includes('short') || c.includes('legging')) {
+    return 'Bottoms';
+  }
+  if (c.includes('shoe') || c.includes('boot') || c.includes('sneaker') || c.includes('sandal') || c.includes('heel') || c.includes('loafer') || c.includes('footwear')) {
+    return 'Shoes';
+  }
+  if (c.includes('bag') || c.includes('purse') || c.includes('tote') || c.includes('clutch') || c.includes('backpack')) {
+    return 'Bags';
+  }
+  if (c.includes('jewel') || c.includes('necklace') || c.includes('ring') || c.includes('earring') || c.includes('bracelet')) {
+    return 'Jewelry';
+  }
+  if (c.includes('access') || c.includes('belt') || c.includes('hat') || c.includes('cap') || c.includes('scarf') || c.includes('sunglass') || c.includes('glasses') || c.includes('watch') || c.includes('glove')) {
+    return 'Accessories';
+  }
+  if (c.includes('top') || c.includes('shirt') || c.includes('tee') || c.includes('sweater') || c.includes('blouse') || c.includes('hoodie')) {
+    return 'Tops';
+  }
+
+  const found = VALID_CATEGORIES.find(vc => vc.toLowerCase() === c);
+  return found || 'Tops';
+}
+
+/**
+ * Analyzes a photo that may contain one or multiple clothing items / accessories,
+ * detects 2D bounding boxes [ymin, xmin, ymax, xmax] (scaled 0..1000) for each distinct item,
+ * and extracts individual style tags, category, color, brand, and notes.
+ */
+export async function detectAndAnalyzeWardrobeItems(
+  base64Data: string,
+  mimeType: string
+): Promise<DetectedWardrobeItem[]> {
+  const prompt = `
+    Analyze this photograph which contains one or multiple clothing items, shoes, bags, or accessories (e.g. flat lay, items laid on a bed/surface, garments on hangers, or outfit components).
+
+    For EACH distinct clothing item or wearable accessory visible in the photograph:
+    1. 2D Bounding Box: [ymin, xmin, ymax, xmax] as integers normalized from 0 to 1000:
+       - ymin: top edge (0 to 1000)
+       - xmin: left edge (0 to 1000)
+       - ymax: bottom edge (0 to 1000)
+       - xmax: right edge (0 to 1000)
+       Frame the specific item as closely as possible without cutting off edges.
+    2. Category: Exactly one of "Outerwear", "Tops", "Bottoms", "Dresses", "Shoes", "Bags", "Jewelry", "Accessories".
+    3. Color: Array of primary colors present (e.g., ["Black", "Gold"]).
+    4. Brand: Brand name if visible on label, hardware, embroidery, or tags (e.g. "Chanel", "Alexander McQueen", "Zara", "AllSaints"). If unidentifiable, return null.
+    5. Style notes: Brief 1-2 sentence description of design details, silhouette, fabric, hardware, cuts, and overall vibe.
+    6. Detected tags: List of key styling attributes (e.g., ["bouclé", "tweed", "double-breasted", "gold buttons", "cropped", "leather", "hardware", "asymmetric"]).
+
+    Output MUST adhere strictly to this JSON structure:
+    {
+      "items": [
+        {
+          "box_2d": [ymin, xmin, ymax, xmax],
+          "category": "Outerwear",
+          "color": ["Black"],
+          "brand": "Chanel",
+          "styleNotes": "Structured tweed cropped jacket with gold lion buttons.",
+          "detectedTags": ["tweed", "cropped", "gold buttons"]
+        }
+      ]
+    }
+  `;
+
+  try {
+    const response = await getAi().models.generateContent({
+      model: MODEL_NAME,
+      contents: [
+        {
+          inlineData: {
+            data: base64Data,
+            mimeType: mimeType,
+          },
+        },
+        prompt,
+      ],
+      config: {
+        responseMimeType: 'application/json',
+      },
+    });
+
+    interface RawGeminiItem {
+      box_2d?: RawBoundingBox;
+      box2d?: RawBoundingBox;
+      box?: RawBoundingBox;
+      boundingBox?: RawBoundingBox;
+      category?: string;
+      color?: string[] | string;
+      brand?: string | null;
+      styleNotes?: string;
+      detectedTags?: string[];
+    }
+
+    interface RawGeminiDetectionResult {
+      items?: RawGeminiItem[];
+      category?: string;
+      [key: string]: unknown;
+    }
+
+    const text = response.text || '';
+    const parsed = safeParseGeminiJson<RawGeminiDetectionResult | RawGeminiItem[]>(text);
+
+    let rawList: RawGeminiItem[] = [];
+    if (Array.isArray(parsed)) {
+      rawList = parsed;
+    } else if (parsed && Array.isArray(parsed.items)) {
+      rawList = parsed.items;
+    } else if (parsed && typeof parsed === 'object' && parsed.category) {
+      rawList = [parsed as RawGeminiItem];
+    }
+
+    const items: DetectedWardrobeItem[] = rawList
+      .map((item: RawGeminiItem) => {
+        const rawBox = item.box_2d ?? item.box2d ?? item.box ?? item.boundingBox;
+        const box2d = normalizeBox2d(rawBox);
+        const category = normalizeCategory(item.category);
+        const color = Array.isArray(item.color)
+          ? item.color.map((c: unknown) => String(c).trim()).filter(Boolean)
+          : typeof item.color === 'string' && item.color
+          ? [item.color.trim()]
+          : ['Black'];
+        const brand = typeof item.brand === 'string' && item.brand.trim() ? item.brand.trim() : null;
+        const styleNotes = typeof item.styleNotes === 'string' && item.styleNotes.trim()
+          ? item.styleNotes.trim()
+          : `${category} garment`;
+        const detectedTags = Array.isArray(item.detectedTags)
+          ? item.detectedTags.map((t: unknown) => String(t).trim().toLowerCase()).filter(Boolean)
+          : [category.toLowerCase()];
+
+        return {
+          category,
+          color: color.length > 0 ? color : ['Black'],
+          brand,
+          styleNotes,
+          detectedTags,
+          box2d,
+        };
+      })
+      .filter((item: DetectedWardrobeItem) => Boolean(item.category));
+
+    if (items.length > 0) {
+      return items;
+    }
+
+    // Fallback: single item analysis
+    const single = await analyzeWardrobeImage(base64Data, mimeType);
+    return [
+      {
+        ...single,
+        box2d: null,
+      },
+    ];
+  } catch (error) {
+    console.error('Error detecting wardrobe items with Gemini:', error);
+    try {
+      const single = await analyzeWardrobeImage(base64Data, mimeType);
+      return [
+        {
+          ...single,
+          box2d: null,
+        },
+      ];
+    } catch {
+      return [];
+    }
   }
 }
 

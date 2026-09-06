@@ -197,6 +197,7 @@ export default function AtelierEditDashboard() {
   const [previewUrls, setPreviewUrls] = useState<string[]>([]);
   const [uploadBrand, setUploadBrand] = useState('');
   const [uploadNotes, setUploadNotes] = useState('');
+  const [autoSplitItems, setAutoSplitItems] = useState(true);
   const [compressionStatus, setCompressionStatus] = useState<string | null>(null);
   const [bulkUploadProgress, setBulkUploadProgress] = useState<string | null>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
@@ -750,7 +751,7 @@ export default function AtelierEditDashboard() {
         const img = new window.Image();
         img.onload = () => {
           const canvas = document.createElement('canvas');
-          const maxDim = 1080;
+          const maxDim = 1920;
           let width = img.width;
           let height = img.height;
 
@@ -924,15 +925,17 @@ export default function AtelierEditDashboard() {
 
     try {
       let successCount = 0;
+      let totalItemsCreated = 0;
       for (let i = 0; i < selectedFiles.length; i++) {
         const file = selectedFiles[i];
-        setBulkUploadProgress(`Uploading ${i + 1}/${selectedFiles.length}: "${file.name}"...`);
+        setBulkUploadProgress(`Ingesting ${i + 1}/${selectedFiles.length}: "${file.name}"...`);
         
         const compressedBlob = await compressImage(file);
         const formData = new FormData();
         formData.append('image', compressedBlob, `garment-${Date.now()}-${i}.webp`);
         if (uploadBrand) formData.append('brand', uploadBrand);
         if (uploadNotes) formData.append('styleNotes', uploadNotes);
+        formData.append('autoSplit', String(autoSplitItems));
 
         const res = await fetch('/api/wardrobe/upload', {
           method: 'POST',
@@ -940,6 +943,9 @@ export default function AtelierEditDashboard() {
         });
 
         if (res.ok) {
+          const data = await res.json();
+          const itemsAdded = Array.isArray(data?.items) ? data.items.length : (data?.count || 1);
+          totalItemsCreated += itemsAdded;
           successCount++;
         } else {
           const errData = await res.json();
@@ -947,14 +953,18 @@ export default function AtelierEditDashboard() {
         }
       }
 
-      setBulkUploadProgress(`Completed! Ingested ${successCount} garments.`);
+      const itemWord = totalItemsCreated === 1 ? 'garment' : 'garments';
+      const photoWord = successCount === 1 ? 'photo' : 'photos';
+      const summaryMsg = `Ingested ${totalItemsCreated} ${itemWord} across ${successCount} ${photoWord}.`;
+      setBulkUploadProgress(`Completed! ${summaryMsg}`);
+      showToast(summaryMsg, 'success');
       setSelectedFiles([]);
       setPreviewUrls([]);
       setUploadBrand('');
       setUploadNotes('');
       setCompressionStatus(null);
       
-      setTimeout(() => setBulkUploadProgress(null), 3000);
+      setTimeout(() => setBulkUploadProgress(null), 3500);
       fetchWardrobe();
     } catch (err) {
       console.error(err);
@@ -3322,6 +3332,47 @@ export default function AtelierEditDashboard() {
                           placeholder="Describe cut, textures, bouclé elements..."
                           rows={3}
                         />
+                      </div>
+
+                      {/* Multi-item Auto-Slice Toggle */}
+                      <div
+                        style={{
+                          backgroundColor: 'var(--surface-color)',
+                          border: '1px solid var(--border-color)',
+                          borderRadius: '6px',
+                          padding: '0.65rem 0.75rem',
+                          marginBottom: '0.75rem',
+                        }}
+                      >
+                        <label
+                          style={{
+                            display: 'flex',
+                            alignItems: 'center',
+                            gap: '0.5rem',
+                            cursor: 'pointer',
+                            fontSize: '0.72rem',
+                            fontWeight: 600,
+                            color: 'var(--foreground)',
+                          }}
+                        >
+                          <input
+                            type="checkbox"
+                            checked={autoSplitItems}
+                            onChange={(e) => setAutoSplitItems(e.target.checked)}
+                            style={{ accentColor: 'var(--accent)', width: '14px', height: '14px' }}
+                          />
+                          <span>⚡ Auto-Slice Multi-Item Photos</span>
+                        </label>
+                        <p
+                          style={{
+                            fontSize: '0.62rem',
+                            color: 'var(--text-secondary)',
+                            margin: '0.35rem 0 0 1.4rem',
+                            lineHeight: 1.35,
+                          }}
+                        >
+                          Upload flat-lays or multiple garments laid out together. AI will isolate, crop, and catalog each piece separately for super-fast batch uploads.
+                        </p>
                       </div>
 
                       <button

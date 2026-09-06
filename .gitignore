@@ -42,5 +42,5 @@ next-env.d.ts
 
 /src/generated/prisma
 /public/uploads/
-cookies*.txt
 .firebase/
+cookies*.txt
