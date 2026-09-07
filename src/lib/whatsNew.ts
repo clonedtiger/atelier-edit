@@ -3,6 +3,7 @@ import { prisma } from './db';
 import { getAi, MODEL_NAME, safeParseGeminiJson } from './gemini';
 import { syncArticlesAndTrends } from './feed';
 import { uploadImage } from './storage';
+import { sendWhatsNewEmailDigest } from './email';
 
 export interface WhatsNewPost {
   id: string;
@@ -194,6 +195,7 @@ export async function generateAndSaveUserWhatsNew(
     select: {
       id: true,
       name: true,
+      email: true,
       sex: true,
       gender: true,
       styleAesthetic: true,
@@ -491,13 +493,9 @@ Show clearly how runway trends from their inspiration feeds directly validate an
       .slice(0, 6);
   }
 
-  // 6. Clear previous posts for this user so the refreshed feed is 100% compliant with updated settings
-  await prisma.whatsNewPost.deleteMany({
-    where: { userId },
-  });
-
-  // 7. Resolve, download, and store every image into local/GCS storage
+  // 6. Resolve, download, and store every image into local/GCS storage
   const genderModifier = isMale ? 'men menswear' : isFemale ? 'women womenswear' : '';
+  const newlyCreatedPosts: WhatsNewPost[] = [];
 
   for (let i = 0; i < rawPosts.length; i++) {
     const rp = rawPosts[i];
@@ -538,8 +536,8 @@ Show clearly how runway trends from their inspiration feeds directly validate an
       resolvedImageUrl = await createFallbackImage(isMale, `editorial-${i + 1}`);
     }
 
-    // Save post to PostgreSQL
-    await prisma.whatsNewPost.create({
+    // Save post to PostgreSQL (historical posts are preserved)
+    const createdPost = await prisma.whatsNewPost.create({
       data: {
         userId,
         title: rp.title || 'Curated Styling',
@@ -549,6 +547,30 @@ Show clearly how runway trends from their inspiration feeds directly validate an
         imageUrl: resolvedImageUrl,
         createdAt: new Date(),
       },
+    });
+
+    if (createdPost) {
+      newlyCreatedPosts.push({
+        id: createdPost.id,
+        title: createdPost.title,
+        summary: createdPost.summary,
+        source: createdPost.source,
+        tags: createdPost.tags,
+        imageUrl: createdPost.imageUrl,
+        createdAt: createdPost.createdAt ? createdPost.createdAt.toISOString() : new Date().toISOString(),
+      });
+    }
+  }
+
+  // 7. Dispatch new editorial digest to user's registered email address
+  if (user?.email && newlyCreatedPosts.length > 0) {
+    sendWhatsNewEmailDigest({
+      email: user.email,
+      name: user.name,
+      styleAesthetic: user.styleAesthetic,
+      posts: newlyCreatedPosts,
+    }).catch((emailErr) => {
+      console.warn('Non-blocking error dispatching What\'s New email digest:', emailErr);
     });
   }
 

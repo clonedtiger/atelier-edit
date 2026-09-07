@@ -13,7 +13,11 @@ jest.mock('@/lib/db', () => ({
   prisma: {
     whatsNewPost: {
       findMany: jest.fn(),
-      create: jest.fn(),
+      create: jest.fn().mockImplementation(async ({ data }) => ({
+        id: 'mock-post-id',
+        ...data,
+        createdAt: new Date(),
+      })),
       deleteMany: jest.fn(),
     },
     user: {
@@ -44,6 +48,10 @@ jest.mock('@/lib/storage', () => ({
 
 jest.mock('@/lib/session', () => ({
   getSession: jest.fn(),
+}));
+
+jest.mock('@/lib/email', () => ({
+  sendWhatsNewEmailDigest: jest.fn().mockResolvedValue({ success: true }),
 }));
 
 describe('Personalized What\'s New Feed - Library and API Routes', () => {
@@ -135,6 +143,7 @@ describe('Personalized What\'s New Feed - Library and API Routes', () => {
       (prisma.user.findUnique as jest.Mock).mockResolvedValueOnce({
         id: mockUserId,
         name: 'Alexander',
+        email: 'alexander@example.com',
         sex: 'Male',
         gender: 'Male',
         styleAesthetic: 'Architectural Minimalism',
@@ -213,10 +222,18 @@ describe('Personalized What\'s New Feed - Library and API Routes', () => {
       // Verify syncArticlesAndTrends was triggered
       expect(syncArticlesAndTrends).toHaveBeenCalledWith(2, true);
 
-      // Verify old posts were cleared on sync
-      expect(prisma.whatsNewPost.deleteMany).toHaveBeenCalledWith({
-        where: { userId: mockUserId },
-      });
+      // Verify historical posts are preserved (deleteMany is NOT called)
+      expect(prisma.whatsNewPost.deleteMany).not.toHaveBeenCalled();
+
+      // Verify outbound email digest was triggered with user details
+      const { sendWhatsNewEmailDigest } = await import('@/lib/email');
+      expect(sendWhatsNewEmailDigest).toHaveBeenCalledWith(
+        expect.objectContaining({
+          email: 'alexander@example.com',
+          name: 'Alexander',
+          posts: expect.any(Array),
+        })
+      );
 
       // Verify prompt includes male restrictions
       expect(mockGenerateContent).toHaveBeenCalled();

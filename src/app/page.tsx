@@ -650,6 +650,9 @@ export default function AtelierEditDashboard() {
       if (res.ok) {
         const data = await res.json();
         setWhatsNewPosts(data.posts || []);
+        if (force) {
+          showToast('Style stream refreshed! An editorial digest has also been sent to your email.');
+        }
       } else if (res.status !== 401) {
         showToast('Failed to load style stream.', 'error');
       }
