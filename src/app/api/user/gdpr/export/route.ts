@@ -105,6 +105,10 @@ export async function GET() {
       where: { userId },
     });
 
+    const whatsNewPosts = await prisma.whatsNewPost.findMany({
+      where: { userId },
+    });
+
     // Assemble compliance export payload
     const exportPackage = {
       exportMetadata: {
@@ -139,6 +143,10 @@ export async function GET() {
       outfitCollages: {
         totalCollages: collages.length,
         collages,
+      },
+      styleStreamPosts: {
+        totalPosts: whatsNewPosts.length,
+        posts: whatsNewPosts,
       },
       activityAuditLogs: activities,
       accountSessions: sessions,

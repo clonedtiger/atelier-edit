@@ -55,6 +55,7 @@ model User {
   customFeeds       FeedSource[]
   capsules          CapsuleTrip[]
   collages          OutfitCollage[]
+  whatsNewPosts     WhatsNewPost[]
 
   @@index([role])
 }
@@ -210,6 +211,20 @@ model OutfitCollage {
   canvasData   Json     // Placed elements: [{ id, imageUrl, x, y, scale, rotation, zIndex, label }]
   thumbnailUrl String?  // Rendered composite image
   createdAt    DateTime @default(now())
+
+  @@index([userId, createdAt])
+}
+
+model WhatsNewPost {
+  id        String   @id @default(uuid())
+  userId    String
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  title     String
+  summary   String
+  source    String
+  tags      String[]
+  imageUrl  String   // Path or URL to stored WebP image
+  createdAt DateTime @default(now())
 
   @@index([userId, createdAt])
 }

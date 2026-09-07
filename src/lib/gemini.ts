@@ -46,7 +46,7 @@ export interface RecommendedOutfit {
  * Safely parses JSON returned by Gemini models, stripping markdown code fences
  * and isolating outer JSON object or array bounds to handle trailing text/commentary.
  */
-function safeParseGeminiJson<T>(rawText: string): T {
+export function safeParseGeminiJson<T>(rawText: string): T {
   let cleaned = (rawText || '').trim();
 
   // Strip markdown code fences if wrapped

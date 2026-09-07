@@ -180,6 +180,7 @@ export default function AtelierEditDashboard() {
   const [recommendations, setRecommendations] = useState<Recommendation[]>([]);
   const [feeds, setFeeds] = useState<FeedSource[]>([]);
   const [whatsNewPosts, setWhatsNewPosts] = useState<WhatsNewPost[]>([]);
+  const [feedSortOrder, setFeedSortOrder] = useState<'desc' | 'asc'>('desc');
   
   // Loading states
   const [loadingMe, setLoadingMe] = useState(false);
@@ -639,7 +640,7 @@ export default function AtelierEditDashboard() {
   const fetchWhatsNew = useCallback(async (force = false) => {
     setLoadingWhatsNew(true);
     try {
-      const res = await fetch('/api/feed/whats-new', {
+      const res = await fetch(`/api/feed/whats-new?sort=${feedSortOrder}`, {
         method: force ? 'POST' : 'GET',
         headers: { 'Content-Type': 'application/json' },
       });
@@ -655,7 +656,7 @@ export default function AtelierEditDashboard() {
     } finally {
       setLoadingWhatsNew(false);
     }
-  }, [showToast]);
+  }, [showToast, feedSortOrder]);
 
   const triggerSilentFeedSync = useCallback(async () => {
     console.log('Automated background sync bypassed to preserve Gemini API quota.');
@@ -741,6 +742,16 @@ export default function AtelierEditDashboard() {
     };
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
+
+  // Re-fetch editorial stream when sort order changes (skip initial mount)
+  const sortMountRef = useRef(true);
+  useEffect(() => {
+    if (sortMountRef.current) {
+      sortMountRef.current = false;
+      return;
+    }
+    fetchWhatsNew(false);
+  }, [feedSortOrder, fetchWhatsNew]);
 
   // Client-side image compressor (converts to WebP canvas blob)
   const compressImage = (file: File): Promise<Blob> => {
@@ -2687,14 +2698,26 @@ export default function AtelierEditDashboard() {
               <p style={{ fontSize: '0.8rem', color: 'var(--text-muted)', marginBottom: '1.25rem' }}>
                 The latest styling trends curated from runway shows, designer lookbooks, and fashion newsletters.
               </p>
-              <button
-                onClick={() => fetchWhatsNew(true)}
-                disabled={loadingWhatsNew}
-                className="accent-button"
-                style={{ width: 'auto', padding: '0.6rem 1.5rem', marginTop: 0 }}
-              >
-                {loadingWhatsNew ? 'Refreshing Stream...' : 'Sync & Refresh Feed'}
-              </button>
+              <div style={{ display: 'flex', gap: '0.75rem', justifyContent: 'center', flexWrap: 'wrap' }}>
+                <button
+                  onClick={() => {
+                    const next = feedSortOrder === 'desc' ? 'asc' : 'desc';
+                    setFeedSortOrder(next);
+                  }}
+                  className="accent-button"
+                  style={{ width: 'auto', padding: '0.6rem 1.5rem', marginTop: 0, background: 'transparent', border: '1px solid var(--accent-color)', color: 'var(--accent-color)' }}
+                >
+                  {feedSortOrder === 'desc' ? '↓ Newest First' : '↑ Oldest First'}
+                </button>
+                <button
+                  onClick={() => fetchWhatsNew(true)}
+                  disabled={loadingWhatsNew}
+                  className="accent-button"
+                  style={{ width: 'auto', padding: '0.6rem 1.5rem', marginTop: 0 }}
+                >
+                  {loadingWhatsNew ? 'Refreshing Stream...' : 'Sync & Refresh Feed'}
+                </button>
+              </div>
             </div>
 
             {loadingWhatsNew ? (
@@ -2741,15 +2764,22 @@ export default function AtelierEditDashboard() {
                       {post.summary}
                     </p>
                     
-                    {post.tags && post.tags.length > 0 && (
-                      <div style={{ display: 'flex', gap: '0.5rem', flexWrap: 'wrap', marginTop: '1rem' }}>
-                        {post.tags.map((tag) => (
-                          <span key={tag} style={{ color: 'var(--accent-color)', fontSize: '0.8rem', fontWeight: 'bold' }}>
-                            #{tag}
-                          </span>
-                        ))}
-                      </div>
-                    )}
+                    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginTop: '1rem', flexWrap: 'wrap', gap: '0.5rem' }}>
+                      {post.tags && post.tags.length > 0 && (
+                        <div style={{ display: 'flex', gap: '0.5rem', flexWrap: 'wrap' }}>
+                          {post.tags.map((tag) => (
+                            <span key={tag} style={{ color: 'var(--accent-color)', fontSize: '0.8rem', fontWeight: 'bold' }}>
+                              #{tag}
+                            </span>
+                          ))}
+                        </div>
+                      )}
+                      {post.createdAt && (
+                        <span style={{ fontSize: '0.7rem', color: 'var(--text-muted)', whiteSpace: 'nowrap' }}>
+                          {new Date(post.createdAt).toLocaleDateString('en-GB', { day: 'numeric', month: 'short', year: 'numeric' })}
+                        </span>
+                      )}
+                    </div>
                   </div>
                 </article>
               ))

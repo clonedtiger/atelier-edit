@@ -1,8 +1,8 @@
-import fs from 'fs';
-import path from 'path';
+import sharp from 'sharp';
 import { prisma } from './db';
-import { getAi, MODEL_NAME } from './gemini';
+import { getAi, MODEL_NAME, safeParseGeminiJson } from './gemini';
 import { syncArticlesAndTrends } from './feed';
+import { uploadImage } from './storage';
 
 export interface WhatsNewPost {
   id: string;
@@ -11,6 +11,7 @@ export interface WhatsNewPost {
   source: string;
   tags: string[];
   imageUrl: string;
+  createdAt?: string;
 }
 
 export interface WhatsNewData {
@@ -18,180 +19,421 @@ export interface WhatsNewData {
   posts: WhatsNewPost[];
 }
 
-const CACHE_FILE = path.join(process.cwd(), 'src', 'data', 'whats_new_feed.json');
-
-async function searchInspirationImage(query: string): Promise<string> {
-  const apiKey = process.env.TAVILY_API_KEY;
-  if (apiKey) {
-    try {
-      const res = await fetch('https://api.tavily.com/search', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          api_key: apiKey,
-          query: `${query} fashion editorial runway`,
-          search_depth: 'basic',
-          include_images: true,
-          max_results: 1,
-        }),
-      });
-      if (res.ok) {
-        const data = await res.json();
-        if (data.images && data.images.length > 0) {
-          return data.images[0];
-        }
-      }
-    } catch (err) {
-      console.warn('Failed to fetch image from Tavily:', err);
+/**
+ * Downloads an external image over HTTP, validates it through Sharp,
+ * converts to WebP, and stores it permanently via uploadImage (GCS/local).
+ * Returns the web-accessible URL or null if download/decode fails.
+ */
+async function downloadAndStoreImage(imageUrl: string, filenamePrefix: string): Promise<string | null> {
+  try {
+    if (!imageUrl || !imageUrl.startsWith('http')) {
+      return null;
     }
+
+    const res = await fetch(imageUrl, {
+      signal: AbortSignal.timeout(6000),
+      headers: {
+        'User-Agent':
+          'Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36',
+        Accept: 'image/avif,image/webp,image/apng,image/svg+xml,image/*,*/*;q=0.8',
+      },
+    });
+
+    if (!res.ok) {
+      console.warn(`Failed to download image from ${imageUrl}: HTTP ${res.status}`);
+      return null;
+    }
+
+    const contentType = res.headers.get('content-type') || '';
+    if (!contentType.includes('image') && !contentType.includes('octet-stream')) {
+      console.warn(`URL returned non-image content type: ${contentType}`);
+      return null;
+    }
+
+    const arrayBuffer = await res.arrayBuffer();
+    const buffer = Buffer.from(arrayBuffer);
+    if (buffer.length < 500) {
+      return null;
+    }
+
+    // Process & compress through sharp to ensure it's valid and optimized WebP
+    const webpBuffer = await sharp(buffer)
+      .resize({ width: 1080, height: 1080, fit: 'inside', withoutEnlargement: true })
+      .webp({ quality: 80 })
+      .toBuffer();
+
+    const filename = `${filenamePrefix}-${Date.now()}-${Math.floor(Math.random() * 1000)}.webp`;
+    const storedUrl = await uploadImage(webpBuffer, filename);
+    return storedUrl;
+  } catch (err) {
+    console.warn(`Error downloading and saving image from ${imageUrl}:`, err);
+    return null;
   }
-  // Curated premium fashion fallback images
-  const placeholders = [
-    'https://images.unsplash.com/photo-1490481651871-ab68de25d43d?q=80&w=600&auto=format&fit=crop',
-    'https://images.unsplash.com/photo-1496747611176-843222e1e57c?q=80&w=600&auto=format&fit=crop',
-    'https://images.unsplash.com/photo-1469334031218-e382a71b716b?q=80&w=600&auto=format&fit=crop',
-    'https://images.unsplash.com/photo-1509631179647-0177331693ae?q=80&w=600&auto=format&fit=crop'
-  ];
-  return placeholders[Math.floor(Math.random() * placeholders.length)];
 }
 
-export async function getOrGenerateWhatsNew(force = false): Promise<WhatsNewData> {
-  // 1. Try to read from cache file
-  if (!force && fs.existsSync(CACHE_FILE)) {
-    try {
-      const cacheContent = fs.readFileSync(CACHE_FILE, 'utf8');
-      const parsed = JSON.parse(cacheContent) as WhatsNewData;
-      
-      const generatedAt = new Date(parsed.generatedAt);
-      const oneHourAgo = new Date(Date.now() - 60 * 60 * 1000);
-      
-      // If generated within the last hour, return cached results
-      if (generatedAt > oneHourAgo && parsed.posts.length > 0) {
-        console.log('Returning cached Whats New feed from:', parsed.generatedAt);
-        return parsed;
+/**
+ * Searches for a relevant high-resolution editorial photograph using Tavily
+ * and saves it permanently to storage.
+ */
+async function searchAndSaveEditorialImage(
+  query: string,
+  userSex: string,
+  prefix: string
+): Promise<string | null> {
+  const apiKey = process.env.TAVILY_API_KEY;
+  if (!apiKey) {
+    return null;
+  }
+
+  try {
+    const genderTerm = userSex.toLowerCase() === 'male' ? 'men menswear' : userSex.toLowerCase() === 'female' ? 'women womenswear' : '';
+    const searchQuery = `${query} ${genderTerm} fashion editorial runway high resolution`.trim();
+
+    const res = await fetch('https://api.tavily.com/search', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        api_key: apiKey,
+        query: searchQuery,
+        search_depth: 'basic',
+        include_images: true,
+        max_results: 3,
+      }),
+    });
+
+    if (res.ok) {
+      const data = await res.json();
+      if (Array.isArray(data.images) && data.images.length > 0) {
+        for (const candidateUrl of data.images) {
+          if (typeof candidateUrl === 'string' && candidateUrl.startsWith('http')) {
+            const saved = await downloadAndStoreImage(candidateUrl, prefix);
+            if (saved) return saved;
+          }
+        }
       }
-    } catch (err) {
-      console.error('Failed to read whats_new_feed cache:', err);
     }
+  } catch (err) {
+    console.warn('Tavily editorial image search failed:', err);
   }
 
-  console.log('Generating fresh Whats New summary feed...');
-  
-  // 2. Fetch the latest articles from the database (sync first if forced)
-  if (force) {
-    try {
-      await syncArticlesAndTrends(1);
-    } catch (syncErr) {
-      console.error('Failed to sync feeds during whats-new generation:', syncErr);
-    }
+  return null;
+}
+
+/**
+ * Creates a clean, minimalist fallback WebP image and stores it locally/GCS
+ * so that no post is ever left with a broken link.
+ */
+async function createFallbackImage(userSex: string, prefix: string): Promise<string> {
+  const isMale = userSex.toLowerCase() === 'male';
+  const bg = isMale ? { r: 24, g: 26, b: 30 } : { r: 35, g: 30, b: 33 };
+
+  const buffer = await sharp({
+    create: {
+      width: 800,
+      height: 600,
+      channels: 4,
+      background: { ...bg, alpha: 1 },
+    },
+  })
+    .webp({ quality: 80 })
+    .toBuffer();
+
+  const filename = `${prefix}-fallback-${Date.now()}-${Math.floor(Math.random() * 1000)}.webp`;
+  return await uploadImage(buffer, filename);
+}
+
+/**
+ * Retrieves the user's personalized "What's New" stream from PostgreSQL.
+ * For a new user account with no generated posts, returns an empty list.
+ */
+export async function getUserWhatsNew(
+  userId?: string | null,
+  sort: 'desc' | 'asc' = 'desc'
+): Promise<WhatsNewData> {
+  if (!userId) {
+    return {
+      generatedAt: new Date().toISOString(),
+      posts: [],
+    };
   }
 
-  const articles = await prisma.trendArticle.findMany({
+  const posts = await prisma.whatsNewPost.findMany({
+    where: { userId },
+    orderBy: { createdAt: sort },
+  });
+
+  return {
+    generatedAt: new Date().toISOString(),
+    posts: posts.map((p) => ({
+      id: p.id,
+      title: p.title,
+      summary: p.summary,
+      source: p.source,
+      tags: p.tags,
+      imageUrl: p.imageUrl,
+      createdAt: p.createdAt.toISOString(),
+    })),
+  };
+}
+
+/**
+ * Synthesizes a new personalized editorial stream for the user:
+ * - Strictly respects the user's sex (e.g. Male -> Menswear only, absolutely no female clothing).
+ * - Incorporates the user's uploaded visual inspiration clippings and notes.
+ * - Extracts trends from subscribed feed articles.
+ * - Downloads, converts, and saves every image permanently to storage (avoiding broken links).
+ * - Stores the posts in PostgreSQL and returns the stream in the requested chronological order.
+ */
+export async function generateAndSaveUserWhatsNew(
+  userId: string,
+  sort: 'desc' | 'asc' = 'desc'
+): Promise<WhatsNewData> {
+  console.log(`Synthesizing fresh What's New editorial stream for user ${userId}...`);
+
+  // 1. Fetch user profile, gender, and inspirations
+  const user = await prisma.user.findUnique({
+    where: { id: userId },
+    select: {
+      id: true,
+      name: true,
+      sex: true,
+      styleAesthetic: true,
+      favoriteBrands: true,
+      avoidedStyles: true,
+      inspirationNotes: true,
+    },
+  });
+
+  const userInspirations = await prisma.inspirationImage.findMany({
+    where: { userId },
     orderBy: { createdAt: 'desc' },
     take: 10,
+    select: {
+      id: true,
+      imageUrl: true,
+      notes: true,
+      tags: true,
+    },
+  });
+
+  // 2. Sync feed sources to ensure recent articles exist in database
+  try {
+    await syncArticlesAndTrends(2, true);
+  } catch (syncErr) {
+    console.warn('Feed sync error during whats-new generation:', syncErr);
+  }
+
+  // 3. Fetch latest trend articles from database
+  const articles = await prisma.trendArticle.findMany({
+    orderBy: { createdAt: 'desc' },
+    take: 12,
     select: {
       sourceName: true,
       title: true,
       extractedTrends: true,
-      content: true
-    }
+      content: true,
+    },
   });
 
-  if (articles.length === 0) {
-    console.log('No articles found in database. Returning mock inspiration posts.');
-    const mockData: WhatsNewData = {
-      generatedAt: new Date().toISOString(),
-      posts: [
-        {
-          id: 'mock-1',
-          title: 'Monochromatic Tweed Tailoring',
-          summary: 'Curate structured monochrome blazers and high-neck vests to marry Chanel structured elegance with raw Alexander McQueen styling rules. Exaggerated shoulder silhouettes remain a staple for autumn layering.',
-          source: 'Vogue Runway',
-          tags: ['tweed', 'monochrome', 'bouclé'],
-          imageUrl: 'https://images.unsplash.com/photo-1490481651871-ab68de25d43d?q=80&w=600&auto=format&fit=crop'
-        },
-        {
-          id: 'mock-2',
-          title: 'Rebellious Leather Coordinates',
-          summary: 'Incorporate heavy hardware buckles and deconstructed leather crossbody bags into loose-fitting floral slip dresses. The contrast of soft drapery against metallic, hard accents creates a powerful rebel chic look.',
-          source: 'AllSaints Lookbook',
-          tags: ['leather', 'grunge', 'hardware'],
-          imageUrl: 'https://images.unsplash.com/photo-1509631179647-0177331693ae?q=80&w=600&auto=format&fit=crop'
-        }
-      ]
-    };
+  // 4. Formulate gender and inspiration directives for Gemini
+  const userSex = (user?.sex || '').trim().toLowerCase();
+  let genderDirective = '';
 
-    // Ensure directory exists and write mock data
-    fs.mkdirSync(path.dirname(CACHE_FILE), { recursive: true });
-    fs.writeFileSync(CACHE_FILE, JSON.stringify(mockData, null, 2));
-    return mockData;
+  if (userSex === 'male') {
+    genderDirective = `
+CRITICAL GENDER RESTRICTION:
+The client is MALE. Every summary and styling concept MUST be exclusively for MENSWEAR and masculine/unisex luxury fashion (e.g., tailored suits, structured overcoats, wool trousers, relaxed denim, fine gauge knits, leather boots, loafers, minimalist sneakers, masculine hardware and leather goods).
+STRICTLY FORBIDDEN: Do NOT include, mention, or describe any womenswear, female clothing, dresses, skirts, high heels, blouses, gowns, feminine silhouettes, or bra/lingerie tailoring.
+`;
+  } else if (userSex === 'female') {
+    genderDirective = `
+CRITICAL GENDER DIRECTIVE:
+The client is FEMALE. The stream should feature curated luxury womenswear, tailoring, dresses, elevated silhouettes, feminine/androgynous luxury coordinates, and high-fashion womenswear aesthetic rules.
+`;
+  } else {
+    genderDirective = `
+GENDER DIRECTIVE:
+Focus on contemporary unisex and gender-neutral luxury styling coordinates.
+`;
   }
 
-  // 3. Prompt Gemini to summarize the trends
+  let inspirationDirective = '';
+  if (userInspirations.length > 0 || user?.inspirationNotes) {
+    inspirationDirective = `
+CLIENT'S PERSONAL INSPIRATION FEEDS & MOODBOARDS:
+- Client's Personal Inspiration Notes: "${user?.inspirationNotes || 'Not specified'}"
+- Uploaded Visual Inspiration Clippings (${userInspirations.length} images):
+${userInspirations.map((ins, i) => `  * Inspiration #${i + 1}: Notes: "${ins.notes || 'None'}" | Tags: [${ins.tags.join(', ')}]`).join('\n')}
+
+MANDATORY INSPIRATION REQUIREMENT:
+You MUST actively incorporate the client's uploaded visual inspiration themes, textures, cuts, and moodboards into these trend summaries! Show how the current runway trends align with and enhance their personal inspiration feeds.
+`;
+  }
+
   const prompt = `
-    You are an expert editorial fashion stylist. Analyze these latest fashion articles and newsletters and synthesize them into exactly 3 distinct, highly curated "Inspiration Feed Posts" (like an Instagram stream).
-    Each post must describe a concrete styling theme, trend, or look, explaining how to wear it and style it.
-    The narrative should read like a premium editorial caption (2-3 sentences).
+    You are an elite editorial fashion stylist and trend intelligence director.
+    Synthesize the latest fashion runway reports, articles, and the client's personal inspiration feeds into exactly 3-4 curated "Editorial Style Stream Posts".
 
-    Here are the source articles:
-    ${articles.map(a => `Source: ${a.sourceName} | Title: ${a.title} | Trends: ${a.extractedTrends.join(', ')} | Text snippet: ${a.content.slice(0, 1200)}`).join('\n\n')}
+    ${genderDirective}
+    ${inspirationDirective}
 
-    You must output a JSON object adhering exactly to this structure:
+    Client Aesthetic Profile:
+    - Style DNA: ${user?.styleAesthetic || 'Modern Quiet Luxury with Timeless Tailoring'}
+    - Favorite Brands: ${user?.favoriteBrands || 'Curated luxury & contemporary designers'}
+    - Avoided Styles: ${user?.avoidedStyles || 'None'}
+
+    Latest Trend Articles from Subscribed Radar:
+    ${articles.map((a) => `Source: ${a.sourceName} | Title: ${a.title} | Trends: ${a.extractedTrends.join(', ')} | Excerpt: ${a.content.slice(0, 1000)}`).join('\n\n')}
+
+    Requirements:
+    1. Provide a captivating, luxury-editorial headline for each post.
+    2. Write an editorial summary (2-4 sentences) breaking down the trend, actionable outfit coordinates, and explicitly connecting to the client's inspirations.
+    3. Cite the primary source (e.g. source publication name, or "Personal Inspiration Feed").
+    4. List 3-5 relevant styling tags.
+    5. Provide a specific visual search query to locate an editorial photograph for this exact look (e.g. "menswear oversized camel wool coat minimalist trousers street style").
+    6. If the post directly reflects one of the client's visual inspirations, specify "matchedInspirationIndex" (0-indexed integer corresponding to Inspiration #1, #2, etc.), otherwise null.
+
+    Output strictly a JSON object with this structure:
     {
       "posts": [
         {
-          "title": "A short, catchy, luxury-editorial header",
-          "summary": "The Instagram-style summary describing the trend and concrete outfit styling tips (2-3 sentences).",
-          "source": "The primary source blog or outlet name (e.g. Vogue, Magasin)",
-          "tags": ["tag1", "tag2", "tag3"],
-          "imageSearchQuery": "A descriptive, clean query to search for a high-quality styling photo matching this trend (e.g. 'chanel structured boucle jacket runway styling')"
+          "title": "Editorial Headline",
+          "summary": "Editorial caption text...",
+          "source": "Vogue Runway",
+          "tags": ["tailoring", "wool", "camel"],
+          "imageSearchQuery": "menswear oversized camel coat street style fashion editorial",
+          "matchedInspirationIndex": 0
         }
       ]
     }
   `;
+
+  interface RawPost {
+    title: string;
+    summary: string;
+    source: string;
+    tags: string[];
+    imageSearchQuery?: string;
+    matchedInspirationIndex?: number | null;
+  }
+
+  let rawPosts: RawPost[] = [];
 
   try {
     const response = await getAi().models.generateContent({
       model: MODEL_NAME,
       contents: prompt,
       config: {
-        responseMimeType: 'application/json'
-      }
+        responseMimeType: 'application/json',
+      },
     });
 
     const text = response.text || '{}';
-    const parsedJson = JSON.parse(text);
-    const rawPosts = parsedJson.posts || [];
+    const parsed = safeParseGeminiJson<{ posts?: RawPost[] }>(text);
+    rawPosts = parsed.posts || [];
+  } catch (err) {
+    console.error('Gemini editorial stream generation failed:', err);
+  }
 
-    const posts: WhatsNewPost[] = [];
-    
-    // 4. Resolve images using Tavily image search
-    for (let i = 0; i < rawPosts.length; i++) {
-      const rp = rawPosts[i];
-      const imageUrl = await searchInspirationImage(rp.imageSearchQuery || rp.title);
-      
-      posts.push({
-        id: `post-${i + 1}-${Date.now()}`,
-        title: rp.title || 'Style Concept',
-        summary: rp.summary || 'Styling coordinates analysis.',
-        source: rp.source || 'Curated Feed',
-        tags: rp.tags || [],
-        imageUrl
-      });
+  // Fallback if model output was empty
+  if (rawPosts.length === 0) {
+    const isMale = userSex === 'male';
+    rawPosts = [
+      {
+        title: isMale ? 'Structural Tailoring & Heavyweight Wool' : 'Architectural Cashmere & Fluid Silhouettes',
+        summary: isMale
+          ? 'Emphasize architectural shoulder lines with relaxed, pleated wide-leg trousers. Anchor neutral charcoal tones with clean minimalist leather footwear for a balanced luxury uniform.'
+          : 'Pair sculptural knitwear with tailored high-waisted trousers and sleek leather accents, echoing timeless European tailoring rules.',
+        source: userInspirations.length > 0 ? 'Personal Inspiration Feed' : 'Curated Editorial',
+        tags: isMale ? ['tailoring', 'menswear', 'wool'] : ['cashmere', 'luxury', 'tailoring'],
+        imageSearchQuery: isMale ? 'men tailored charcoal wool coat minimalist street style' : 'women luxury tailoring cashmere coat street style',
+      },
+    ];
+  }
+
+  // 5. Resolve, download, and store every image into local/GCS storage
+  for (let i = 0; i < rawPosts.length; i++) {
+    const rp = rawPosts[i];
+    let resolvedImageUrl: string | null = null;
+
+    // Check if matched to a user's uploaded visual inspiration
+    if (
+      typeof rp.matchedInspirationIndex === 'number' &&
+      userInspirations[rp.matchedInspirationIndex]?.imageUrl
+    ) {
+      resolvedImageUrl = userInspirations[rp.matchedInspirationIndex].imageUrl;
+    } else if (userInspirations.length > 0) {
+      // Check if tags match any inspiration
+      const matchedIns = userInspirations.find((ins) =>
+        ins.tags.some((t) => rp.tags.map((x) => x.toLowerCase()).includes(t.toLowerCase()))
+      );
+      if (matchedIns?.imageUrl) {
+        resolvedImageUrl = matchedIns.imageUrl;
+      }
     }
 
-    const outputData: WhatsNewData = {
-      generatedAt: new Date().toISOString(),
-      posts
-    };
+    // If not matched or needs search, query Tavily and download image
+    if (!resolvedImageUrl) {
+      resolvedImageUrl = await searchAndSaveEditorialImage(
+        rp.imageSearchQuery || rp.title,
+        userSex,
+        `editorial-${i + 1}`
+      );
+    }
 
-    // 5. Save to cache
-    fs.mkdirSync(path.dirname(CACHE_FILE), { recursive: true });
-    fs.writeFileSync(CACHE_FILE, JSON.stringify(outputData, null, 2));
+    // If still unresolved, use any available user inspiration image
+    if (!resolvedImageUrl && userInspirations.length > 0) {
+      resolvedImageUrl = userInspirations[i % userInspirations.length].imageUrl;
+    }
 
-    return outputData;
-  } catch (err) {
-    console.error('Failed to generate Whats New summary using Gemini:', err);
-    throw err;
+    // Final fallback: generate a sleek local WebP asset
+    if (!resolvedImageUrl) {
+      resolvedImageUrl = await createFallbackImage(userSex, `editorial-${i + 1}`);
+    }
+
+    // Save post to PostgreSQL
+    await prisma.whatsNewPost.create({
+      data: {
+        userId,
+        title: rp.title || 'Curated Styling',
+        summary: rp.summary || 'Editorial coordinates and styling breakdown.',
+        source: rp.source || 'Curated Feed',
+        tags: rp.tags || [],
+        imageUrl: resolvedImageUrl,
+        createdAt: new Date(),
+      },
+    });
   }
+
+  // Return the user's stream in the requested sort order
+  return await getUserWhatsNew(userId, sort);
+}
+
+/**
+ * Universal wrapper for backwards compatibility with any existing callers.
+ */
+export async function getOrGenerateWhatsNew(
+  userIdOrForce?: string | boolean,
+  force = false,
+  sort: 'desc' | 'asc' = 'desc'
+): Promise<WhatsNewData> {
+  if (typeof userIdOrForce === 'string') {
+    if (force) {
+      return await generateAndSaveUserWhatsNew(userIdOrForce, sort);
+    }
+    return await getUserWhatsNew(userIdOrForce, sort);
+  }
+
+  const shouldForce = typeof userIdOrForce === 'boolean' ? userIdOrForce : force;
+  if (!shouldForce) {
+    return {
+      generatedAt: new Date().toISOString(),
+      posts: [],
+    };
+  }
+
+  return {
+    generatedAt: new Date().toISOString(),
+    posts: [],
+  };
 }
