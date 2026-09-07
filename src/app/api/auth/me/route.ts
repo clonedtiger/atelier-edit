@@ -21,6 +21,7 @@ export async function GET(req: NextRequest) {
         role: true,
         suspended: true,
         sex: true,
+        gender: true,
         phone: true,
         height: true,
         weight: true,
@@ -77,6 +78,7 @@ export async function POST(req: NextRequest) {
     const {
       name,
       sex,
+      gender,
       phone,
       height,
       weight,
@@ -100,6 +102,7 @@ export async function POST(req: NextRequest) {
     const updateData: {
       name?: string;
       sex?: string;
+      gender?: string;
       phone?: string;
       height?: string;
       weight?: string;
@@ -121,6 +124,7 @@ export async function POST(req: NextRequest) {
 
     if (name !== undefined) updateData.name = name;
     if (sex !== undefined) updateData.sex = sex;
+    if (gender !== undefined) updateData.gender = gender;
     if (phone !== undefined) updateData.phone = phone;
     if (height !== undefined) updateData.height = height;
     if (weight !== undefined) updateData.weight = weight;

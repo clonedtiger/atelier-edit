@@ -10,6 +10,7 @@ interface UserProfile {
   email: string;
   name: string;
   sex: string | null;
+  gender: string | null;
   phone: string | null;
   height: string | null;
   weight: string | null;
@@ -260,6 +261,7 @@ export default function AtelierEditDashboard() {
   // Profile Edit fields
   const [profName, setProfName] = useState('');
   const [profSex, setProfSex] = useState('Female');
+  const [profGender, setProfGender] = useState('Female');
   const [profPhone, setProfPhone] = useState('');
   const [profBra, setProfBra] = useState('');
   const [profWorkLife, setProfWorkLife] = useState('');
@@ -401,6 +403,7 @@ export default function AtelierEditDashboard() {
   const populateProfileFields = useCallback((u: UserProfile) => {
     setProfName(u.name || '');
     setProfSex(u.sex || 'Female');
+    setProfGender(u.gender || u.sex || 'Female');
     setProfPhone(u.phone || '');
 
     // Height Parser
@@ -1555,6 +1558,7 @@ export default function AtelierEditDashboard() {
         body: JSON.stringify({
           name: profName,
           sex: profSex,
+          gender: profGender,
           phone: profPhone,
           height: serializedHeight,
           weight: serializedWeight,
@@ -2703,9 +2707,17 @@ export default function AtelierEditDashboard() {
                   onClick={() => {
                     const next = feedSortOrder === 'desc' ? 'asc' : 'desc';
                     setFeedSortOrder(next);
+                    setWhatsNewPosts((prev) =>
+                      [...prev].sort((a, b) => {
+                        const da = a.createdAt ? new Date(a.createdAt).getTime() : 0;
+                        const db = b.createdAt ? new Date(b.createdAt).getTime() : 0;
+                        return next === 'desc' ? db - da : da - db;
+                      })
+                    );
                   }}
                   className="accent-button"
                   style={{ width: 'auto', padding: '0.6rem 1.5rem', marginTop: 0, background: 'transparent', border: '1px solid var(--accent-color)', color: 'var(--accent-color)' }}
+                  title="Sort by creation date"
                 >
                   {feedSortOrder === 'desc' ? '↓ Newest First' : '↑ Oldest First'}
                 </button>
@@ -2764,11 +2776,23 @@ export default function AtelierEditDashboard() {
                       {post.summary}
                     </p>
                     
-                    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginTop: '1rem', flexWrap: 'wrap', gap: '0.5rem' }}>
+                    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginTop: '1.25rem', flexWrap: 'wrap', gap: '0.5rem' }}>
                       {post.tags && post.tags.length > 0 && (
-                        <div style={{ display: 'flex', gap: '0.5rem', flexWrap: 'wrap' }}>
+                        <div style={{ display: 'flex', gap: '0.4rem', flexWrap: 'wrap', alignItems: 'center' }}>
                           {post.tags.map((tag) => (
-                            <span key={tag} style={{ color: 'var(--accent-color)', fontSize: '0.8rem', fontWeight: 'bold' }}>
+                            <span
+                              key={tag}
+                              style={{
+                                background: 'rgba(212, 175, 55, 0.08)',
+                                border: '1px solid rgba(212, 175, 55, 0.25)',
+                                color: 'var(--accent-color)',
+                                fontSize: '0.75rem',
+                                fontWeight: '600',
+                                padding: '0.2rem 0.6rem',
+                                borderRadius: '16px',
+                                letterSpacing: '0.02em',
+                              }}
+                            >
                               #{tag}
                             </span>
                           ))}
@@ -4679,6 +4703,18 @@ export default function AtelierEditDashboard() {
                             >
                               <option value="Female">Female</option>
                               <option value="Male">Male</option>
+                              <option value="Other">Other</option>
+                            </select>
+                          </div>
+
+                          <div className="form-field">
+                            <label>Gender</label>
+                            <select
+                              value={profGender}
+                              onChange={(e) => setProfGender(e.target.value)}
+                            >
+                              <option value="Male">Male</option>
+                              <option value="Female">Female</option>
                               <option value="Other">Other</option>
                             </select>
                           </div>

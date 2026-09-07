@@ -14,6 +14,7 @@ jest.mock('@/lib/db', () => ({
     whatsNewPost: {
       findMany: jest.fn(),
       create: jest.fn(),
+      deleteMany: jest.fn(),
     },
     user: {
       findUnique: jest.fn(),
@@ -135,10 +136,13 @@ describe('Personalized What\'s New Feed - Library and API Routes', () => {
         id: mockUserId,
         name: 'Alexander',
         sex: 'Male',
+        gender: 'Male',
         styleAesthetic: 'Architectural Minimalism',
         favoriteBrands: 'Lemaire, The Row',
         avoidedStyles: 'Loud logos',
         inspirationNotes: 'Focus on relaxed silhouettes with heavy drape',
+        customFeeds: [],
+        feedSubscriptions: [],
       });
 
       // 2. Mock inspiration images
@@ -168,7 +172,7 @@ describe('Personalized What\'s New Feed - Library and API Routes', () => {
             title: 'Architectural Pleated Trousers & Heavy Drape',
             summary: 'Aligning with your visual inspiration, tailored wool trousers feature sweeping silhouettes.',
             source: 'Personal Inspiration Feed',
-            tags: ['tailoring', 'wool', 'minimalist'],
+            tags: ['Tailoring', 'Wool', 'Minimalist', 'Pleated Trousers'],
             imageSearchQuery: 'men oversized wool coat runway',
             matchedInspirationIndex: 0,
           },
@@ -209,12 +213,18 @@ describe('Personalized What\'s New Feed - Library and API Routes', () => {
       // Verify syncArticlesAndTrends was triggered
       expect(syncArticlesAndTrends).toHaveBeenCalledWith(2, true);
 
+      // Verify old posts were cleared on sync
+      expect(prisma.whatsNewPost.deleteMany).toHaveBeenCalledWith({
+        where: { userId: mockUserId },
+      });
+
       // Verify prompt includes male restrictions
       expect(mockGenerateContent).toHaveBeenCalled();
       const calledPrompt = mockGenerateContent.mock.calls[0][0].contents as string;
-      expect(calledPrompt).toContain('The client is MALE');
-      expect(calledPrompt).toContain('exclusively for MENSWEAR');
-      expect(calledPrompt).toContain('STRICTLY FORBIDDEN: Do NOT include, mention, or describe any womenswear, female clothing');
+      expect(calledPrompt).toContain('Biological Sex: Male');
+      expect(calledPrompt).toContain('Gender: Male');
+      expect(calledPrompt).toContain('100% EXCLUSIVELY MENSWEAR AND MASCULINE LUXURY');
+      expect(calledPrompt).toContain('You are STRICTLY FORBIDDEN from generating, mentioning, or describing ANY womenswear, female clothing');
       expect(calledPrompt).toContain('Relaxed wool trousers with pleats');
       expect(calledPrompt).toContain('Focus on relaxed silhouettes with heavy drape');
 
@@ -240,10 +250,13 @@ describe('Personalized What\'s New Feed - Library and API Routes', () => {
         id: mockUserId,
         name: 'Sarah',
         sex: 'Female',
+        gender: 'Female',
         styleAesthetic: 'Quiet Luxury',
         favoriteBrands: 'Toteme',
         avoidedStyles: null,
         inspirationNotes: null,
+        customFeeds: [],
+        feedSubscriptions: [],
       });
 
       (prisma.inspirationImage.findMany as jest.Mock).mockResolvedValueOnce([]);
@@ -367,6 +380,9 @@ describe('Personalized What\'s New Feed - Library and API Routes', () => {
       (prisma.user.findUnique as jest.Mock).mockResolvedValueOnce({
         id: mockUserId,
         sex: 'Male',
+        gender: 'Male',
+        customFeeds: [],
+        feedSubscriptions: [],
       });
       (prisma.inspirationImage.findMany as jest.Mock).mockResolvedValueOnce([]);
       (prisma.trendArticle.findMany as jest.Mock).mockResolvedValueOnce([]);

@@ -12,6 +12,7 @@ model User {
   passwordHash     String?
   name             String?
   sex              String?          // Male, Female, Other
+  gender           String?          // Male, Female, Other
   phone            String?
   height           String?
   weight           String?
