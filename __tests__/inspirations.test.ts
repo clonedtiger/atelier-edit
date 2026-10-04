@@ -164,7 +164,8 @@ describe('Visual Inspiration Board & Stylist Integration Tests', () => {
           }),
         ]),
         undefined,
-        undefined
+        undefined,
+        expect.objectContaining({ lovedLooks: expect.any(Array) })
       );
 
       // Clean up the dummy inspiration

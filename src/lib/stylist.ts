@@ -208,6 +208,26 @@ export async function generateRecommendationsForUser(userId: string, vibe?: stri
 
   console.log(`Loaded ${wardrobe.length} wardrobe items, ${trendsList.length} trends (${userSubs.length} active feeds), and ${inspirations.length} visual inspirations.`);
 
+  // 2c. Feedback on earlier looks and what was worn recently
+  const [ratedLooks, recentlyWorn] = await Promise.all([
+    prisma.recommendation.findMany({
+      where: { userId, feedback: { in: ['loved', 'dismissed'] } },
+      orderBy: { createdAt: 'desc' },
+      take: 20,
+      select: { title: true, narrative: true, feedback: true },
+    }),
+    prisma.wardrobeItem.findMany({
+      where: { userId, lastWornAt: { gte: new Date(Date.now() - 7 * 24 * 60 * 60 * 1000) } },
+      select: { id: true },
+    }),
+  ]);
+  const summarise = (look: { title: string; narrative: string }) => `${look.title}: ${look.narrative.slice(0, 160)}`;
+  const styleHistory = {
+    lovedLooks: ratedLooks.filter((l) => l.feedback === 'loved').slice(0, 6).map(summarise),
+    dismissedLooks: ratedLooks.filter((l) => l.feedback === 'dismissed').slice(0, 6).map(summarise),
+    recentlyWornIds: recentlyWorn.map((w) => w.id),
+  };
+
   // 3. Ask Gemini to create outfits, passing user measurements, anchor item, and weather
   const recommendedOutfits = await generateOutfitRecommendations(
     wardrobe, 
@@ -216,7 +236,8 @@ export async function generateRecommendationsForUser(userId: string, vibe?: stri
     vibe,
     inspirations,
     anchorItem,
-    weatherContext
+    weatherContext,
+    styleHistory
   );
   console.log(`Generated ${recommendedOutfits.length} outfit recommendations from Gemini.`);
 

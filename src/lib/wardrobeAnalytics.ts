@@ -124,15 +124,17 @@ export async function getWardrobeAnalytics(userId: string): Promise<WardrobeAnal
   }
   const styleDnaAlignmentScore = Math.min(98, Math.max(45, alignmentPoints));
 
-  // 4. Unworn Gems (Items that haven't been referenced in recommendation items recently)
-  const styledItems = await prisma.recommendationItem.findMany({
-    where: { recommendation: { userId } },
-    select: { wardrobeItemId: true },
-  });
-  const styledIds = new Set(styledItems.map(s => s.wardrobeItemId).filter(Boolean));
-
-  const unwornItems = items.filter(item => !styledIds.has(item.id));
-  const unwornGems = (unwornItems.length > 0 ? unwornItems : items).slice(0, 6);
+  // 4. Not worn lately: pieces never marked worn (oldest first), then those not worn in 60 days
+  const staleBefore = Date.now() - 60 * 24 * 60 * 60 * 1000;
+  const unwornGems = items
+    .filter((item) => !item.lastWornAt || item.lastWornAt.getTime() < staleBefore)
+    .sort((a, b) => {
+      if (!a.lastWornAt !== !b.lastWornAt) return a.lastWornAt ? 1 : -1;
+      const aTime = (a.lastWornAt ?? a.createdAt).getTime();
+      const bTime = (b.lastWornAt ?? b.createdAt).getTime();
+      return aTime - bTime;
+    })
+    .slice(0, 6);
 
   return {
     totalItems,

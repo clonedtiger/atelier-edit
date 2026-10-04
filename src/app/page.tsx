@@ -7,6 +7,7 @@ import { CameraIcon, DeviceIcon } from '@/components/Icons';
 import { useConfirmDialog } from '@/components/ConfirmDialog';
 import { ProfileMenu } from '@/components/ProfileMenu';
 import { OnboardingChecklist } from '@/components/OnboardingChecklist';
+import { OutfitCard, type OutfitLook, type OutfitFeedbackAction } from '@/components/OutfitCard';
 import { GuidesCenter } from '@/components/GuidesCenter';
 
 interface UserProfile {
@@ -125,28 +126,7 @@ interface InspirationImage {
   createdAt: string;
 }
 
-interface RecommendationItem {
-  id: string;
-  wardrobeItemId: string | null;
-  purchaseName: string | null;
-  purchaseBrand: string | null;
-  purchaseUrl: string | null;
-  purchaseImageUrl: string | null;
-  priceEstimate: string | null;
-  stylingRationale: string;
-  wardrobeItemImage?: string | null;
-  wardrobeItemCategory?: string | null;
-  wardrobeItemTags?: string[];
-  wardrobeItemLabel?: string | null;
-}
-
-interface Recommendation {
-  id: string;
-  title: string;
-  narrative: string;
-  createdAt: string;
-  outfitItems: RecommendationItem[];
-}
+type Recommendation = OutfitLook;
 
 interface FeedSource {
   id: string;
@@ -1241,6 +1221,31 @@ export default function AtelierEditDashboard() {
       showToast('Error during generation', 'error');
     } finally {
       setIsGenerating(false);
+    }
+  };
+
+  const handleOutfitFeedback = async (id: string, action: OutfitFeedbackAction) => {
+    const previous = recommendations;
+    // Optimistic update so the buttons respond instantly
+    setRecommendations((recs) =>
+      recs.map((r) => {
+        if (r.id !== id) return r;
+        if (action === 'wore') return { ...r, wornAt: new Date().toISOString() };
+        return { ...r, feedback: action === 'love' ? 'loved' : action === 'dismiss' ? 'dismissed' : null };
+      })
+    );
+    try {
+      const res = await fetch(`/api/recommendations/${id}/feedback`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ action }),
+      });
+      if (!res.ok) throw new Error('feedback failed');
+      if (action === 'wore') showToast('Marked as worn. Your stylist will rotate other pieces in next.');
+      if (action === 'dismiss') showToast('Noted. Future looks will steer away from this one.', 'info');
+    } catch {
+      setRecommendations(previous);
+      showToast('Could not save that. Please try again.', 'error');
     }
   };
 
@@ -2612,135 +2617,12 @@ export default function AtelierEditDashboard() {
               </div>
             ) : (
               recommendations.map((rec) => (
-                <article key={rec.id} className="lookbook-panel">
-                  
-                  <div className="outfit-header">
-                    <h3 className="outfit-title">{rec.title}</h3>
-                    <div style={{ display: 'flex', alignItems: 'center', gap: '1.25rem' }}>
-                      <span className="outfit-date">
-                        {new Date(rec.createdAt).toLocaleDateString(undefined, { month: 'short', day: 'numeric' })}
-                      </span>
-                      <button
-                        onClick={() => handleDeleteRecommendation(rec.id)}
-                        className="delete-action-btn"
-                        style={{
-                          background: 'none',
-                          border: 'none',
-                          color: 'var(--text-muted)',
-                          cursor: 'pointer',
-                          fontSize: '0.75rem',
-                          padding: '0 4px',
-                          display: 'flex',
-                          alignItems: 'center',
-                          textDecoration: 'underline'
-                        }}
-                      >
-                        Delete
-                      </button>
-                    </div>
-                  </div>
-
-                  <p className="outfit-narrative">
-                    &ldquo;{rec.narrative}&rdquo;
-                  </p>
-
-                  <div className="lookbook-spread-grid">
-                    {rec.outfitItems.map((item) => (
-                      <div key={item.id} className="spread-item">
-                        
-                        <div className="image-canvas">
-                          {item.wardrobeItemId ? (
-                            item.wardrobeItemImage ? (
-                              <Image
-                                src={item.wardrobeItemImage}
-                                alt="Closet Garment"
-                                fill
-                                sizes="(max-width: 768px) 100vw, 33vw"
-                                style={{ objectFit: 'cover' }}
-                              />
-                            ) : (
-                              <div style={{ display: 'flex', alignItems: 'center', justifyItems: 'center', height: '100%', fontSize: '0.75rem', color: 'var(--text-muted)' }}>
-                                Closet Piece
-                              </div>
-                            )
-                          ) : !item.purchaseImageUrl ? (
-                            <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', gap: '0.5rem', height: '100%', padding: '1.5rem', textAlign: 'center', background: 'var(--bg-secondary)' }}>
-                              {item.purchaseBrand && (
-                                <span style={{ fontSize: '0.65rem', textTransform: 'uppercase', letterSpacing: '0.18em', color: 'var(--text-muted)', fontWeight: 600 }}>
-                                  {item.purchaseBrand}
-                                </span>
-                              )}
-                              <span style={{ fontFamily: 'var(--font-serif)', fontSize: '1.35rem', lineHeight: 1.2, color: 'var(--text-primary)' }}>
-                                {item.purchaseName || 'Suggested piece'}
-                              </span>
-                            </div>
-                          ) : (
-                            item.purchaseImageUrl && (
-                              <div style={{ position: 'relative', width: '100%', height: '100%' }}>
-                                <Image
-                                  src={item.purchaseImageUrl}
-                                  alt={item.purchaseName || 'Suggested piece'}
-                                  fill
-                                  sizes="(max-width: 768px) 100vw, 33vw"
-                                  style={{ objectFit: 'cover' }}
-                                />
-                                {item.purchaseImageUrl.includes('unsplash.com') && (
-                                  <div style={{
-                                    position: 'absolute',
-                                    bottom: '6px',
-                                    left: '6px',
-                                    background: 'rgba(0, 0, 0, 0.65)',
-                                    color: '#fff',
-                                    fontSize: '0.55rem',
-                                    padding: '0.15rem 0.35rem',
-                                    borderRadius: '2px',
-                                    letterSpacing: '0.05em',
-                                    textTransform: 'uppercase',
-                                    pointerEvents: 'none',
-                                    fontWeight: 'bold',
-                                    zIndex: 10
-                                  }}>
-                                    For illustration only
-                                  </div>
-                                )}
-                              </div>
-                            )
-                          )}
-                          
-                          <div className="canvas-tag">
-                            {item.wardrobeItemId ? 'From your wardrobe' : 'To buy'}
-                          </div>
-                        </div>
-
-                        <div className="item-details">
-                          <h4>
-                            {item.wardrobeItemId ? (item.wardrobeItemLabel || item.wardrobeItemCategory || 'From your wardrobe') : item.purchaseName}
-                          </h4>
-                          {item.purchaseBrand && (
-                            <span className="item-brand">{item.purchaseBrand}</span>
-                          )}
-                          <p className="item-rationale">{item.stylingRationale}</p>
-                        </div>
-
-                        {!item.wardrobeItemId && item.purchaseUrl && (
-                          <div className="purchase-bar">
-                            <span className="purchase-price">{item.priceEstimate || 'Price Variable'}</span>
-                            <a
-                              href={item.purchaseUrl}
-                              target="_blank"
-                              rel="noopener noreferrer"
-                              className="purchase-link"
-                            >
-                              View Item →
-                            </a>
-                          </div>
-                        )}
-
-                      </div>
-                    ))}
-                  </div>
-
-                </article>
+                <OutfitCard
+                  key={rec.id}
+                  look={rec}
+                  onFeedback={(action) => handleOutfitFeedback(rec.id, action)}
+                  onDelete={() => handleDeleteRecommendation(rec.id)}
+                />
               ))
             )}
           </div>

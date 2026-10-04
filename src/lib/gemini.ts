@@ -572,6 +572,28 @@ export interface UserStyleProfile {
   colorPalette?: string | null;
 }
 
+/** What the person has told us about earlier looks, used to steer new ones. */
+export interface StyleHistory {
+  lovedLooks: string[];
+  dismissedLooks: string[];
+  recentlyWornIds: string[];
+}
+
+export function describeStyleHistory(history?: StyleHistory): string {
+  if (!history) return '';
+  const parts: string[] = [];
+  if (history.lovedLooks.length > 0) {
+    parts.push(`- Looks the client loved (lean into what these have in common):\n${history.lovedLooks.map((l) => `  * ${l}`).join('\n')}`);
+  }
+  if (history.dismissedLooks.length > 0) {
+    parts.push(`- Looks the client rejected (avoid similar combinations and moods):\n${history.dismissedLooks.map((l) => `  * ${l}`).join('\n')}`);
+  }
+  if (history.recentlyWornIds.length > 0) {
+    parts.push(`- Pieces worn in the last 7 days (prefer rotating in other pieces unless one is the anchor): ${history.recentlyWornIds.join(', ')}`);
+  }
+  return parts.length > 0 ? `\n    CLIENT FEEDBACK ON PREVIOUS LOOKS:\n${parts.join('\n')}\n` : '';
+}
+
 /**
  * Synthesizes fashion feeds: Blends wardrobe items with current trends to create lookbooks.
  */
@@ -582,7 +604,8 @@ export async function generateOutfitRecommendations(
   vibe?: string,
   inspirations?: Array<{ notes: string | null; tags: string[] }>,
   anchorItem?: { id: string; category: string; brand?: string | null; color: string[]; detectedTags: string[]; styleNotes?: string | null },
-  weatherContext?: { city: string; tempCelsius: number; condition: string; stylingDirectives: string }
+  weatherContext?: { city: string; tempCelsius: number; condition: string; stylingDirectives: string },
+  styleHistory?: StyleHistory
 ): Promise<RecommendedOutfit[]> {
   const wardrobeSummary = wardrobe.map(item => (
     `ID: ${item.id} | Category: ${item.category} | Brand: ${item.brand || 'Unbranded'} | Colors: ${item.color.join(', ')} | Tags: ${item.detectedTags.join(', ')} | Notes: ${item.styleNotes || 'None'}`
@@ -673,6 +696,7 @@ export async function generateOutfitRecommendations(
     ${vibeInstructions}
     ${inspirationsSummary}
     ${anchorInstructions}
+    ${describeStyleHistory(styleHistory)}
 
     Your task is to generate exactly 3 outfit recommendations that blend the client's existing wardrobe with current trends, tailored strictly to their Style DNA and sizing profile.
     Every outfit must be a complete, wearable look: it MUST include footwear and either (a top and a bottom) or a dress, plus outerwear when the weather calls for it. If the closet lacks a needed piece, suggest one to purchase.

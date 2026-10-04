@@ -82,7 +82,8 @@ describe('Item-Anchored Outfit Generation Integration Tests', () => {
         category: 'Outerwear',
         brand: 'Alexander McQueen',
       }),
-      undefined
+      undefined,
+      { lovedLooks: [], dismissedLooks: [], recentlyWornIds: [] }
     );
 
     expect(recs).toHaveLength(1);
