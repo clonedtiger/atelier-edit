@@ -64,4 +64,33 @@ describe('Security & Cryptography Hardening Tests', () => {
       expect(verifyMfaToken(secret, '123')).toBe(false);
     });
   });
+
+  describe('Production session secret handling', () => {
+    const originalEnv = { ...process.env };
+    const env = () => process.env as Record<string, string | undefined>;
+
+    afterEach(() => {
+      process.env = { ...originalEnv };
+    });
+
+    it('rejects sessions sealed with the public development secret in production', () => {
+      delete env().NEXTAUTH_SECRET;
+      delete env().SESSION_SECRET;
+      const forged = encryptSession({ userId: 'victim-user-id' }); // sealed with the dev fallback
+
+      env().NODE_ENV = 'production';
+      env().NEXTAUTH_SECRET = 'a-real-production-secret-value-of-sufficient-length';
+      expect(decryptSession(forged)).toBeNull();
+
+      const genuine = encryptSession({ userId: 'real-user-id' });
+      expect(decryptSession(genuine)?.userId).toBe('real-user-id');
+    });
+
+    it('refuses to issue sessions in production without a configured secret', () => {
+      env().NODE_ENV = 'production';
+      delete env().NEXTAUTH_SECRET;
+      delete env().SESSION_SECRET;
+      expect(() => encryptSession({ userId: 'u' })).toThrow(/NEXTAUTH_SECRET/);
+    });
+  });
 });

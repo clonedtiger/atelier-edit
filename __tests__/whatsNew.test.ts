@@ -1,4 +1,4 @@
-import { getUserWhatsNew, generateAndSaveUserWhatsNew } from '@/lib/whatsNew';
+import { getUserWhatsNew, generateAndSaveUserWhatsNew, containsAnyWord, mentionsWomenswear, isBlockedImageUrl } from '@/lib/whatsNew';
 import { GET, POST } from '@/app/api/feed/whats-new/route';
 import { prisma } from '@/lib/db';
 import { getAi, safeParseGeminiJson } from '@/lib/gemini';
@@ -23,6 +23,10 @@ jest.mock('@/lib/db', () => ({
     user: {
       findUnique: jest.fn(),
     },
+    usageActivity: {
+      count: jest.fn().mockResolvedValue(0),
+      create: jest.fn().mockResolvedValue({}),
+    },
     inspirationImage: {
       findMany: jest.fn(),
     },
@@ -36,6 +40,7 @@ jest.mock('@/lib/gemini', () => ({
   MODEL_NAME: 'gemini-2.5-flash',
   getAi: jest.fn(),
   safeParseGeminiJson: jest.fn(),
+  withGeminiRetry: (call: () => Promise<unknown>) => call(),
 }));
 
 jest.mock('@/lib/feed', () => ({
@@ -220,7 +225,7 @@ describe('Personalized What\'s New Feed - Library and API Routes', () => {
       const result = await generateAndSaveUserWhatsNew(mockUserId, 'desc');
 
       // Verify syncArticlesAndTrends was triggered
-      expect(syncArticlesAndTrends).toHaveBeenCalledWith(2, true);
+      expect(syncArticlesAndTrends).toHaveBeenCalledWith(2, false, { deadlineMs: 12000 });
 
       // Verify historical posts are preserved (deleteMany is NOT called)
       expect(prisma.whatsNewPost.deleteMany).not.toHaveBeenCalled();
@@ -403,12 +408,24 @@ describe('Personalized What\'s New Feed - Library and API Routes', () => {
       });
       (prisma.inspirationImage.findMany as jest.Mock).mockResolvedValueOnce([]);
       (prisma.trendArticle.findMany as jest.Mock).mockResolvedValueOnce([]);
+      const aiOutput = {
+        posts: [
+          {
+            title: 'Charcoal Tailoring',
+            summary: 'A vibrant take on brand heritage: charcoal suiting with dress shoes.',
+            source: 'British GQ',
+            tags: ['Tailoring', 'Dress Shoes'],
+            imageSearchQuery: 'menswear charcoal suit',
+            matchedInspirationIndex: null,
+          },
+        ],
+      };
       (getAi as jest.Mock).mockReturnValueOnce({
         models: {
-          generateContent: jest.fn().mockResolvedValue({ text: JSON.stringify({ posts: [] }) }),
+          generateContent: jest.fn().mockResolvedValue({ text: JSON.stringify(aiOutput) }),
         },
       });
-      (safeParseGeminiJson as jest.Mock).mockReturnValueOnce({ posts: [] });
+      (safeParseGeminiJson as jest.Mock).mockReturnValueOnce(aiOutput);
       (prisma.whatsNewPost.findMany as jest.Mock).mockResolvedValueOnce([]);
 
       const req = new NextRequest('http://localhost:3000/api/feed/whats-new?sort=desc', { method: 'POST' });
@@ -419,6 +436,103 @@ describe('Personalized What\'s New Feed - Library and API Routes', () => {
         where: { id: mockUserId },
         select: expect.any(Object),
       });
+      // The menswear filter must not drop a post for words like "vibrant", "brand" or "dress shoes"
+      expect(prisma.whatsNewPost.create).toHaveBeenCalledWith(
+        expect.objectContaining({ data: expect.objectContaining({ title: 'Charcoal Tailoring', imageUrl: '' }) })
+      );
+    });
+
+    it('POST: returns a readable 502 instead of saving canned posts when the model returns nothing', async () => {
+      (getSession as jest.Mock).mockResolvedValueOnce({ userId: mockUserId });
+      (prisma.user.findUnique as jest.Mock).mockResolvedValueOnce({
+        id: mockUserId,
+        sex: 'Female',
+        gender: 'Female',
+        customFeeds: [],
+        feedSubscriptions: [],
+      });
+      (prisma.inspirationImage.findMany as jest.Mock).mockResolvedValueOnce([]);
+      (prisma.trendArticle.findMany as jest.Mock).mockResolvedValueOnce([]);
+      (getAi as jest.Mock).mockReturnValueOnce({
+        models: {
+          generateContent: jest.fn().mockResolvedValue({ text: JSON.stringify({ posts: [] }) }),
+        },
+      });
+      (safeParseGeminiJson as jest.Mock).mockReturnValueOnce({ posts: [] });
+
+      const req = new NextRequest('http://localhost:3000/api/feed/whats-new?sort=desc', { method: 'POST' });
+      const response = await POST(req);
+      const data = await response.json();
+
+      expect(response.status).toBe(502);
+      expect(data.error).toMatch(/try again/i);
+      expect(prisma.whatsNewPost.create).not.toHaveBeenCalled();
+    });
+
+    it('POST: drops posts that describe womenswear for a menswear stream', async () => {
+      (getSession as jest.Mock).mockResolvedValueOnce({ userId: mockUserId });
+      (prisma.user.findUnique as jest.Mock).mockResolvedValueOnce({
+        id: mockUserId,
+        sex: 'Male',
+        gender: 'Male',
+        customFeeds: [],
+        feedSubscriptions: [],
+      });
+      (prisma.inspirationImage.findMany as jest.Mock).mockResolvedValueOnce([]);
+      (prisma.trendArticle.findMany as jest.Mock).mockResolvedValueOnce([]);
+      const aiOutput = {
+        posts: [
+          { title: 'Slip Dresses Return', summary: 'Bias-cut silk dresses lead the season.', source: 'Vogue', tags: ['Slip Dress'] },
+          { title: 'Heavy Wool Overcoats', summary: 'Double-faced wool with relaxed trousers.', source: 'British GQ', tags: ['Overcoat'] },
+        ],
+      };
+      (getAi as jest.Mock).mockReturnValueOnce({
+        models: { generateContent: jest.fn().mockResolvedValue({ text: JSON.stringify(aiOutput) }) },
+      });
+      (safeParseGeminiJson as jest.Mock).mockReturnValueOnce(aiOutput);
+      (prisma.whatsNewPost.findMany as jest.Mock).mockResolvedValueOnce([]);
+
+      const req = new NextRequest('http://localhost:3000/api/feed/whats-new', { method: 'POST' });
+      const response = await POST(req);
+
+      expect(response.status).toBe(200);
+      expect(prisma.whatsNewPost.create).toHaveBeenCalledTimes(1);
+      expect(prisma.whatsNewPost.create).toHaveBeenCalledWith(
+        expect.objectContaining({ data: expect.objectContaining({ title: 'Heavy Wool Overcoats' }) })
+      );
+    });
+
+    it('POST: returns 429 once the hourly refresh limit is reached', async () => {
+      (getSession as jest.Mock).mockResolvedValueOnce({ userId: mockUserId });
+      (prisma.usageActivity.count as jest.Mock).mockResolvedValueOnce(6);
+
+      const req = new NextRequest('http://localhost:3000/api/feed/whats-new', { method: 'POST' });
+      const response = await POST(req);
+
+      expect(response.status).toBe(429);
+      expect(prisma.user.findUnique).not.toHaveBeenCalled();
+    });
+  });
+
+  describe('gender and image filters', () => {
+    it('matches whole words only', () => {
+      expect(containsAnyWord('Celebrate the brand heritage', ['bra'])).toBe(false);
+      expect(containsAnyWord('A vibrant cobalt overcoat', ['bra'])).toBe(false);
+      expect(containsAnyWord('For the well-dressed man', ['dress'])).toBe(false);
+      expect(containsAnyWord('womenswear collections', ['men'])).toBe(false);
+      expect(containsAnyWord('A silk slip dress', ['dress'])).toBe(true);
+    });
+
+    it('treats menswear phrases such as "dress shirt" as safe', () => {
+      expect(mentionsWomenswear('Crisp dress shirt with dress shoes')).toBe(false);
+      expect(mentionsWomenswear('Pleated midi skirt and ballet flats')).toBe(true);
+    });
+
+    it('blocks watermarked stock-photo hosts', () => {
+      expect(isBlockedImageUrl('https://media.gettyimages.com/id/123/photo.jpg')).toBe(true);
+      expect(isBlockedImageUrl('https://www.shutterstock.com/image.jpg')).toBe(true);
+      expect(isBlockedImageUrl('https://assets.vogue.com/photos/look.jpg')).toBe(false);
+      expect(isBlockedImageUrl('not a url')).toBe(true);
     });
   });
 });

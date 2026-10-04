@@ -11,7 +11,7 @@ jest.mock('@/lib/session', () => ({
 }));
 
 describe('User Account Management & Recovery Tests', () => {
-  let testUser: { id: string; email: string; phone: string };
+  let testUser: { id: string; email: string; phone: string | null };
 
   beforeAll(async () => {
     const hash = await bcrypt.hash('originalPassword123', 10);

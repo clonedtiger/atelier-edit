@@ -102,10 +102,10 @@ async function main() {
   // 3. Seed Curated Starter Feed Channels
   const feedSources = [
     { name: 'Magasin (Laura Reilly)', url: 'https://magasin.substack.com/feed', type: 'rss', category: 'Editorial Substacks' },
-    { name: 'The Cereal Aisle (Leandra Medine Cohen)', url: 'https://thecerealaisle.substack.com/feed', type: 'rss', category: 'Editorial Substacks' },
+    { name: 'The Cereal Aisle (Leandra Medine Cohen)', url: 'https://leandramcohen.substack.com/feed', type: 'rss', category: 'Editorial Substacks' },
     { name: '5 Things You Should Buy (Becky Malinsky)', url: 'https://5thingsyoushouldbuy.substack.com/feed', type: 'rss', category: 'Editorial Substacks' },
     { name: 'Loïc Prigent (Runway & Behind The Scenes)', url: 'https://www.youtube.com/feeds/videos.xml?channel_id=UCU5Z-qPL8Terv_te68esHOw', type: 'youtube', category: 'Luxury & Haute Couture' },
-    { name: 'Who What Wear (Trend Radar)', url: 'https://www.whowhatwear.com', type: 'rss', category: 'Contemporary Style' },
+    { name: 'Who What Wear', url: 'https://www.whowhatwear.com/feeds.xml', type: 'rss', category: 'Contemporary Style' },
     { name: 'Vogue Runway Analysis', url: 'https://www.vogue.com/feed/rss', type: 'rss', category: 'Luxury & Haute Couture' },
     { name: 'Highsnobiety Editorial', url: 'https://www.highsnobiety.com/feed/', type: 'rss', category: 'Streetwear & Contemporary' },
   ];

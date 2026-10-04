@@ -39,6 +39,8 @@ export async function createTravelCapsule(params: CreateCapsuleParams) {
   const user = await prisma.user.findUnique({
     where: { id: userId },
     select: {
+      sex: true,
+      gender: true,
       styleAesthetic: true,
       favoriteBrands: true,
       avoidedStyles: true,
@@ -50,7 +52,9 @@ export async function createTravelCapsule(params: CreateCapsuleParams) {
   const start = new Date(startDate);
   const end = new Date(endDate);
   const diffTime = Math.abs(end.getTime() - start.getTime());
-  const daysCount = Math.max(1, Math.ceil(diffTime / (1000 * 60 * 60 * 24)) + 1);
+  // Itineraries beyond two weeks repeat looks anyway and push generation past the
+  // 60-second Firebase Hosting proxy limit, so the day-by-day plan is capped at 14 days.
+  const daysCount = Math.min(14, Math.max(1, Math.ceil(diffTime / (1000 * 60 * 60 * 24)) + 1));
 
   // 4. Optionally fetch destination weather
   let weatherForecast = '';

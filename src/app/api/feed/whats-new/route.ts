@@ -1,6 +1,8 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { getUserWhatsNew, generateAndSaveUserWhatsNew } from '@/lib/whatsNew';
 import { getSession } from '@/lib/session';
+import { enforceRateLimit } from '@/lib/rateLimit';
+import { logUserActivity } from '@/lib/analytics';
 
 export async function GET(request: NextRequest) {
   try {
@@ -26,6 +28,10 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
     }
 
+    const limited = await enforceRateLimit(session.userId, 'REFRESH_WHATS_NEW');
+    if (limited) return limited;
+    await logUserActivity(session.userId, 'REFRESH_WHATS_NEW');
+
     const { searchParams } = new URL(request.url);
     const sort = searchParams.get('sort') === 'asc' ? 'asc' : 'desc';
 
@@ -33,8 +39,8 @@ export async function POST(request: NextRequest) {
     const data = await generateAndSaveUserWhatsNew(session.userId, sort);
     return NextResponse.json(data);
   } catch (error) {
-    const errorMessage = error instanceof Error ? error.message : 'Failed to force-sync whats new feed';
+    const errorMessage = error instanceof Error ? error.message : 'Failed to refresh your style stream';
     console.error('Whats New feed POST error:', error);
-    return NextResponse.json({ error: errorMessage }, { status: 500 });
+    return NextResponse.json({ error: errorMessage }, { status: 502 });
   }
 }

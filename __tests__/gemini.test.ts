@@ -5,6 +5,9 @@ import {
   generateOutfitRecommendations,
   normalizeBox2d,
   normalizeCategory,
+  sanitizeOutfits,
+  describeWearer,
+  withGeminiRetry,
 } from '@/lib/gemini';
 import { GoogleGenAI } from '@google/genai';
 
@@ -209,6 +212,67 @@ describe('gemini.ts - AI styling helper methods', () => {
       expect(result[0].title).toBe('Tweed Tailoring meets Rebel Edge');
       expect(result[0].items[0].wardrobeItemId).toBe('mock-uuid-blazer');
       expect(result[0].items[1].purchaseName).toBe('Combat Boots');
+    });
+  });
+
+  describe('output validation', () => {
+    it('drops hallucinated wardrobe IDs but keeps purchase suggestions and owned pieces', () => {
+      const result = sanitizeOutfits(
+        [
+          {
+            title: 'Look',
+            narrative: 'n',
+            items: [
+              { wardrobeItemId: 'owned-1', stylingRationale: 'a' },
+              { wardrobeItemId: 'invented-id', stylingRationale: 'b' },
+              { wardrobeItemId: 'invented-2', purchaseName: 'Loafers', stylingRationale: 'c' },
+            ],
+          },
+          { title: 'Empty', narrative: 'n', items: [{ wardrobeItemId: 'invented-3', stylingRationale: 'd' }] },
+        ],
+        new Set(['owned-1'])
+      );
+
+      expect(result).toHaveLength(1);
+      expect(result[0].items).toHaveLength(2);
+      expect(result[0].items[0].wardrobeItemId).toBe('owned-1');
+      expect(result[0].items[1]).toEqual(expect.objectContaining({ purchaseName: 'Loafers', wardrobeItemId: undefined }));
+    });
+
+    it('describes the wearer from gender first, then sex', () => {
+      expect(describeWearer({ gender: 'Male', sex: 'Female' })).toMatch(/^Menswear/);
+      expect(describeWearer({ sex: 'Female' })).toBe('Womenswear.');
+      expect(describeWearer(null)).toMatch(/gender-neutral/);
+    });
+
+    it('propagates trend extraction failures so the article is retried later', async () => {
+      mockGenerateContent.mockRejectedValueOnce(new Error('quota exceeded'));
+      await expect(extractTrendsFromContent('Title', 'Body')).rejects.toThrow('quota exceeded');
+    });
+
+    it('sends a response schema with every request', async () => {
+      mockGenerateContent.mockResolvedValueOnce({ text: JSON.stringify({ extractedTrends: ['wide-leg trousers'] }) });
+      await extractTrendsFromContent('Title', 'Body');
+      expect(mockGenerateContent.mock.calls[0][0].config.responseJsonSchema).toEqual(
+        expect.objectContaining({ type: 'object', required: ['extractedTrends'] })
+      );
+    });
+  });
+
+  describe('withGeminiRetry()', () => {
+    it('retries transient 503 errors and then succeeds', async () => {
+      const call = jest
+        .fn()
+        .mockRejectedValueOnce(Object.assign(new Error('high demand'), { status: 503 }))
+        .mockResolvedValueOnce('ok');
+      await expect(withGeminiRetry(call, [0])).resolves.toBe('ok');
+      expect(call).toHaveBeenCalledTimes(2);
+    });
+
+    it('does not retry non-transient errors', async () => {
+      const call = jest.fn().mockRejectedValue(Object.assign(new Error('bad request'), { status: 400 }));
+      await expect(withGeminiRetry(call, [0, 0])).rejects.toThrow('bad request');
+      expect(call).toHaveBeenCalledTimes(1);
     });
   });
 });

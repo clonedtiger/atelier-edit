@@ -6,22 +6,32 @@
   <body>
     <outline text="Fashion Feed" title="Fashion Feed">
       <!-- Substack Newsletters (High-Signal Editorial) -->
-      <outline type="rss" text="Magasin (Laura Reilly)" title="Magasin (Laura Reilly)" xmlUrl="https://magasin.substack.com/feed" htmlUrl="https://magasin.substack.com"/>
-      <outline type="rss" text="The Cereal Aisle (Leandra Medine Cohen)" title="The Cereal Aisle (Leandra Medine Cohen)" xmlUrl="https://thecerealaisle.substack.com/feed" htmlUrl="https://thecerealaisle.substack.com"/>
-      <outline type="rss" text="5 Things You Should Buy (Becky Malinsky)" title="5 Things You Should Buy (Becky Malinsky)" xmlUrl="https://5thingsyoushouldbuy.substack.com/feed" htmlUrl="https://5thingsyoushouldbuy.substack.com"/>
-      <outline type="rss" text="Screenshot This (Zara Wong)" title="Screenshot This (Zara Wong)" xmlUrl="https://screenshotthis.substack.com/feed" htmlUrl="https://screenshotthis.substack.com"/>
-      
+      <outline type="rss" category="Editorial Substacks" text="Magasin (Laura Reilly)" title="Magasin (Laura Reilly)" xmlUrl="https://magasin.substack.com/feed" htmlUrl="https://magasin.substack.com"/>
+      <outline type="rss" category="Editorial Substacks" text="The Cereal Aisle (Leandra Medine Cohen)" title="The Cereal Aisle (Leandra Medine Cohen)" xmlUrl="https://leandramcohen.substack.com/feed" htmlUrl="https://leandramcohen.substack.com"/>
+      <outline type="rss" category="Editorial Substacks" text="5 Things You Should Buy (Becky Malinsky)" title="5 Things You Should Buy (Becky Malinsky)" xmlUrl="https://5thingsyoushouldbuy.substack.com/feed" htmlUrl="https://5thingsyoushouldbuy.substack.com"/>
+      <outline type="rss" category="Editorial Substacks" text="Screenshot This (Zara Wong)" title="Screenshot This (Zara Wong)" xmlUrl="https://screenshotthis.substack.com/feed" htmlUrl="https://screenshotthis.substack.com"/>
+
       <!-- Video Channels (Haute Couture & Styling) -->
-      <outline type="rss" text="Loïc Prigent (YouTube)" title="Loïc Prigent (YouTube)" xmlUrl="https://www.youtube.com/feeds/videos.xml?channel_id=UCU5Z-qPL8Terv_te68esHOw" htmlUrl="https://www.youtube.com/@LoicPrigent"/>
-      <outline type="rss" text="Alyssa Beltempo (YouTube)" title="Alyssa Beltempo (YouTube)" xmlUrl="https://www.youtube.com/feeds/videos.xml?channel_id=UCU8ssMY0rZQtCgWVwQNpmUA" htmlUrl="https://www.youtube.com/@AlyssaBeltempo"/>
-      <outline type="rss" text="Audrey Coyne (YouTube)" title="Audrey Coyne (YouTube)" xmlUrl="https://www.youtube.com/feeds/videos.xml?channel_id=UCdF5QXMUx1tT7odhtBdDyEA" htmlUrl="https://www.youtube.com/@AudreyCoyne"/>
-      
-      <!-- Public Lookbooks & Magazines (Aggregators will auto-detect/crawl) -->
-      <outline type="rss" text="Who What Wear" title="Who What Wear" xmlUrl="https://www.whowhatwear.com/feeds.xml" htmlUrl="https://www.whowhatwear.com"/>
-      <outline type="rss" text="Vogue Runway" title="Vogue Runway" xmlUrl="https://www.vogue.com/feed/rss" htmlUrl="https://www.vogue.com/fashion/shows"/>
-      <outline type="rss" text="PORTER Magazine" title="PORTER Magazine" xmlUrl="https://www.net-a-porter.com/en-gb/porter" htmlUrl="https://www.net-a-porter.com/en-gb/porter"/>
-      <outline type="rss" text="AllSaints Lookbook" title="AllSaints Lookbook" xmlUrl="https://www.allsaints.com" htmlUrl="https://www.allsaints.com"/>
-      <outline type="rss" text="The Gentlewoman Club" title="The Gentlewoman Club" xmlUrl="https://thegentlewoman.co.uk" htmlUrl="https://thegentlewoman.co.uk"/>
+      <outline type="rss" category="Luxury &amp; Haute Couture" text="Loïc Prigent (YouTube)" title="Loïc Prigent (YouTube)" xmlUrl="https://www.youtube.com/feeds/videos.xml?channel_id=UCU5Z-qPL8Terv_te68esHOw" htmlUrl="https://www.youtube.com/@LoicPrigent"/>
+      <outline type="rss" category="Contemporary Style" text="Alyssa Beltempo (YouTube)" title="Alyssa Beltempo (YouTube)" xmlUrl="https://www.youtube.com/feeds/videos.xml?channel_id=UCU8ssMY0rZQtCgWVwQNpmUA" htmlUrl="https://www.youtube.com/@AlyssaBeltempo"/>
+      <outline type="rss" category="Minimalism" text="Audrey Coyne (YouTube)" title="Audrey Coyne (YouTube)" xmlUrl="https://www.youtube.com/feeds/videos.xml?channel_id=UCdF5QXMUx1tT7odhtBdDyEA" htmlUrl="https://www.youtube.com/@AudreyCoyne"/>
+
+      <!-- Magazines & Trade Press -->
+      <outline type="rss" category="Contemporary Style" text="Who What Wear" title="Who What Wear" xmlUrl="https://www.whowhatwear.com/feeds.xml" htmlUrl="https://www.whowhatwear.com"/>
+      <outline type="rss" category="Luxury &amp; Haute Couture" text="Vogue Runway" title="Vogue Runway" xmlUrl="https://www.vogue.com/feed/rss" htmlUrl="https://www.vogue.com/fashion/shows"/>
+      <outline type="rss" category="Luxury &amp; Haute Couture" text="British Vogue" title="British Vogue" xmlUrl="https://www.vogue.co.uk/feed/rss" htmlUrl="https://www.vogue.co.uk"/>
+      <outline type="rss" category="Luxury &amp; Haute Couture" text="Harper's Bazaar UK" title="Harper's Bazaar UK" xmlUrl="https://www.harpersbazaar.com/uk/rss/all.xml/" htmlUrl="https://www.harpersbazaar.com/uk/"/>
+      <outline type="rss" category="Menswear" text="British GQ" title="British GQ" xmlUrl="https://www.gq-magazine.co.uk/feed/rss" htmlUrl="https://www.gq-magazine.co.uk"/>
+      <outline type="rss" category="Industry" text="The Business of Fashion" title="The Business of Fashion" xmlUrl="https://www.businessoffashion.com/arc/outboundfeeds/rss/" htmlUrl="https://www.businessoffashion.com"/>
+      <outline type="rss" category="Editorial" text="AnOther Magazine" title="AnOther Magazine" xmlUrl="https://www.anothermag.com/feed" htmlUrl="https://www.anothermag.com"/>
+      <outline type="rss" category="Streetwear &amp; Contemporary" text="Highsnobiety Editorial" title="Highsnobiety Editorial" xmlUrl="https://www.highsnobiety.com/feed/" htmlUrl="https://www.highsnobiety.com"/>
+
+      <!-- Retired: these URLs are homepages or dead feeds, not RSS. Kept so existing rows get muted. -->
+      <outline type="rss" retired="true" text="PORTER Magazine" title="PORTER Magazine" xmlUrl="https://www.net-a-porter.com/en-gb/porter" htmlUrl="https://www.net-a-porter.com/en-gb/porter"/>
+      <outline type="rss" retired="true" text="AllSaints Lookbook" title="AllSaints Lookbook" xmlUrl="https://www.allsaints.com" htmlUrl="https://www.allsaints.com"/>
+      <outline type="rss" retired="true" text="The Gentlewoman Club" title="The Gentlewoman Club" xmlUrl="https://thegentlewoman.co.uk" htmlUrl="https://thegentlewoman.co.uk"/>
+      <outline type="rss" retired="true" text="Who What Wear (Trend Radar)" title="Who What Wear (Trend Radar)" xmlUrl="https://www.whowhatwear.com" htmlUrl="https://www.whowhatwear.com"/>
+      <outline type="rss" retired="true" text="The Cereal Aisle (old address)" title="The Cereal Aisle (old address)" xmlUrl="https://thecerealaisle.substack.com/feed" htmlUrl="https://thecerealaisle.substack.com"/>
     </outline>
   </body>
 </opml>

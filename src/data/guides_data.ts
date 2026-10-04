@@ -31,55 +31,55 @@ export const GUIDE_CATEGORIES: GuideCategory[] = [
   {
     id: 'all',
     title: 'All Guides',
-    icon: '📚',
+    icon: '',
     description: 'Browse the complete documentation and styling handbook.'
   },
   {
     id: 'quickstart',
     title: 'Quickstart & Navigation',
-    icon: '🏁',
+    icon: '',
     description: 'Essential overview of Atelier Edit navigation, mobile gestures, and core concepts.'
   },
   {
     id: 'stylist',
     title: 'Personal Stylist & Climate',
-    icon: '👗',
+    icon: '',
     description: 'AI outfit consultations, live weather forecasts, hero garments, and gap analysis.'
   },
   {
     id: 'wardrobe',
     title: 'Wardrobe & Duplicates',
-    icon: '🚪',
+    icon: '',
     description: 'Garment cataloging, batch photo ingestion, auto-tagging, and duplicate merging.'
   },
   {
     id: 'capsule',
     title: 'Capsules & Travel Packing',
-    icon: '🧳',
+    icon: '',
     description: 'Interchangeable capsule wardrobes, 10x10 and 5x4 travel packing matrices.'
   },
   {
     id: 'studio',
     title: 'Studio (Flat-Lay Canvas)',
-    icon: '🎨',
+    icon: '',
     description: 'Interactive moodboard canvas, drag-and-drop outfit builder, layering, and export.'
   },
   {
     id: 'inspirations',
     title: 'Inspirations & Trend Feeds',
-    icon: '💡',
+    icon: '',
     description: 'Visual moodboard clippings, Gemini aesthetic tag extraction, and RSS channels.'
   },
   {
     id: 'profile',
     title: 'Profile Guide',
-    icon: '👤',
+    icon: '',
     description: 'Style DNA archetypes, international sizing systems, and password management.'
   },
   {
     id: 'gdpr',
     title: 'Privacy, GDPR & Security',
-    icon: '🔒',
+    icon: '',
     description: 'Article 20 data package exports, Right to be Forgotten, and Two-Factor Authentication.'
   }
 ];
@@ -157,7 +157,7 @@ export const GUIDES_ARTICLES: GuideArticle[] = [
           'Select your destination city (e.g. London, Paris, Tokyo, New York) or click "Add Custom City" to enter any global location.',
           'The climate panel immediately loads live temperature, precipitation forecast, and comfort advice (e.g., "16°C Mild Breeze — Mid-weight tailoring & lightweight layering").',
           'In the Occasion / Destination field, describe your event (e.g., "Boardroom presentation in Mayfair", "Autumn gallery opening", "Casual brunch in Brooklyn").',
-          'Click "✨ Advise Me" to generate tailored lookbook recommendations.'
+          'Click "Advise Me" to generate tailored lookbook recommendations.'
         ]
       },
       {
@@ -168,7 +168,7 @@ export const GUIDES_ARTICLES: GuideArticle[] = [
         ],
         callout: {
           type: 'tip',
-          text: 'To anchor an item, click "⭐ Set as Hero Anchor" on any garment card in your Wardrobe tab, then return to the Stylist tab.'
+          text: 'To anchor an item, click "Set as Hero Anchor" on any garment card in your Wardrobe tab, then return to the Stylist tab.'
         }
       },
       {
@@ -185,7 +185,7 @@ export const GUIDES_ARTICLES: GuideArticle[] = [
       },
       {
         question: 'How do I save a generated recommendation to my Lookbook?',
-        answer: 'Click the "⭐ Save to Personal Lookbook" button underneath any generated outfit card. You can view all saved outfits anytime in your Lookbook drawer.'
+        answer: 'Click the "Save to Personal Lookbook" button underneath any generated outfit card. You can view all saved outfits anytime in your Lookbook drawer.'
       }
     ]
   },
@@ -224,7 +224,7 @@ export const GUIDES_ARTICLES: GuideArticle[] = [
         heading: 'Using the Duplicate Item Detector & Merge Tool',
         content: [
           'If you accidentally upload the same garment twice or have similar items, Atelier Edit\'s intelligent duplicate detector identifies them based on image hash and metadata similarity.',
-          'Click "🔍 Scan for Duplicates" in the Wardrobe header to view potential duplicates and merge them into a single definitive record with one click.'
+          'Click "Scan for Duplicates" in the Wardrobe header to view potential duplicates and merge them into a single definitive record with one click.'
         ],
         callout: {
           type: 'info',
@@ -312,7 +312,7 @@ export const GUIDES_ARTICLES: GuideArticle[] = [
           'Resize / Scale: Drag the corner control handles to enlarge or shrink the item.',
           'Rotate: Drag the circular rotation handle to tilt items for dynamic editorial layouts.',
           'Layer Hierarchy (Z-Index): Use the "Bring Forward" and "Send Backward" buttons to layer garments (e.g., placing a coat over a sweater).',
-          'Remove: Click the "🗑️ Remove" button to delete an item from the canvas.'
+          'Remove: Click the "Remove" button to delete an item from the canvas.'
         ]
       },
       {
@@ -324,7 +324,7 @@ export const GUIDES_ARTICLES: GuideArticle[] = [
         ],
         callout: {
           type: 'tip',
-          text: 'Click "💾 Save Flat-Lay Collage" to store the outfit composition in your personal Lookbook, or click "📸 Export Image" to download a high-resolution PNG for Instagram or Pinterest.'
+          text: 'Click "Save Flat-Lay Collage" to store the outfit composition in your personal Lookbook, or click "Export Image" to download a high-resolution PNG for Instagram or Pinterest.'
         }
       }
     ]
@@ -462,7 +462,7 @@ export const GUIDES_ARTICLES: GuideArticle[] = [
         steps: [
           'Navigate to the My Profile tab.',
           'Scroll down to the "Data Privacy & GDPR Rights" panel on the left column.',
-          'Click the dark "📥 DOWNLOAD MY DATA PACKAGE" button.',
+          'Click the dark "DOWNLOAD MY DATA PACKAGE" button.',
           'Your browser will download a structured `.json` package containing your profile details, physical sizing measurements, wardrobe items catalog, visual inspiration clippings, generated lookbooks, and consent logs.'
         ]
       },

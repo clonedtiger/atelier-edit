@@ -5,6 +5,7 @@ import { analyzeInspirationImage } from '@/lib/gemini';
 import { getSession } from '@/lib/session';
 import { uploadImage } from '@/lib/storage';
 import { logUserActivity } from '@/lib/analytics';
+import { enforceRateLimit } from '@/lib/rateLimit';
 
 async function getActiveUserId() {
   const session = await getSession();
@@ -59,10 +60,14 @@ export async function POST(req: NextRequest) {
       return NextResponse.json({ error: 'Unauthorized or account suspended' }, { status: 403 });
     }
 
+    const limited = await enforceRateLimit(userId, 'UPLOAD_IMAGE');
+    if (limited) return limited;
+
     const bytes = await file.arrayBuffer();
     const buffer = Buffer.from(bytes);
 
-    const filename = `inspiration-${Date.now()}-${file.name.replace(/\.[^/.]+$/, '')}.webp`;
+    const cleanBaseName = file.name.replace(/\.[^/.]+$/, '').replace(/[^a-zA-Z0-9_-]/g, '_');
+    const filename = `inspiration-${Date.now()}-${cleanBaseName}.webp`;
 
     const compressedBuffer = await sharp(buffer)
       .resize({ width: 1080, withoutEnlargement: true })

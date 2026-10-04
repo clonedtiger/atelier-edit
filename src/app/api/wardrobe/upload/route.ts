@@ -5,6 +5,7 @@ import { analyzeWardrobeImage, detectAndAnalyzeWardrobeItems, DetectedWardrobeIt
 import { getSession } from '@/lib/session';
 import { uploadImage } from '@/lib/storage';
 import { logUserActivity } from '@/lib/analytics';
+import { enforceRateLimit } from '@/lib/rateLimit';
 import { cropAndCompressItem } from '@/lib/imageProcessor';
 
 async function getActiveUserId() {
@@ -43,6 +44,9 @@ export async function POST(req: NextRequest) {
     if (!user || user.suspended) {
       return NextResponse.json({ error: 'Unauthorized or account suspended' }, { status: 403 });
     }
+
+    const limited = await enforceRateLimit(userId, 'UPLOAD_IMAGE');
+    if (limited) return limited;
 
     // Read the file as a buffer
     const bytes = await file.arrayBuffer();

@@ -3,6 +3,7 @@
 import { useState, useEffect, useRef, useCallback } from 'react';
 import Image from 'next/image';
 import { WhatsNewPost } from '@/lib/whatsNew';
+import { CameraIcon, DeviceIcon } from '@/components/Icons';
 import { GuidesCenter } from '@/components/GuidesCenter';
 
 interface UserProfile {
@@ -184,7 +185,7 @@ export default function AtelierEditDashboard() {
   const [feedSortOrder, setFeedSortOrder] = useState<'desc' | 'asc'>('desc');
   
   // Loading states
-  const [loadingMe, setLoadingMe] = useState(false);
+  const [, setLoadingMe] = useState(false);
   const [loadingWardrobe, setLoadingWardrobe] = useState(false);
   const [loadingRecommendations, setLoadingRecommendations] = useState(false);
   const [loadingFeeds, setLoadingFeeds] = useState(false);
@@ -651,10 +652,11 @@ export default function AtelierEditDashboard() {
         const data = await res.json();
         setWhatsNewPosts(data.posts || []);
         if (force) {
-          showToast('Style stream refreshed! An editorial digest has also been sent to your email.');
+          showToast('Style stream refreshed.');
         }
       } else if (res.status !== 401) {
-        showToast('Failed to load style stream.', 'error');
+        const data = await res.json().catch(() => ({}));
+        showToast(data.error || 'Failed to load style stream.', 'error');
       }
     } catch (err) {
       console.error(err);
@@ -1204,7 +1206,8 @@ export default function AtelierEditDashboard() {
         setActiveTab('feed');
         setStyleVibePrompt('');
       } else {
-        showToast('Stylist generator failed.', 'error');
+        const data = await res.json().catch(() => ({}));
+        showToast(data.error || 'The stylist could not create outfits just now. Please try again.', 'error');
       }
     } catch (err) {
       console.error(err);
@@ -2123,7 +2126,8 @@ export default function AtelierEditDashboard() {
               className="header-snap-btn"
               title="Snap street style, boutique racks, or magazine inspiration on the fly"
             >
-              📸 Snap Inspiration
+              <CameraIcon size={14} />
+              Snap Inspiration
             </button>
 
             {user && user.role === 'admin' && (
@@ -2395,7 +2399,7 @@ export default function AtelierEditDashboard() {
             {showPwaBanner && pwaPromptEvent && (
               <div className="pwa-install-banner">
                 <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem' }}>
-                  <span style={{ fontSize: '1.4rem' }}>📱</span>
+                  <DeviceIcon size={22} style={{ color: '#FAF8F4', flexShrink: 0 }} />
                   <div>
                     <strong style={{ display: 'block', fontSize: '0.85rem', color: '#FAF8F4' }}>Install Atelier Edit on your device</strong>
                     <span style={{ fontSize: '0.75rem', color: 'rgba(255,255,255,0.7)' }}>Access your wardrobe, packing capsules, and flat-lay studio instantly offline.</span>
@@ -2425,7 +2429,7 @@ export default function AtelierEditDashboard() {
                       {liveWeather.city}: {liveWeather.tempCelsius}°C / {liveWeather.tempFahrenheit}°F • {liveWeather.condition}
                     </span>
                     <span style={{ display: 'block', fontSize: '0.7rem', color: 'var(--text-secondary)' }}>
-                      🌤️ Thermal Styling Rule: {liveWeather.stylingDirectives}
+                      Thermal Styling Rule: {liveWeather.stylingDirectives}
                     </span>
                   </div>
                 </div>
@@ -2437,7 +2441,7 @@ export default function AtelierEditDashboard() {
                   }}
                   className="weather-pill-btn"
                 >
-                  📍 Change Weather
+                  Change Weather
                 </button>
               </div>
             )}
@@ -2475,14 +2479,14 @@ export default function AtelierEditDashboard() {
             )}
 
             {anchorGarment && (
-              <div className="lookbook-panel" style={{ width: '100%', padding: '1rem 1.5rem', border: '1px solid var(--accent-gold)', marginBottom: '1.5rem', display: 'flex', alignItems: 'center', justifyContent: 'space-between', backgroundColor: 'rgba(212, 175, 55, 0.08)' }}>
+              <div className="lookbook-panel" style={{ width: '100%', padding: '1rem 1.5rem', border: '1px solid var(--accent-gold)', marginBottom: '1.5rem', display: 'flex', alignItems: 'center', justifyContent: 'space-between', backgroundColor: 'rgba(138, 106, 59, 0.08)' }}>
                 <div style={{ display: 'flex', alignItems: 'center', gap: '1rem' }}>
                   <div style={{ position: 'relative', width: '48px', height: '48px', borderRadius: '4px', overflow: 'hidden', border: '1px solid var(--accent-gold)' }}>
                     <Image src={anchorGarment.imageUrl} alt="Anchor Item" fill style={{ objectFit: 'cover' }} unoptimized />
                   </div>
                   <div>
                     <span style={{ fontSize: '0.65rem', textTransform: 'uppercase', letterSpacing: '0.1em', color: 'var(--accent-gold)', fontWeight: 800, display: 'block' }}>
-                      ★ Hero Anchor Garment Active
+                      Hero Anchor Garment Active
                     </span>
                     <span style={{ fontSize: '0.9rem', fontWeight: 'bold' }}>
                       {anchorGarment.brand ? `${anchorGarment.brand} - ` : ''}{anchorGarment.category}
@@ -2515,7 +2519,7 @@ export default function AtelierEditDashboard() {
                     }}
                     className="guide-helper-btn"
                   >
-                    📖 Stylist Guide
+                    Stylist Guide
                   </button>
                 </div>
                 <div className="stylist-dna-badge" style={{ marginBottom: 0 }}>
@@ -2625,6 +2629,17 @@ export default function AtelierEditDashboard() {
                                 Closet Piece
                               </div>
                             )
+                          ) : !item.purchaseImageUrl ? (
+                            <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', gap: '0.5rem', height: '100%', padding: '1.5rem', textAlign: 'center', background: 'var(--bg-secondary)' }}>
+                              {item.purchaseBrand && (
+                                <span style={{ fontSize: '0.65rem', textTransform: 'uppercase', letterSpacing: '0.18em', color: 'var(--text-muted)', fontWeight: 600 }}>
+                                  {item.purchaseBrand}
+                                </span>
+                              )}
+                              <span style={{ fontFamily: 'var(--font-serif)', fontSize: '1.35rem', lineHeight: 1.2, color: 'var(--text-primary)' }}>
+                                {item.purchaseName || 'Suggested piece'}
+                              </span>
+                            </div>
                           ) : (
                             item.purchaseImageUrl && (
                               <div style={{ position: 'relative', width: '100%', height: '100%' }}>
@@ -2767,10 +2782,20 @@ export default function AtelierEditDashboard() {
                         <span style={{ fontSize: '0.7rem', textTransform: 'uppercase', letterSpacing: '0.1em', background: 'rgba(255,255,255,0.2)', padding: '0.2rem 0.5rem', borderRadius: '3px' }}>
                           {post.source}
                         </span>
-                        <h3 style={{ fontSize: '1.5rem', marginTop: '0.5rem', fontWeight: '800', textShadow: '0 2px 4px rgba(0,0,0,0.5)' }}>
+                        <h3 style={{ fontSize: '1.6rem', marginTop: '0.5rem', fontWeight: 500, textShadow: '0 2px 4px rgba(0,0,0,0.5)' }}>
                           {post.title}
                         </h3>
                       </div>
+                    </div>
+                  )}
+                  {!post.imageUrl && (
+                    <div style={{ padding: '2rem 1.5rem 0 1.5rem', borderTop: '3px solid var(--accent)' }}>
+                      <span style={{ fontSize: '0.7rem', textTransform: 'uppercase', letterSpacing: '0.14em', color: 'var(--text-muted)', fontWeight: 600 }}>
+                        {post.source}
+                      </span>
+                      <h3 style={{ fontSize: '1.75rem', marginTop: '0.5rem', fontWeight: 400, color: 'var(--text-primary)', lineHeight: 1.2 }}>
+                        {post.title}
+                      </h3>
                     </div>
                   )}
                   
@@ -2786,9 +2811,9 @@ export default function AtelierEditDashboard() {
                             <span
                               key={tag}
                               style={{
-                                background: 'rgba(212, 175, 55, 0.08)',
-                                border: '1px solid rgba(212, 175, 55, 0.25)',
-                                color: 'var(--accent-color)',
+                                background: 'var(--accent-light)',
+                                border: '1px solid var(--border-color)',
+                                color: 'var(--accent)',
                                 fontSize: '0.75rem',
                                 fontWeight: '600',
                                 padding: '0.2rem 0.6rem',
@@ -2830,7 +2855,7 @@ export default function AtelierEditDashboard() {
                   padding: '0.4rem 0.8rem',
                 }}
               >
-                📁 Wardrobe Inventory ({wardrobe.length})
+                Wardrobe Inventory ({wardrobe.length})
               </button>
               <button
                 type="button"
@@ -2846,7 +2871,7 @@ export default function AtelierEditDashboard() {
                   padding: '0.4rem 0.8rem',
                 }}
               >
-                📊 Wardrobe Intelligence &amp; Gaps
+                Wardrobe Intelligence &amp; Gaps
               </button>
               <button
                 type="button"
@@ -2857,7 +2882,7 @@ export default function AtelierEditDashboard() {
                 className="guide-helper-btn"
                 style={{ marginLeft: 'auto' }}
               >
-                📖 Wardrobe Guide
+                Wardrobe Guide
               </button>
             </div>
 
@@ -2942,7 +2967,7 @@ export default function AtelierEditDashboard() {
                         <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '0.75rem' }}>
                           <div>
                             <h4 style={{ fontSize: '0.9rem', textTransform: 'uppercase', letterSpacing: '0.06em' }}>
-                              💎 Unworn Gems
+                              Unworn Gems
                             </h4>
                             <p style={{ fontSize: '0.75rem', color: 'var(--text-secondary)' }}>
                               Underutilized items in your closet ready to be reinvented into new looks.
@@ -2977,7 +3002,7 @@ export default function AtelierEditDashboard() {
                                 className="accent-button"
                                 style={{ padding: '0.35rem 0.5rem', fontSize: '0.65rem' }}
                               >
-                                ★ Style Around This
+                                Style Around This
                               </button>
                             </div>
                           ))}
@@ -2990,7 +3015,7 @@ export default function AtelierEditDashboard() {
                       <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: '0.75rem', marginBottom: '1rem' }}>
                         <div>
                           <h4 style={{ fontSize: '0.95rem', color: 'var(--accent-gold)', textTransform: 'uppercase', letterSpacing: '0.06em' }}>
-                            🔍 Strategic Wardrobe Gap Recommendations
+                            Strategic Wardrobe Gap Recommendations
                           </h4>
                           <p style={{ fontSize: '0.75rem', color: 'var(--text-secondary)' }}>
                             AI analysis of 3 missing foundation pieces that maximize outfit combinations and versatility for your Style DNA.
@@ -3106,7 +3131,7 @@ export default function AtelierEditDashboard() {
                   className="nav-action"
                   style={{ textDecoration: 'underline', color: 'var(--accent-gold)', fontWeight: 800 }}
                 >
-                  {isScanningDuplicates ? 'Scanning wardrobe...' : '🔍 Scan for Duplicates'}
+                  {isScanningDuplicates ? 'Scanning wardrobe...' : 'Scan for Duplicates'}
                 </button>
               </div>
 
@@ -3418,7 +3443,7 @@ export default function AtelierEditDashboard() {
                             onChange={(e) => setAutoSplitItems(e.target.checked)}
                             style={{ accentColor: 'var(--accent)', width: '14px', height: '14px' }}
                           />
-                          <span>⚡ Auto-Slice Multi-Item Photos</span>
+                          <span>Auto-Slice Multi-Item Photos</span>
                         </label>
                         <p
                           style={{
@@ -3522,7 +3547,7 @@ export default function AtelierEditDashboard() {
                               fontWeight: 'bold',
                             }}
                           >
-                            {anchorGarment?.id === item.id ? '★ HERO ANCHOR ACTIVE' : '✨ CREATE OUTFIT AROUND ITEM'}
+                            {anchorGarment?.id === item.id ? 'HERO ANCHOR ACTIVE' : 'CREATE OUTFIT AROUND ITEM'}
                           </button>
 
                           <div style={{ display: 'flex', justifyContent: 'flex-end', borderTop: '1px solid var(--border-color)', paddingTop: '0.5rem', marginTop: '0.5rem' }}>
@@ -3666,7 +3691,7 @@ export default function AtelierEditDashboard() {
             <div className="lookbook-panel" style={{ padding: '1.5rem', display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: '1rem' }}>
               <div>
                 <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem', marginBottom: '0.25rem' }}>
-                  <h3 style={{ fontSize: '1.25rem', color: 'var(--accent-gold)', margin: 0 }}>✈️ Travel Packing Capsule Assistant</h3>
+                  <h3 style={{ fontSize: '1.25rem', color: 'var(--accent-gold)', margin: 0 }}>Travel Packing Capsule Assistant</h3>
                   <button
                     type="button"
                     onClick={() => {
@@ -3675,7 +3700,7 @@ export default function AtelierEditDashboard() {
                     }}
                     className="guide-helper-btn"
                   >
-                    📖 Capsule Guide
+                    Capsule Guide
                   </button>
                 </div>
                 <p style={{ fontSize: '0.8rem', color: 'var(--text-muted)' }}>
@@ -3800,7 +3825,7 @@ export default function AtelierEditDashboard() {
                           padding: '1.25rem',
                           cursor: 'pointer',
                           border: isSelected ? '2px solid var(--accent-gold)' : '1px solid var(--border-color)',
-                          backgroundColor: isSelected ? 'rgba(212, 175, 55, 0.04)' : '#ffffff',
+                          backgroundColor: isSelected ? 'rgba(138, 106, 59, 0.04)' : '#ffffff',
                           transition: 'var(--transition-smooth)',
                         }}
                       >
@@ -3848,7 +3873,7 @@ export default function AtelierEditDashboard() {
                         className="weather-pill-btn"
                         style={{ padding: '0.5rem 1rem' }}
                       >
-                        🖨️ Print Packing List
+                        Print Packing List
                       </button>
                     </div>
 
@@ -3867,7 +3892,7 @@ export default function AtelierEditDashboard() {
                     {/* Packed Items Rack */}
                     <div>
                       <h4 style={{ fontSize: '1rem', marginBottom: '1rem', textTransform: 'uppercase', letterSpacing: '0.06em' }}>
-                        🧳 Packing Rack ({selectedCapsule.itemIds.length} Core Pieces)
+                        Packing Rack ({selectedCapsule.itemIds.length} Core Pieces)
                       </h4>
                       <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(130px, 1fr))', gap: '0.75rem' }}>
                         {wardrobe.filter(w => selectedCapsule.itemIds.includes(w.id)).map(item => (
@@ -3888,7 +3913,7 @@ export default function AtelierEditDashboard() {
                     {selectedCapsule.outfitSchedule && selectedCapsule.outfitSchedule.length > 0 && (
                       <div>
                         <h4 style={{ fontSize: '1rem', marginBottom: '1rem', textTransform: 'uppercase', letterSpacing: '0.06em' }}>
-                          📅 Daily Lookbook Schedule
+                          Daily Lookbook Schedule
                         </h4>
                         <div className="capsule-timeline">
                           {selectedCapsule.outfitSchedule.map((schedule, idx) => (
@@ -3904,7 +3929,7 @@ export default function AtelierEditDashboard() {
                               {schedule.dayLook && (
                                 <div className="capsule-look-box">
                                   <span style={{ fontSize: '0.65rem', textTransform: 'uppercase', color: 'var(--accent)', fontWeight: 800, display: 'block' }}>
-                                    ☀️ Morning / Daytime
+                                    Morning / Daytime
                                   </span>
                                   <strong style={{ fontSize: '0.8rem', display: 'block', margin: '0.2rem 0' }}>{schedule.dayLook.title}</strong>
                                   <p style={{ fontSize: '0.7rem', color: 'var(--text-secondary)', margin: 0 }}>{schedule.dayLook.narrative}</p>
@@ -3915,7 +3940,7 @@ export default function AtelierEditDashboard() {
                               {schedule.eveningLook && (
                                 <div className="capsule-look-box">
                                   <span style={{ fontSize: '0.65rem', textTransform: 'uppercase', color: 'var(--accent-gold)', fontWeight: 800, display: 'block' }}>
-                                    🌙 Evening / Dinner
+                                    Evening / Dinner
                                   </span>
                                   <strong style={{ fontSize: '0.8rem', display: 'block', margin: '0.2rem 0' }}>{schedule.eveningLook.title}</strong>
                                   <p style={{ fontSize: '0.7rem', color: 'var(--text-secondary)', margin: 0 }}>{schedule.eveningLook.narrative}</p>
@@ -3942,7 +3967,7 @@ export default function AtelierEditDashboard() {
             <div className="lookbook-panel" style={{ padding: '1.5rem', display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: '1rem' }}>
               <div>
                 <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem', marginBottom: '0.25rem' }}>
-                  <h3 style={{ fontSize: '1.25rem', color: 'var(--accent-gold)', margin: 0 }}>🎨 Editorial Flat-Lay Canvas Studio</h3>
+                  <h3 style={{ fontSize: '1.25rem', color: 'var(--accent-gold)', margin: 0 }}>Editorial Flat-Lay Canvas Studio</h3>
                   <button
                     type="button"
                     onClick={() => {
@@ -3951,7 +3976,7 @@ export default function AtelierEditDashboard() {
                     }}
                     className="guide-helper-btn"
                   >
-                    📖 Studio Guide
+                    Studio Guide
                   </button>
                 </div>
                 <p style={{ fontSize: '0.8rem', color: 'var(--text-muted)' }}>
@@ -3973,7 +3998,7 @@ export default function AtelierEditDashboard() {
                   className="accent-button"
                   style={{ padding: '0.5rem 1rem' }}
                 >
-                  {isSavingCollage ? 'Saving...' : '💾 Save Spread'}
+                  {isSavingCollage ? 'Saving...' : 'Save Spread'}
                 </button>
               </div>
             </div>
@@ -4189,7 +4214,7 @@ export default function AtelierEditDashboard() {
             ) : collages.length > 0 && (
               <div className="lookbook-panel" style={{ padding: '1.5rem' }}>
                 <h4 style={{ fontSize: '1rem', marginBottom: '1rem', textTransform: 'uppercase', letterSpacing: '0.06em' }}>
-                  📖 Saved Lookbook Spreads
+                  Saved Lookbook Spreads
                 </h4>
                 <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(200px, 1fr))', gap: '1rem' }}>
                   {collages.map((c) => (
@@ -4346,7 +4371,7 @@ export default function AtelierEditDashboard() {
                               {feed.name}
                             </span>
                             <span className="feed-category-pill">{feed.category || 'General'}</span>
-                            <span className="ingest-type-badge">{feed.type === 'instagram' ? '📸 Instagram' : feed.type}</span>
+                            <span className="ingest-type-badge">{feed.type === 'instagram' ? 'Instagram' : feed.type}</span>
                             {feed.isCustom && (
                               <span style={{ fontSize: '0.55rem', color: 'var(--accent)', fontWeight: 700, textTransform: 'uppercase' }}>• Custom</span>
                             )}
@@ -4383,7 +4408,7 @@ export default function AtelierEditDashboard() {
                               className="accent-button"
                               style={{ width: 'auto', fontSize: '0.65rem', padding: '0.25rem 0.6rem' }}
                             >
-                              ➕ Subscribe
+                              + Subscribe
                             </button>
                           )}
 
@@ -4433,7 +4458,7 @@ export default function AtelierEditDashboard() {
                         <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 9a2 2 0 012-2h.93a2 2 0 001.664-.89l.812-1.22A2 2 0 0110.07 4h3.86a2 2 0 011.664.89l.812 1.22A2 2 0 0018.07 7H19a2 2 0 012 2v9a2 2 0 01-2 2H5a2 2 0 01-2-2V9z" />
                         <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 13a3 3 0 11-6 0 3 3 0 016 0z" />
                       </svg>
-                      <span>📸 Snap Photo (Camera)</span>
+                      <CameraIcon size={14} /><span>Snap Photo (Camera)</span>
                     </button>
 
                     <button
@@ -4445,7 +4470,7 @@ export default function AtelierEditDashboard() {
                       <svg width="14" height="14" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                         <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z" />
                       </svg>
-                      <span>🖼️ Photo Library</span>
+                      <span>Photo Library</span>
                     </button>
 
                     <input
@@ -4601,7 +4626,7 @@ export default function AtelierEditDashboard() {
                           {ins.tags.length > 0 && (
                             <div style={{ display: 'flex', flexWrap: 'wrap', gap: '3px', marginTop: 'auto', paddingTop: '0.4rem' }}>
                               {ins.tags.map((t, tIdx) => (
-                                <span key={tIdx} style={{ fontSize: '0.55rem', padding: '1px 4px', background: 'rgba(212, 175, 55, 0.1)', color: 'var(--accent-gold)', borderRadius: '2px', textTransform: 'uppercase', letterSpacing: '0.02em' }}>
+                                <span key={tIdx} style={{ fontSize: '0.55rem', padding: '1px 4px', background: 'rgba(138, 106, 59, 0.1)', color: 'var(--accent-gold)', borderRadius: '2px', textTransform: 'uppercase', letterSpacing: '0.02em' }}>
                                   #{t}
                                 </span>
                               ))}
@@ -4643,7 +4668,7 @@ export default function AtelierEditDashboard() {
                             }}
                             className="guide-helper-btn"
                           >
-                            📖 Profile Guide
+                            Profile Guide
                           </button>
                         </div>
                         <p style={{ fontSize: '0.75rem', color: 'var(--text-muted)' }}>
@@ -5155,7 +5180,7 @@ export default function AtelierEditDashboard() {
                       
                       {/* Data Access Request Export */}
                       <div style={{ background: 'rgba(255,255,255,0.02)', padding: '1.25rem', borderRadius: '4px', border: '1px solid var(--border-color)', display: 'flex', flexDirection: 'column' }}>
-                        <h4 style={{ fontSize: '0.95rem', marginBottom: '0.5rem' }}>📦 Data Portability &amp; Export (Article 20)</h4>
+                        <h4 style={{ fontSize: '0.95rem', marginBottom: '0.5rem' }}>Data Portability &amp; Export (Article 20)</h4>
                         <p style={{ fontSize: '0.75rem', color: 'var(--text-muted)', flex: 1, marginBottom: '1rem' }}>
                           Download a machine-readable JSON data package containing your profile, physical measurements, wardrobe items, visual inspiration boards, generated lookbooks, and consent logs.
                         </p>
@@ -5166,13 +5191,13 @@ export default function AtelierEditDashboard() {
                           className="accent-button"
                           style={{ fontSize: '0.75rem', padding: '0.5rem 1rem' }}
                         >
-                          {isExportingData ? 'EXPORTING PACKAGE...' : '📥 DOWNLOAD MY DATA PACKAGE'}
+                          {isExportingData ? 'EXPORTING PACKAGE...' : 'DOWNLOAD MY DATA PACKAGE'}
                         </button>
                       </div>
 
                       {/* Right to be Forgotten */}
                       <div style={{ background: 'rgba(239, 68, 68, 0.05)', padding: '1.25rem', borderRadius: '4px', border: '1px solid rgba(239, 68, 68, 0.3)', display: 'flex', flexDirection: 'column' }}>
-                        <h4 style={{ fontSize: '0.95rem', marginBottom: '0.5rem', color: '#ef4444' }}>🗑️ Right to be Forgotten (Article 17)</h4>
+                        <h4 style={{ fontSize: '0.95rem', marginBottom: '0.5rem', color: '#ef4444' }}>Right to be Forgotten (Article 17)</h4>
                         <p style={{ fontSize: '0.75rem', color: 'var(--text-muted)', flex: 1, marginBottom: '1rem' }}>
                           Permanently purge your account, uploaded clothing photos from Google Cloud Storage, lookbooks, and session history from Atelier Edit databases. This action is immediate and non-reversible.
                         </p>
@@ -5214,7 +5239,7 @@ export default function AtelierEditDashboard() {
                             style={{ width: '18px', height: '18px', accentColor: 'var(--accent-gold)' }}
                           />
                           <div>
-                            <strong>📧 Email Newsletters &amp; Editorial Digests</strong>
+                            <strong>Email Newsletters &amp; Editorial Digests</strong>
                             <span style={{ display: 'block', fontSize: '0.75rem', color: 'var(--text-muted)' }}>
                               Receive weekly style stream trends, seasonal capsule lookbooks, and haute couture runway breakdowns.
                             </span>
@@ -5229,7 +5254,7 @@ export default function AtelierEditDashboard() {
                             style={{ width: '18px', height: '18px', accentColor: 'var(--accent-gold)' }}
                           />
                           <div>
-                            <strong>📱 Mobile &amp; SMS Notifications</strong>
+                            <strong>Mobile &amp; SMS Notifications</strong>
                             <span style={{ display: 'block', fontSize: '0.75rem', color: 'var(--text-muted)' }}>
                               Receive urgent mobile notifications for luxury item drops and instant stylist consultation updates.
                             </span>
@@ -5244,7 +5269,7 @@ export default function AtelierEditDashboard() {
                             style={{ width: '18px', height: '18px', accentColor: 'var(--accent-gold)' }}
                           />
                           <div>
-                            <strong>🤝 Carefully Selected Partners &amp; Collaborations</strong>
+                            <strong>Carefully Selected Partners &amp; Collaborations</strong>
                             <span style={{ display: 'block', fontSize: '0.75rem', color: 'var(--text-muted)' }}>
                               Allow Atelier Edit to share non-sensitive aesthetic recommendations with carefully vetted luxury fashion houses.
                             </span>
@@ -5487,7 +5512,7 @@ export default function AtelierEditDashboard() {
         }}>
           <div className="lookbook-panel" style={{ maxWidth: '500px', width: '100%', padding: '2rem', border: '1px solid #ef4444', backgroundColor: '#121212' }}>
             <h3 style={{ fontSize: '1.35rem', color: '#ef4444', marginBottom: '0.75rem' }}>
-              ⚠️ Confirm Permanent Account Erasure
+              Confirm Permanent Account Erasure
             </h3>
             <p style={{ fontSize: '0.85rem', color: 'var(--text)', marginBottom: '1rem', lineHeight: '1.5' }}>
               You are requesting permanent erasure under <strong>GDPR Article 17 (Right to be Forgotten)</strong>.
@@ -5571,7 +5596,7 @@ export default function AtelierEditDashboard() {
                 className="camera-aux-btn"
                 title="Switch Camera (Front/Back)"
               >
-                🔄 Flip
+                Flip
               </button>
 
               <button
@@ -5646,7 +5671,7 @@ export default function AtelierEditDashboard() {
               {selectedInspirationLightbox.tags.length > 0 && (
                 <div style={{ display: 'flex', flexWrap: 'wrap', gap: '0.4rem', marginTop: '0.25rem' }}>
                   {selectedInspirationLightbox.tags.map((tag, idx) => (
-                    <span key={idx} style={{ fontSize: '0.65rem', padding: '0.25rem 0.6rem', background: 'rgba(212, 175, 55, 0.15)', color: 'var(--accent-gold)', borderRadius: '4px', fontWeight: 600 }}>
+                    <span key={idx} style={{ fontSize: '0.65rem', padding: '0.25rem 0.6rem', background: 'rgba(138, 106, 59, 0.15)', color: 'var(--accent-gold)', borderRadius: '4px', fontWeight: 600 }}>
                       #{tag}
                     </span>
                   ))}
@@ -5663,9 +5688,10 @@ export default function AtelierEditDashboard() {
           type="button"
           onClick={() => openCameraViewfinder('inspiration')}
           className="mobile-fab-snap"
-          aria-label="Snap Street/Shop Inspiration"
+          aria-label="Snap street or shop inspiration"
+          title="Snap inspiration"
         >
-          📸 Snap Inspiration
+          <CameraIcon size={22} />
         </button>
       )}
 

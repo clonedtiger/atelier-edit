@@ -2,7 +2,13 @@ import crypto from 'crypto';
 import { cookies } from 'next/headers';
 import { NextRequest } from 'next/server';
 
+// Development/test fallback only. It is public in this repository, so production never
+// accepts it: a session encrypted with it could be forged by anyone who has read the code.
 const DEFAULT_SECRET = 'a-very-secure-secret-key-of-at-least-32-characters';
+
+function isProduction(): boolean {
+  return process.env.NODE_ENV === 'production';
+}
 
 export interface SessionPayload {
   userId: string;
@@ -12,7 +18,7 @@ function getCandidateSecrets(): string[] {
   const list: string[] = [];
   if (process.env.NEXTAUTH_SECRET) list.push(process.env.NEXTAUTH_SECRET);
   if (process.env.SESSION_SECRET) list.push(process.env.SESSION_SECRET);
-  if (!list.includes(DEFAULT_SECRET)) list.push(DEFAULT_SECRET);
+  if (!isProduction() && !list.includes(DEFAULT_SECRET)) list.push(DEFAULT_SECRET);
   return list;
 }
 
@@ -33,7 +39,10 @@ function getLegacyKeyForSecret(secret: string): Buffer {
  * Returns format: gcm:<ivHex>:<authTagHex>:<ciphertextHex>
  */
 export function encryptSession(payload: SessionPayload): string {
-  const primarySecret = process.env.NEXTAUTH_SECRET || DEFAULT_SECRET;
+  const primarySecret = process.env.NEXTAUTH_SECRET || process.env.SESSION_SECRET || (isProduction() ? null : DEFAULT_SECRET);
+  if (!primarySecret) {
+    throw new Error('NEXTAUTH_SECRET must be set in production to issue sessions.');
+  }
   const iv = crypto.randomBytes(12); // 96-bit IV recommended for GCM
   const cipher = crypto.createCipheriv('aes-256-gcm', deriveKeyForSecret(primarySecret), iv);
   

@@ -54,8 +54,13 @@ export async function fetchInstagramViaBridge(handle: string): Promise<Instagram
           const link = item.link || `https://instagram.com/${cleanHandle}`;
           const pubDate = item.pubDate ? new Date(item.pubDate) : new Date();
 
-          console.log(`Extracting trends for Instagram post @${cleanHandle}: "${title}"`);
-          const trends = await extractTrendsFromContent(title, content);
+          let trends: string[];
+          try {
+            trends = await extractTrendsFromContent(title, content);
+          } catch (aiErr) {
+            console.error(`Trend extraction failed for Instagram post @${cleanHandle}; skipping:`, aiErr);
+            continue;
+          }
 
           results.push({
             title,
@@ -120,7 +125,13 @@ export async function fetchInstagramViaTavily(handle: string): Promise<Instagram
       const content = item.content || `Fashion outfit coverage for @${cleanHandle}.`;
       const link = item.url || `https://instagram.com/${cleanHandle}#${i}`;
 
-      const trends = await extractTrendsFromContent(title, content);
+      let trends: string[];
+      try {
+        trends = await extractTrendsFromContent(title, content);
+      } catch (aiErr) {
+        console.error(`Trend extraction failed for @${cleanHandle} search result; skipping:`, aiErr);
+        continue;
+      }
 
       results.push({
         title,

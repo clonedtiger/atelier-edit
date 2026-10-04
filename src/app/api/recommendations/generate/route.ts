@@ -3,6 +3,7 @@ import { generateRecommendationsForUser } from '@/lib/stylist';
 import { getSession } from '@/lib/session';
 import { prisma } from '@/lib/db';
 import { logUserActivity } from '@/lib/analytics';
+import { enforceRateLimit } from '@/lib/rateLimit';
 
 async function getActiveUserId() {
   const session = await getSession();
@@ -25,14 +26,17 @@ export async function POST(req: Request) {
       return NextResponse.json({ error: 'Unauthorized or account suspended' }, { status: 403 });
     }
 
+    const limited = await enforceRateLimit(userId, 'GENERATE_OUTFIT');
+    if (limited) return limited;
+    // Logged up front so concurrent requests count towards the limit
+    await logUserActivity(userId, 'GENERATE_OUTFIT');
+
     const body = await req.json().catch(() => ({}));
     const { vibe, anchorItemId, weatherCity } = body;
 
     console.log(`Generating styling recommendations for user id: ${userId} with vibe: ${vibe || 'none'}, anchorItemId: ${anchorItemId || 'none'}, weatherCity: ${weatherCity || 'none'}...`);
     const recommendations = await generateRecommendationsForUser(userId, vibe, anchorItemId, weatherCity);
-    
-    // Log analytical activity for outfit generation
-    await logUserActivity(userId, 'GENERATE_OUTFIT');
+
 
     return NextResponse.json({
       success: true,
@@ -40,11 +44,10 @@ export async function POST(req: Request) {
       recommendations,
     });
   } catch (error) {
-    const errorMessage = error instanceof Error ? error.message : 'Internal server error during recommendation generation';
     console.error('Error generating recommendations:', error);
     return NextResponse.json(
-      { error: errorMessage },
-      { status: 500 }
+      { error: 'The stylist could not create outfits just now. Please try again in a minute.' },
+      { status: 502 }
     );
   }
 }

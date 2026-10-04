@@ -8,7 +8,192 @@ export function getAi(): GoogleGenAI {
   return aiInstance;
 }
 
-export const MODEL_NAME = 'gemini-3.1-flash-lite'; // Use 3.1-flash-lite which has available daily quota
+// Text model for trend extraction, editorial copy, outfits, capsules and gap analysis.
+export const MODEL_NAME = process.env.GEMINI_MODEL || 'gemini-3.1-flash-lite';
+// Vision model for garment tagging and multi-item bounding-box detection. A Flash-tier
+// model localises items noticeably better than Flash-Lite; override via GEMINI_VISION_MODEL.
+export const VISION_MODEL_NAME = process.env.GEMINI_VISION_MODEL || MODEL_NAME;
+
+type GeminiContents = Parameters<GoogleGenAI['models']['generateContent']>[0]['contents'];
+
+const RETRYABLE_STATUSES = new Set([429, 500, 503]);
+
+/**
+ * Retries transient Gemini failures ("model is experiencing high demand", rate limits) with a
+ * short backoff. Other errors, and the final transient failure, are rethrown to the caller.
+ */
+export async function withGeminiRetry<T>(call: () => Promise<T>, delaysMs: number[] = [1000, 3000]): Promise<T> {
+  for (let attempt = 0; ; attempt++) {
+    try {
+      return await call();
+    } catch (error) {
+      const status = (error as { status?: number })?.status;
+      if (attempt >= delaysMs.length || !status || !RETRYABLE_STATUSES.has(status)) {
+        throw error;
+      }
+      console.warn(`Gemini returned ${status}; retrying in ${delaysMs[attempt]}ms...`);
+      await new Promise((resolve) => setTimeout(resolve, delaysMs[attempt]));
+    }
+  }
+}
+
+/**
+ * Calls Gemini in JSON mode with a response schema so the model is constrained to the
+ * shape we parse, rather than relying on an example object embedded in the prompt.
+ */
+async function generateJson<T>(model: string, contents: GeminiContents, schema: Record<string, unknown>): Promise<T> {
+  const response = await withGeminiRetry(() =>
+    getAi().models.generateContent({
+      model,
+      contents,
+      config: {
+        responseMimeType: 'application/json',
+        responseJsonSchema: schema,
+      },
+    })
+  );
+  return safeParseGeminiJson<T>(response.text || '');
+}
+
+const STRING_ARRAY = { type: 'array', items: { type: 'string' } };
+
+const CATEGORY_ENUM = ['Outerwear', 'Tops', 'Bottoms', 'Dresses', 'Shoes', 'Bags', 'Jewelry', 'Accessories'];
+
+const TAGGED_ITEM_PROPERTIES = {
+  category: { type: 'string', enum: CATEGORY_ENUM },
+  color: STRING_ARRAY,
+  brand: { type: 'string', description: 'Brand if visible, otherwise omit' },
+  styleNotes: { type: 'string' },
+  detectedTags: STRING_ARRAY,
+};
+
+const TAGGED_ITEM_SCHEMA = {
+  type: 'object',
+  properties: TAGGED_ITEM_PROPERTIES,
+  required: ['category', 'color', 'styleNotes', 'detectedTags'],
+};
+
+const DETECTION_SCHEMA = {
+  type: 'object',
+  properties: {
+    items: {
+      type: 'array',
+      items: {
+        type: 'object',
+        properties: {
+          box_2d: { type: 'array', items: { type: 'integer' }, minItems: 4, maxItems: 4 },
+          ...TAGGED_ITEM_PROPERTIES,
+        },
+        required: ['box_2d', 'category', 'color', 'styleNotes', 'detectedTags'],
+      },
+    },
+  },
+  required: ['items'],
+};
+
+const TRENDS_SCHEMA = {
+  type: 'object',
+  properties: { extractedTrends: STRING_ARRAY },
+  required: ['extractedTrends'],
+};
+
+const OUTFITS_SCHEMA = {
+  type: 'object',
+  properties: {
+    outfits: {
+      type: 'array',
+      items: {
+        type: 'object',
+        properties: {
+          title: { type: 'string' },
+          narrative: { type: 'string' },
+          items: {
+            type: 'array',
+            items: {
+              type: 'object',
+              properties: {
+                wardrobeItemId: { type: 'string', description: 'Exact ID of an owned piece; omit for purchase suggestions' },
+                purchaseName: { type: 'string' },
+                purchaseBrand: { type: 'string' },
+                priceEstimate: { type: 'string' },
+                stylingRationale: { type: 'string' },
+              },
+              required: ['stylingRationale'],
+            },
+          },
+        },
+        required: ['title', 'narrative', 'items'],
+      },
+    },
+  },
+  required: ['outfits'],
+};
+
+const INSPIRATION_SCHEMA = {
+  type: 'object',
+  properties: { notes: { type: 'string' }, tags: STRING_ARRAY },
+  required: ['notes', 'tags'],
+};
+
+const LOOK_SCHEMA = {
+  type: 'object',
+  properties: { title: { type: 'string' }, narrative: { type: 'string' }, itemIds: STRING_ARRAY },
+  required: ['title', 'narrative', 'itemIds'],
+};
+
+const CAPSULE_SCHEMA = {
+  type: 'object',
+  properties: {
+    selectedItemIds: STRING_ARRAY,
+    stylistRationale: { type: 'string' },
+    outfitSchedule: {
+      type: 'array',
+      items: {
+        type: 'object',
+        properties: {
+          dayNumber: { type: 'integer' },
+          date: { type: 'string' },
+          dayLook: LOOK_SCHEMA,
+          eveningLook: LOOK_SCHEMA,
+        },
+        required: ['dayNumber', 'date', 'dayLook', 'eveningLook'],
+      },
+    },
+  },
+  required: ['selectedItemIds', 'stylistRationale', 'outfitSchedule'],
+};
+
+const GAPS_SCHEMA = {
+  type: 'object',
+  properties: {
+    gaps: {
+      type: 'array',
+      items: {
+        type: 'object',
+        properties: {
+          purchaseName: { type: 'string' },
+          purchaseBrand: { type: 'string' },
+          category: { type: 'string', enum: CATEGORY_ENUM },
+          estimatedPrice: { type: 'string' },
+          stylingRationale: { type: 'string' },
+          unlocksLooksCount: { type: 'integer' },
+        },
+        required: ['purchaseName', 'purchaseBrand', 'category', 'estimatedPrice', 'stylingRationale', 'unlocksLooksCount'],
+      },
+    },
+  },
+  required: ['gaps'],
+};
+
+/**
+ * Describes who the client dresses as, for prompts. Gender takes precedence over sex.
+ */
+export function describeWearer(profile?: { sex?: string | null; gender?: string | null } | null): string {
+  const identity = (profile?.gender || profile?.sex || '').trim().toLowerCase();
+  if (identity === 'male') return 'Menswear. Style the client exclusively in menswear; never suggest dresses, skirts, blouses or heels.';
+  if (identity === 'female') return 'Womenswear.';
+  return 'Not specified; favour versatile, gender-neutral pieces.';
+}
 
 export interface TaggedWardrobeItem {
   category: string;
@@ -98,24 +283,19 @@ export async function analyzeWardrobeImage(base64Data: string, mimeType: string)
   `;
 
   try {
-    const response = await getAi().models.generateContent({
-      model: MODEL_NAME,
-      contents: [
-        {
-          inlineData: {
-            data: base64Data,
-            mimeType: mimeType
-          }
-        },
-        prompt
-      ],
-      config: {
-        responseMimeType: 'application/json',
-      }
-    });
-
-    const text = response.text || '';
-    return safeParseGeminiJson<TaggedWardrobeItem>(text);
+    const parsed = await generateJson<Partial<TaggedWardrobeItem>>(
+      VISION_MODEL_NAME,
+      [{ inlineData: { data: base64Data, mimeType } }, prompt],
+      TAGGED_ITEM_SCHEMA
+    );
+    const category = normalizeCategory(parsed.category);
+    return {
+      category,
+      color: Array.isArray(parsed.color) && parsed.color.length > 0 ? parsed.color : ['Black'],
+      brand: typeof parsed.brand === 'string' && parsed.brand.trim() ? parsed.brand.trim() : null,
+      styleNotes: parsed.styleNotes || `${category} garment`,
+      detectedTags: Array.isArray(parsed.detectedTags) ? parsed.detectedTags : [],
+    };
   } catch (error) {
     console.error('Error analyzing wardrobe image with Gemini:', error);
     throw new Error('Gemini vision analysis failed');
@@ -268,22 +448,6 @@ export async function detectAndAnalyzeWardrobeItems(
   `;
 
   try {
-    const response = await getAi().models.generateContent({
-      model: MODEL_NAME,
-      contents: [
-        {
-          inlineData: {
-            data: base64Data,
-            mimeType: mimeType,
-          },
-        },
-        prompt,
-      ],
-      config: {
-        responseMimeType: 'application/json',
-      },
-    });
-
     interface RawGeminiItem {
       box_2d?: RawBoundingBox;
       box2d?: RawBoundingBox;
@@ -302,8 +466,11 @@ export async function detectAndAnalyzeWardrobeItems(
       [key: string]: unknown;
     }
 
-    const text = response.text || '';
-    const parsed = safeParseGeminiJson<RawGeminiDetectionResult | RawGeminiItem[]>(text);
+    const parsed = await generateJson<RawGeminiDetectionResult | RawGeminiItem[]>(
+      VISION_MODEL_NAME,
+      [{ inlineData: { data: base64Data, mimeType } }, prompt],
+      DETECTION_SCHEMA
+    );
 
     let rawList: RawGeminiItem[] = [];
     if (Array.isArray(parsed)) {
@@ -356,18 +523,9 @@ export async function detectAndAnalyzeWardrobeItems(
       },
     ];
   } catch (error) {
-    console.error('Error detecting wardrobe items with Gemini:', error);
-    try {
-      const single = await analyzeWardrobeImage(base64Data, mimeType);
-      return [
-        {
-          ...single,
-          box2d: null,
-        },
-      ];
-    } catch {
-      return [];
-    }
+    console.error('Error detecting wardrobe items with Gemini, retrying as a single item:', error);
+    const single = await analyzeWardrobeImage(base64Data, mimeType);
+    return [{ ...single, box2d: null }];
   }
 }
 
@@ -380,7 +538,7 @@ export async function extractTrendsFromContent(title: string, content: string): 
     
     Article Title: ${title}
     Article Content:
-    ${content.slice(0, 8000)} // truncate to prevent token overflow
+    ${content.slice(0, 8000)}
     
     Extract 3-8 precise, actionable fashion trend descriptors (e.g. "oversized structural tailoring", "draped cowl-neck layering", "monochrome earth tones", "chunky lug-sole footwear", "minimalist knitwear", "relaxed wide-leg trousers").
     
@@ -390,26 +548,15 @@ export async function extractTrendsFromContent(title: string, content: string): 
     }
   `;
 
-  try {
-    const response = await getAi().models.generateContent({
-      model: MODEL_NAME,
-      contents: prompt,
-      config: {
-        responseMimeType: 'application/json',
-      }
-    });
-
-    const text = response.text || '';
-    const parsed = safeParseGeminiJson<{ extractedTrends?: string[] }>(text);
-    return parsed.extractedTrends || [];
-  } catch (error) {
-    console.error('Error extracting trends with Gemini:', error);
-    return [];
-  }
+  // Errors propagate so callers can skip saving the article and retry it on the next sync,
+  // instead of persisting an article with no trends.
+  const parsed = await generateJson<{ extractedTrends?: string[] }>(MODEL_NAME, prompt, TRENDS_SCHEMA);
+  return (parsed.extractedTrends || []).map((t) => String(t).trim()).filter(Boolean);
 }
 
 export interface UserStyleProfile {
   sex?: string | null;
+  gender?: string | null;
   height?: string | null;
   weight?: string | null;
   waistSize?: string | null;
@@ -429,7 +576,7 @@ export interface UserStyleProfile {
  * Synthesizes fashion feeds: Blends wardrobe items with current trends to create lookbooks.
  */
 export async function generateOutfitRecommendations(
-  wardrobe: Array<{ id: string; category: string; color: string[]; detectedTags: string[]; styleNotes: string | null }>,
+  wardrobe: Array<{ id: string; category: string; brand?: string | null; color: string[]; detectedTags: string[]; styleNotes: string | null }>,
   trends: string[],
   userProfile?: UserStyleProfile,
   vibe?: string,
@@ -438,7 +585,7 @@ export async function generateOutfitRecommendations(
   weatherContext?: { city: string; tempCelsius: number; condition: string; stylingDirectives: string }
 ): Promise<RecommendedOutfit[]> {
   const wardrobeSummary = wardrobe.map(item => (
-    `ID: ${item.id} | Category: ${item.category} | Colors: ${item.color.join(', ')} | Tags: ${item.detectedTags.join(', ')} | Notes: ${item.styleNotes || 'None'}`
+    `ID: ${item.id} | Category: ${item.category} | Brand: ${item.brand || 'Unbranded'} | Colors: ${item.color.join(', ')} | Tags: ${item.detectedTags.join(', ')} | Notes: ${item.styleNotes || 'None'}`
   )).join('\n');
 
   const trendsSummary = trends.slice(0, 20).join(', ');
@@ -455,6 +602,7 @@ export async function generateOutfitRecommendations(
 
   const styleDnaSummary = `
     CLIENT'S UNIQUE STYLE DNA & AESTHETIC DIRECTIVES:
+    - Dresses In: ${describeWearer(userProfile)}
     - Primary Style Aesthetic: ${userProfile?.styleAesthetic || 'Refined Modern Luxury with Timeless Tailoring'}
     - Favorite Brands & Designers: ${userProfile?.favoriteBrands || 'Curated high-end and contemporary designers'}
     - Avoided Styles & Rules: ${userProfile?.avoidedStyles || 'None specified'}
@@ -527,6 +675,8 @@ export async function generateOutfitRecommendations(
     ${anchorInstructions}
 
     Your task is to generate exactly 3 outfit recommendations that blend the client's existing wardrobe with current trends, tailored strictly to their Style DNA and sizing profile.
+    Every outfit must be a complete, wearable look: it MUST include footwear and either (a top and a bottom) or a dress, plus outerwear when the weather calls for it. If the closet lacks a needed piece, suggest one to purchase.
+    Only use wardrobe IDs that appear verbatim in the closet list above. Never invent IDs.
     For each outfit, you must:
     1. Create a compelling, luxury-editorial title fitting their aesthetic (e.g. "Architectural Cashmere with Tailored Edge").
     2. Provide a narrative paragraph styling guide explaining the look, how it fits their aesthetic, why it works, and how it aligns with their daily lifestyle and inspiration guidelines. Describe pairing with shoes, accessories/jewelry, and subtle beauty/makeup coordinates.
@@ -534,42 +684,40 @@ export async function generateOutfitRecommendations(
        a) An existing wardrobe item (specify its ID in 'wardrobeItemId' and describe how to wear it in 'stylingRationale').
        b) A proposed new item to purchase (do NOT set 'wardrobeItemId'. Instead, provide 'purchaseName', 'purchaseBrand' which should be a brand matching their favorite brands or aesthetic, a realistic price estimate, and the styling rationale citing the exact size matching their physical measurements).
 
-    You must output a JSON object adhering exactly to this structure:
-    {
-      "outfits": [
-        {
-          "title": "Outfit Title",
-          "narrative": "Styling narrative here...",
-          "items": [
-            {
-              "wardrobeItemId": "matching-uuid-from-above-if-applicable",
-              "purchaseName": "Name of missing item to buy (if new)",
-              "purchaseBrand": "Curated Brand Name (if new)",
-              "priceEstimate": "Estimated price range (if new)",
-              "stylingRationale": "How to style this piece in the outfit, citing the recommended size and fit for their height/build."
-            }
-          ]
-        }
-      ]
-    }
+    Return JSON with an "outfits" array. For each item, set "wardrobeItemId" for owned pieces, or "purchaseName", "purchaseBrand" and "priceEstimate" for suggested purchases, and always a "stylingRationale".
   `;
 
+  let parsed: { outfits?: RecommendedOutfit[] };
   try {
-    const response = await getAi().models.generateContent({
-      model: MODEL_NAME,
-      contents: prompt,
-      config: {
-        responseMimeType: 'application/json',
-      }
-    });
-
-    const text = response.text || '';
-    const parsed = safeParseGeminiJson<{ outfits?: RecommendedOutfit[] }>(text);
-    return parsed.outfits || [];
+    parsed = await generateJson<{ outfits?: RecommendedOutfit[] }>(MODEL_NAME, prompt, OUTFITS_SCHEMA);
   } catch (error) {
     console.error('Error generating outfits with Gemini:', error);
     throw new Error('Gemini recommendation synthesis failed');
   }
+
+  return sanitizeOutfits(parsed.outfits || [], new Set([...wardrobe.map((w) => w.id), ...(anchorItem ? [anchorItem.id] : [])]));
+}
+
+/**
+ * Drops hallucinated wardrobe IDs: an item that references an ID outside the client's closet
+ * is kept only if it also carries a purchase suggestion. Outfits left empty are discarded.
+ */
+export function sanitizeOutfits(outfits: RecommendedOutfit[], ownedIds: Set<string>): RecommendedOutfit[] {
+  return outfits
+    .filter((outfit) => outfit && outfit.title && Array.isArray(outfit.items))
+    .map((outfit) => ({
+      ...outfit,
+      items: outfit.items
+        .map((item) => {
+          if (item.wardrobeItemId && !ownedIds.has(item.wardrobeItemId)) {
+            console.warn(`Discarding unknown wardrobe item ID from Gemini: ${item.wardrobeItemId}`);
+            return item.purchaseName ? { ...item, wardrobeItemId: undefined } : null;
+          }
+          return item;
+        })
+        .filter((item): item is RecommendedOutfitItem => item !== null && Boolean(item.wardrobeItemId || item.purchaseName)),
+    }))
+    .filter((outfit) => outfit.items.length > 0);
 }
 
 export interface TaggedInspiration {
@@ -601,24 +749,11 @@ export async function analyzeInspirationImage(base64Data: string, mimeType: stri
   `;
 
   try {
-    const response = await getAi().models.generateContent({
-      model: MODEL_NAME,
-      contents: [
-        {
-          inlineData: {
-            data: base64Data,
-            mimeType: mimeType
-          }
-        },
-        prompt
-      ],
-      config: {
-        responseMimeType: 'application/json',
-      }
-    });
-
-    const text = response.text || '';
-    const parsed = safeParseGeminiJson<{ notes?: string; tags?: string[] }>(text);
+    const parsed = await generateJson<{ notes?: string; tags?: string[] }>(
+      VISION_MODEL_NAME,
+      [{ inlineData: { data: base64Data, mimeType } }, prompt],
+      INSPIRATION_SCHEMA
+    );
     return {
       notes: parsed.notes || 'Visual fashion inspiration',
       tags: parsed.tags || []
@@ -680,6 +815,7 @@ export async function generateCapsuleWardrobe(
     - Purpose & Itinerary: ${tripPurpose}
     - Luggage Constraint: ${luggageType} (Target maximum of ${maxItems} core garments total)
     - Climate & Weather: ${weatherForecast || 'Standard seasonal climate'}
+    - Client Dresses In: ${describeWearer(userProfile)}
     - Client Style DNA: ${userProfile?.styleAesthetic || 'Modern Quiet Luxury with Timeless Tailoring'}
     - Favorite Brands: ${userProfile?.favoriteBrands || 'Curated luxury'}
     - Color Palette: ${userProfile?.colorPalette || 'Neutral monochrome with earth tones'}
@@ -718,25 +854,28 @@ export async function generateCapsuleWardrobe(
   `;
 
   try {
-    const response = await getAi().models.generateContent({
-      model: MODEL_NAME,
-      contents: prompt,
-      config: {
-        responseMimeType: 'application/json',
-      }
-    });
-
-    const text = response.text || '';
-    const parsed = safeParseGeminiJson<{ selectedItemIds?: string[]; stylistRationale?: string; outfitSchedule?: CapsuleDaySchedule[] }>(text);
-    const chosenIds = parsed.selectedItemIds || wardrobe.slice(0, maxItems).map(w => w.id);
+    const parsed = await generateJson<{ selectedItemIds?: string[]; stylistRationale?: string; outfitSchedule?: CapsuleDaySchedule[] }>(
+      MODEL_NAME,
+      prompt,
+      CAPSULE_SCHEMA
+    );
+    const ownedIds = new Set(wardrobe.map((w) => w.id));
+    const validIds = (parsed.selectedItemIds || []).filter((id) => ownedIds.has(id));
+    const chosenIds = validIds.length > 0 ? validIds : wardrobe.slice(0, maxItems).map(w => w.id);
     const packingList = wardrobe
       .filter(w => chosenIds.includes(w.id))
       .map(w => ({ id: w.id, category: w.category, brand: w.brand, styleNotes: w.styleNotes }));
+    const keepOwned = (ids: string[] | undefined) => (ids || []).filter((id) => ownedIds.has(id));
+    const outfitSchedule = (parsed.outfitSchedule || []).map((day) => ({
+      ...day,
+      dayLook: { ...day.dayLook, itemIds: keepOwned(day.dayLook?.itemIds) },
+      eveningLook: { ...day.eveningLook, itemIds: keepOwned(day.eveningLook?.itemIds) },
+    }));
 
     return {
       selectedItemIds: chosenIds,
       packingChecklist: packingList,
-      outfitSchedule: parsed.outfitSchedule || [],
+      outfitSchedule,
       stylistRationale: parsed.stylistRationale || 'A curated travel capsule designed for seamless day-to-night versatility.',
     };
   } catch (error) {
@@ -776,6 +915,7 @@ export async function analyzeWardrobeGaps(
     ${wardrobe.map(item => `- ${item.category} (${item.brand || 'Unbranded'}, ${item.color.join('/')}): ${item.styleNotes || ''}`).join('\n')}
 
     Client Style DNA:
+    - Dresses In: ${describeWearer(userProfile)}
     - Aesthetic: ${userProfile?.styleAesthetic || 'Modern Quiet Luxury'}
     - Favorite Brands: ${userProfile?.favoriteBrands || 'The Row, Toteme, Khaite, COS, Celine'}
     - Avoided Styles: ${userProfile?.avoidedStyles || 'None'}
@@ -798,20 +938,11 @@ export async function analyzeWardrobeGaps(
   `;
 
   try {
-    const response = await getAi().models.generateContent({
-      model: MODEL_NAME,
-      contents: prompt,
-      config: {
-        responseMimeType: 'application/json',
-      }
-    });
-
-    const text = response.text || '';
-    const parsed = safeParseGeminiJson<{ gaps?: WardrobeGapRecommendation[] }>(text);
+    const parsed = await generateJson<{ gaps?: WardrobeGapRecommendation[] }>(MODEL_NAME, prompt, GAPS_SCHEMA);
     return parsed.gaps || [];
   } catch (error) {
     console.error('Error analyzing wardrobe gaps with Gemini:', error);
-    return [];
+    throw new Error('Wardrobe gap analysis is temporarily unavailable. Please try again shortly.');
   }
 }
 

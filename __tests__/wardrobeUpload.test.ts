@@ -75,7 +75,7 @@ describe('POST /api/wardrobe/upload - Multi-Item Flat Lay Ingestion API', () => 
     (getSession as jest.Mock).mockResolvedValue(null);
 
     const formData = new FormData();
-    const file = new File([sampleImageBuffer], 'garment.webp', { type: 'image/webp' });
+    const file = new File([new Uint8Array(sampleImageBuffer)], 'garment.webp', { type: 'image/webp' });
     formData.append('image', file);
 
     const req = new NextRequest('http://localhost/api/wardrobe/upload', {
@@ -91,7 +91,7 @@ describe('POST /api/wardrobe/upload - Multi-Item Flat Lay Ingestion API', () => 
     (prisma.user.findUnique as jest.Mock).mockResolvedValue({ id: 'test-user-id', suspended: true });
 
     const formData = new FormData();
-    const file = new File([sampleImageBuffer], 'garment.webp', { type: 'image/webp' });
+    const file = new File([new Uint8Array(sampleImageBuffer)], 'garment.webp', { type: 'image/webp' });
     formData.append('image', file);
 
     const req = new NextRequest('http://localhost/api/wardrobe/upload', {
@@ -136,7 +136,7 @@ describe('POST /api/wardrobe/upload - Multi-Item Flat Lay Ingestion API', () => 
     });
 
     const formData = new FormData();
-    const file = new File([sampleImageBuffer], 'outfit-flatlay.webp', { type: 'image/webp' });
+    const file = new File([new Uint8Array(sampleImageBuffer)], 'outfit-flatlay.webp', { type: 'image/webp' });
     formData.append('image', file);
     formData.append('styleNotes', 'Curated autumn look');
 
@@ -183,7 +183,7 @@ describe('POST /api/wardrobe/upload - Multi-Item Flat Lay Ingestion API', () => 
     }));
 
     const formData = new FormData();
-    const file = new File([sampleImageBuffer], 'tabi-boots.webp', { type: 'image/webp' });
+    const file = new File([new Uint8Array(sampleImageBuffer)], 'tabi-boots.webp', { type: 'image/webp' });
     formData.append('image', file);
 
     const req = new NextRequest('http://localhost/api/wardrobe/upload', {
@@ -217,7 +217,7 @@ describe('POST /api/wardrobe/upload - Multi-Item Flat Lay Ingestion API', () => 
     }));
 
     const formData = new FormData();
-    const file = new File([sampleImageBuffer], 'sweater.webp', { type: 'image/webp' });
+    const file = new File([new Uint8Array(sampleImageBuffer)], 'sweater.webp', { type: 'image/webp' });
     formData.append('image', file);
 
     const req = new NextRequest('http://localhost/api/wardrobe/upload', {

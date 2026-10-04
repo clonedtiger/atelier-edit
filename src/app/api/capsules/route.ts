@@ -2,6 +2,8 @@ import { NextRequest, NextResponse } from 'next/server';
 import { prisma } from '@/lib/db';
 import { getSession } from '@/lib/session';
 import { createTravelCapsule } from '@/lib/capsule';
+import { enforceRateLimit } from '@/lib/rateLimit';
+import { logUserActivity } from '@/lib/analytics';
 
 async function getActiveUserId() {
   const session = await getSession();
@@ -41,6 +43,10 @@ export async function POST(req: NextRequest) {
     if (!destination || !startDate || !endDate || !tripPurpose) {
       return NextResponse.json({ error: 'Missing required trip parameters (destination, startDate, endDate, tripPurpose)' }, { status: 400 });
     }
+
+    const limited = await enforceRateLimit(userId, 'GENERATE_CAPSULE');
+    if (limited) return limited;
+    await logUserActivity(userId, 'GENERATE_CAPSULE');
 
     const capsuleResult = await createTravelCapsule({
       userId,

@@ -39,11 +39,28 @@ function getTransporter() {
 }
 
 /**
- * Generates an elegant, luxury editorial HTML email template for the What's New Digest.
+ * Escapes text for safe interpolation into HTML. Post titles and summaries are
+ * model-generated and names/aesthetics are user-supplied, so none of it is trusted.
+ */
+export function escapeHtml(value: string | null | undefined): string {
+  return String(value ?? '')
+    .replace(/&/g, '&amp;')
+    .replace(/</g, '&lt;')
+    .replace(/>/g, '&gt;')
+    .replace(/"/g, '&quot;')
+    .replace(/'/g, '&#39;');
+}
+
+const SERIF = "'Cormorant Garamond', Georgia, 'Times New Roman', serif";
+const SANS = "-apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif";
+
+/**
+ * Generates the What's New digest email in the app's warm ivory / pine editorial palette.
  */
 function generateDigestHtml(params: EmailDigestParams, appUrl: string): string {
   const { name, styleAesthetic, posts } = params;
-  const clientName = name || 'Valued Client';
+  const clientName = escapeHtml(name || 'Valued Client');
+  const safeAppUrl = escapeHtml(appUrl);
   const issueDate = new Date().toLocaleDateString('en-GB', {
     weekday: 'long',
     day: 'numeric',
@@ -56,32 +73,30 @@ function generateDigestHtml(params: EmailDigestParams, appUrl: string): string {
       const tagsHtml = (post.tags || [])
         .map(
           (t) =>
-            `<span style="display: inline-block; background-color: rgba(212, 175, 55, 0.12); border: 1px solid rgba(212, 175, 55, 0.3); color: #d4af37; font-size: 11px; font-weight: 600; padding: 3px 8px; border-radius: 12px; margin-right: 5px; margin-bottom: 5px;">#${t.replace(/^#/, '')}</span>`
+            `<span style="display: inline-block; background-color: #ECEFE9; color: #35443B; font-size: 11px; font-weight: 600; padding: 3px 9px; border-radius: 12px; margin: 0 5px 5px 0; font-family: ${SANS};">${escapeHtml(t.replace(/^#/, ''))}</span>`
         )
         .join(' ');
 
       const imageHtml =
-        post.imageUrl && post.imageUrl.startsWith('http')
-          ? `<div style="margin-bottom: 14px;">
-               <img src="${post.imageUrl}" alt="${post.title}" style="width: 100%; max-height: 320px; object-fit: cover; border-radius: 6px; display: block;" />
-             </div>`
+        post.imageUrl && post.imageUrl.startsWith('https://')
+          ? `<img src="${escapeHtml(post.imageUrl)}" alt="${escapeHtml(post.title)}" width="600" style="width: 100%; max-height: 320px; object-fit: cover; display: block; border: 0;" />`
           : '';
 
       return `
-        <div style="background-color: #1a1c23; border: 1px solid #2a2d37; border-radius: 8px; padding: 20px; margin-bottom: 24px; box-shadow: 0 4px 12px rgba(0,0,0,0.3);">
+        <div style="background-color: #FFFFFF; border: 1px solid #E7DFD3; border-radius: 6px; overflow: hidden; margin-bottom: 24px;">
           ${imageHtml}
-          <div style="margin-bottom: 8px;">
-            <span style="font-size: 10px; text-transform: uppercase; letter-spacing: 0.12em; color: #d4af37; background-color: rgba(212, 175, 55, 0.15); padding: 3px 7px; border-radius: 3px; font-weight: 700;">
-              ${post.source || 'Editorial Feed'}
-            </span>
+          <div style="padding: 22px 24px;">
+            <div style="font-size: 10px; text-transform: uppercase; letter-spacing: 0.16em; color: #8E8D94; font-weight: 600; font-family: ${SANS};">
+              ${escapeHtml(post.source || 'Editorial Feed')}
+            </div>
+            <h2 style="color: #18181A; font-size: 24px; font-weight: 400; margin: 8px 0 10px 0; line-height: 1.25; font-family: ${SERIF};">
+              ${escapeHtml(post.title)}
+            </h2>
+            <p style="color: #56565E; font-size: 14px; line-height: 1.65; margin: 0 0 14px 0; font-family: ${SANS};">
+              ${escapeHtml(post.summary)}
+            </p>
+            ${tagsHtml ? `<div>${tagsHtml}</div>` : ''}
           </div>
-          <h2 style="color: #ffffff; font-size: 18px; font-weight: 700; margin: 8px 0 10px 0; line-height: 1.35; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif;">
-            ${post.title}
-          </h2>
-          <p style="color: #c5c7d0; font-size: 14px; line-height: 1.6; margin: 0 0 14px 0; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif;">
-            ${post.summary}
-          </p>
-          ${tagsHtml ? `<div>${tagsHtml}</div>` : ''}
         </div>
       `;
     })
@@ -95,44 +110,44 @@ function generateDigestHtml(params: EmailDigestParams, appUrl: string): string {
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>Atelier Edit — Style Stream Digest</title>
 </head>
-<body style="margin: 0; padding: 0; background-color: #0f1013; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif; -webkit-font-smoothing: antialiased;">
-  <table role="presentation" width="100%" cellspacing="0" cellpadding="0" border="0" style="background-color: #0f1013; padding: 32px 12px;">
+<body style="margin: 0; padding: 0; background-color: #FAF8F4; font-family: ${SANS}; -webkit-font-smoothing: antialiased;">
+  <table role="presentation" width="100%" cellspacing="0" cellpadding="0" border="0" style="background-color: #FAF8F4; padding: 32px 12px;">
     <tr>
       <td align="center">
-        <table role="presentation" width="100%" max-width="600" cellspacing="0" cellpadding="0" border="0" style="max-width: 600px; width: 100%;">
-          
-          <!-- Header Branding -->
-          <tr>
-            <td style="text-align: center; padding-bottom: 28px;">
-              <h1 style="color: #d4af37; font-size: 24px; font-weight: 800; letter-spacing: 0.25em; text-transform: uppercase; margin: 0 0 6px 0; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif;">
-                ATELIER EDIT
-              </h1>
-              <p style="color: #8b8f9e; font-size: 12px; letter-spacing: 0.15em; text-transform: uppercase; margin: 0;">
-                Curated Style Stream Intelligence &bull; ${issueDate}
-              </p>
-            </td>
-          </tr>
+        <table role="presentation" width="100%" cellspacing="0" cellpadding="0" border="0" style="max-width: 600px; width: 100%;">
 
-          <!-- Welcome & Aesthetic Card -->
+          <!-- Masthead -->
           <tr>
-            <td style="background: linear-gradient(135deg, #181a22 0%, #1e202a 100%); border: 1px solid #2e313d; border-radius: 8px; padding: 24px; margin-bottom: 24px; color: #ffffff;">
-              <h3 style="margin: 0 0 8px 0; font-size: 16px; font-weight: 700; color: #ffffff;">
-                Good day, ${clientName}
-              </h3>
-              <p style="margin: 0 0 12px 0; color: #b2b5c2; font-size: 13.5px; line-height: 1.55;">
-                Your latest fashion intelligence and personal inspiration feeds have been synchronized. Here are your newly curated editorial style coordinates:
+            <td style="text-align: center; padding-bottom: 24px; border-bottom: 1px solid #E7DFD3;">
+              <h1 style="color: #18181A; font-size: 30px; font-weight: 300; letter-spacing: 0.2em; text-transform: uppercase; margin: 0 0 6px 0; font-family: ${SERIF};">
+                Atelier Edit
+              </h1>
+              <p style="color: #56565E; font-size: 11px; letter-spacing: 0.22em; text-transform: uppercase; margin: 0; font-weight: 600;">
+                The Personal Style Journal &bull; ${issueDate}
               </p>
-              ${
-                styleAesthetic
-                  ? `<div style="font-size: 12px; color: #d4af37; background: rgba(212, 175, 55, 0.08); padding: 8px 12px; border-left: 2px solid #d4af37; border-radius: 2px;">
-                       <strong>Active Style DNA:</strong> ${styleAesthetic}
-                     </div>`
-                  : ''
-              }
             </td>
           </tr>
 
           <tr><td height="24" style="height: 24px;"></td></tr>
+
+          <!-- Greeting -->
+          <tr>
+            <td style="padding: 0 4px 24px 4px;">
+              <p style="margin: 0 0 8px 0; font-size: 20px; color: #18181A; font-family: ${SERIF};">
+                Good day, ${clientName}
+              </p>
+              <p style="margin: 0; color: #56565E; font-size: 14px; line-height: 1.6;">
+                Your style stream has been refreshed with new editorial notes drawn from your feeds and inspirations.
+              </p>
+              ${
+                styleAesthetic
+                  ? `<p style="margin: 12px 0 0 0; font-size: 12px; color: #35443B; padding: 8px 12px; border-left: 2px solid #35443B; background: #ECEFE9;">
+                       <strong>Style DNA:</strong> ${escapeHtml(styleAesthetic)}
+                     </p>`
+                  : ''
+              }
+            </td>
+          </tr>
 
           <!-- Post Cards -->
           <tr>
@@ -143,18 +158,18 @@ function generateDigestHtml(params: EmailDigestParams, appUrl: string): string {
 
           <!-- CTA Button -->
           <tr>
-            <td align="center" style="padding: 16px 0 36px 0;">
-              <a href="${appUrl}" target="_blank" style="display: inline-block; background-color: #d4af37; color: #000000; text-decoration: none; font-size: 13px; font-weight: 800; letter-spacing: 0.1em; text-transform: uppercase; padding: 14px 32px; border-radius: 4px; box-shadow: 0 4px 14px rgba(212, 175, 55, 0.35);">
-                Open Atelier Edit Studio &rarr;
+            <td align="center" style="padding: 12px 0 36px 0;">
+              <a href="${safeAppUrl}" target="_blank" style="display: inline-block; background-color: #35443B; color: #FAF8F4; text-decoration: none; font-size: 12px; font-weight: 600; letter-spacing: 0.14em; text-transform: uppercase; padding: 14px 32px; border-radius: 4px;">
+                Open Atelier Edit &rarr;
               </a>
             </td>
           </tr>
 
           <!-- Footer -->
           <tr>
-            <td style="text-align: center; border-top: 1px solid #232631; padding-top: 24px; color: #6a6e7c; font-size: 11px; line-height: 1.6;">
+            <td style="text-align: center; border-top: 1px solid #E7DFD3; padding-top: 24px; color: #8E8D94; font-size: 11px; line-height: 1.6;">
               <p style="margin: 0 0 6px 0;">
-                You received this digest because you refreshed your What's New style stream at <a href="${appUrl}" style="color: #8b8f9e; text-decoration: underline;">Atelier Edit</a>.
+                You received this digest because you refreshed your What's New style stream at <a href="${safeAppUrl}" style="color: #56565E; text-decoration: underline;">Atelier Edit</a>.
               </p>
               <p style="margin: 0;">
                 &copy; ${new Date().getFullYear()} Atelier Edit. All rights reserved.
@@ -217,7 +232,7 @@ export async function sendWhatsNewEmailDigest(params: EmailDigestParams): Promis
     return { success: true, simulated: true };
   }
 
-  const appUrl = process.env.APP_URL || 'https://atelier-edit-2kmaabi2ya-nw.a.run.app';
+  const appUrl = process.env.APP_URL || 'https://atelieredit.info';
   const fromAddress = process.env.EMAIL_FROM || 'Atelier Edit <digest@atelier-edit.com>';
   const subject = `Your Atelier Style Stream Digest — ${new Date().toLocaleDateString('en-GB', { day: 'numeric', month: 'short' })}`;
 

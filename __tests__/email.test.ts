@@ -1,4 +1,4 @@
-import { sendWhatsNewEmailDigest } from '@/lib/email';
+import { sendWhatsNewEmailDigest, escapeHtml } from '@/lib/email';
 import nodemailer from 'nodemailer';
 
 jest.mock('nodemailer');
@@ -102,7 +102,7 @@ describe('Email Digest Module (src/lib/email.ts)', () => {
         to: 'keith@sparky.com',
         from: 'Atelier Edit <digest@atelier-edit.com>',
         subject: expect.stringContaining('Your Atelier Style Stream Digest'),
-        html: expect.stringContaining('Architectural Cashmere & Heavy Wool'),
+        html: expect.stringContaining('Architectural Cashmere &amp; Heavy Wool'),
         text: expect.stringContaining('Sharply tailored overcoats'),
       })
     );
@@ -134,5 +134,29 @@ describe('Email Digest Module (src/lib/email.ts)', () => {
     expect(result.error).toContain('Connection timeout to SMTP gateway');
 
     consoleErrorSpy.mockRestore();
+  });
+
+  it('escapes model-generated and user-supplied text in the HTML digest', async () => {
+    process.env.SMTP_HOST = 'smtp.sendgrid.net';
+    process.env.SMTP_USER = 'apikey';
+    process.env.SMTP_PASS = 'SG.test-key';
+    const mockSendMail = jest.fn().mockResolvedValue({ messageId: '<m@x>' });
+    (nodemailer.createTransport as jest.Mock).mockReturnValue({ sendMail: mockSendMail });
+
+    await sendWhatsNewEmailDigest({
+      email: 'client@example.com',
+      name: '<img src=x onerror=alert(1)>',
+      posts: [{ ...mockPosts[0], title: '<script>alert("x")</script>' }],
+    });
+
+    const html = mockSendMail.mock.calls[0][0].html as string;
+    expect(html).not.toContain('<script>');
+    expect(html).not.toContain('<img src=x');
+    expect(html).toContain('&lt;script&gt;');
+  });
+
+  it('escapeHtml() encodes all HTML-significant characters', () => {
+    expect(escapeHtml(`<a href="x">'&'</a>`)).toBe('&lt;a href=&quot;x&quot;&gt;&#39;&amp;&#39;&lt;/a&gt;');
+    expect(escapeHtml(null)).toBe('');
   });
 });

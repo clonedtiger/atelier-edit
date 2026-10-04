@@ -50,7 +50,8 @@ describe('E2E Database Integration Test', () => {
 
   afterAll(async () => {
     // Clean up test data
-    await prisma.recommendationItem.deleteMany({});
+    // Scoped to this test's user: an unscoped delete wipes other suites' (and local dev) data
+    await prisma.recommendationItem.deleteMany({ where: { recommendation: { userId: testUserId } } });
     await prisma.recommendation.deleteMany({ where: { userId: testUserId } });
     await prisma.wardrobeItem.deleteMany({ where: { userId: testUserId } });
     await prisma.user.delete({ where: { id: testUserId } });

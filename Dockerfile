@@ -44,6 +44,7 @@ COPY --from=builder --chown=nextjs:nodejs /app/.next/static ./.next/static
 COPY --from=builder --chown=nextjs:nodejs /app/prisma ./prisma
 COPY --from=builder --chown=nextjs:nodejs /app/prisma.config.ts ./prisma.config.ts
 COPY --from=builder --chown=nextjs:nodejs /app/entrypoint.sh ./entrypoint.sh
+COPY --from=builder --chown=nextjs:nodejs /app/fashion_feed_sources.opml ./fashion_feed_sources.opml
 COPY --from=builder --chown=nextjs:nodejs /app/node_modules ./node_modules
 
 # Make startup entrypoint executable and strip carriage returns if checked in as CRLF

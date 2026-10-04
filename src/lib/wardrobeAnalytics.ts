@@ -166,6 +166,8 @@ export async function getWardrobeGaps(userId: string): Promise<EnrichedWardrobeG
   const user = await prisma.user.findUnique({
     where: { id: userId },
     select: {
+      sex: true,
+      gender: true,
       styleAesthetic: true,
       favoriteBrands: true,
       avoidedStyles: true,
@@ -175,15 +177,13 @@ export async function getWardrobeGaps(userId: string): Promise<EnrichedWardrobeG
 
   const gaps = await analyzeWardrobeGaps(items, user || undefined);
 
-  // Search live shopping links for the 3 missing items
-  const enriched: EnrichedWardrobeGap[] = [];
-  for (const gap of gaps) {
-    const shoppingLink = await searchShoppingLink(gap.purchaseName, gap.purchaseBrand);
-    enriched.push({
-      ...gap,
-      purchaseUrl: shoppingLink?.url || null,
-    });
-  }
+  // Search live shopping links for the missing items in parallel
+  const enriched: EnrichedWardrobeGap[] = await Promise.all(
+    gaps.map(async (gap) => {
+      const shoppingLink = await searchShoppingLink(gap.purchaseName, gap.purchaseBrand);
+      return { ...gap, purchaseUrl: shoppingLink?.url || null };
+    })
+  );
 
   return enriched;
 }

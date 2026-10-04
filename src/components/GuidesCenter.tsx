@@ -1,7 +1,8 @@
 'use client';
 
 import React, { useState, useMemo } from 'react';
-import { GUIDE_CATEGORIES, GUIDES_ARTICLES, GuideCategory, GuideArticle } from '../data/guides_data';
+import { GUIDE_CATEGORIES, GUIDES_ARTICLES } from '../data/guides_data';
+import { SearchIcon } from './Icons';
 
 interface GuidesCenterProps {
   initialCategory?: string;
@@ -85,8 +86,8 @@ export const GuidesCenter: React.FC<GuidesCenterProps> = ({
               boxSizing: 'border-box'
             }}
           />
-          <span style={{ position: 'absolute', left: '1.15rem', top: '50%', transform: 'translateY(-50%)', opacity: 0.5 }}>
-            🔍
+          <span style={{ position: 'absolute', left: '1.15rem', top: '50%', transform: 'translateY(-50%)', opacity: 0.5, display: 'inline-flex' }}>
+            <SearchIcon size={15} />
           </span>
           {searchQuery && (
             <button
@@ -132,15 +133,15 @@ export const GuidesCenter: React.FC<GuidesCenterProps> = ({
                   fontSize: '0.8rem',
                   borderRadius: '20px',
                   cursor: 'pointer',
-                  border: isSelected ? '1px solid var(--accent, #D4AF37)' : '1px solid var(--border-color)',
-                  background: isSelected ? 'var(--accent, #D4AF37)' : 'rgba(255, 255, 255, 0.6)',
+                  border: isSelected ? '1px solid var(--accent, #8A6A3B)' : '1px solid var(--border-color)',
+                  background: isSelected ? 'var(--accent, #8A6A3B)' : 'rgba(255, 255, 255, 0.6)',
                   color: isSelected ? '#FFFFFF' : 'var(--foreground)',
                   fontWeight: isSelected ? 600 : 400,
                   transition: 'all 0.2s ease',
                   whiteSpace: 'nowrap'
                 }}
               >
-                <span>{cat.icon}</span>
+                {cat.icon && <span>{cat.icon}</span>}
                 <span>{cat.title}</span>
               </button>
             );
@@ -187,7 +188,7 @@ export const GuidesCenter: React.FC<GuidesCenterProps> = ({
                           letterSpacing: '0.1em',
                           padding: '0.2rem 0.6rem',
                           borderRadius: '12px',
-                          background: 'rgba(212, 175, 55, 0.15)',
+                          background: 'rgba(138, 106, 59, 0.15)',
                           color: 'var(--accent, #9A7B20)',
                           fontWeight: 600
                         }}
@@ -257,7 +258,7 @@ export const GuidesCenter: React.FC<GuidesCenterProps> = ({
               </div>
 
               {/* Summary Lead */}
-              <p style={{ fontSize: '1rem', lineHeight: '1.6', color: 'var(--foreground)', fontStyle: 'italic', marginBottom: '1.75rem', borderLeft: '3px solid var(--accent, #D4AF37)', paddingLeft: '1rem' }}>
+              <p style={{ fontSize: '1rem', lineHeight: '1.6', color: 'var(--foreground)', fontStyle: 'italic', marginBottom: '1.75rem', borderLeft: '3px solid var(--accent, #8A6A3B)', paddingLeft: '1rem' }}>
                 {article.summary}
               </p>
 
@@ -298,7 +299,7 @@ export const GuidesCenter: React.FC<GuidesCenterProps> = ({
                                 width: '22px',
                                 height: '22px',
                                 borderRadius: '50%',
-                                background: 'var(--accent, #D4AF37)',
+                                background: 'var(--accent, #8A6A3B)',
                                 color: '#FFFFFF',
                                 fontSize: '0.75rem',
                                 fontWeight: 'bold',
@@ -328,21 +329,21 @@ export const GuidesCenter: React.FC<GuidesCenterProps> = ({
                           lineHeight: '1.5',
                           border:
                             sec.callout.type === 'tip'
-                              ? '1px solid rgba(212, 175, 55, 0.4)'
+                              ? '1px solid rgba(138, 106, 59, 0.4)'
                               : sec.callout.type === 'important'
                               ? '1px solid rgba(239, 68, 68, 0.4)'
                               : '1px solid var(--border-color)',
                           background:
                             sec.callout.type === 'tip'
-                              ? 'rgba(212, 175, 55, 0.06)'
+                              ? 'rgba(138, 106, 59, 0.06)'
                               : sec.callout.type === 'important'
                               ? 'rgba(239, 68, 68, 0.06)'
                               : 'rgba(255, 255, 255, 0.02)'
                         }}
                       >
                         <strong>
-                          {sec.callout.type === 'tip' && '💡 Pro-Tip: '}
-                          {sec.callout.type === 'important' && '⚠️ Important: '}
+                          {sec.callout.type === 'tip' && 'Pro-Tip: '}
+                          {sec.callout.type === 'important' && 'Important: '}
                           {sec.callout.type === 'info' && 'ℹ️ Note: '}
                         </strong>
                         <span>{sec.callout.text}</span>

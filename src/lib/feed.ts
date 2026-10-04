@@ -5,13 +5,25 @@ import { prisma } from './db';
 import { extractTrendsFromContent } from './gemini';
 import { syncInstagramAccount } from './instagram';
 
-const parser = new Parser();
+const parser = new Parser({ timeout: 10000 });
 
 interface ExtractedOutline {
   title: string;
   xmlUrl: string;
   htmlUrl: string;
   type: string;
+  category?: string;
+  /** Feeds marked retired="true" are kept in the OPML only so existing rows get muted. */
+  retired?: boolean;
+}
+
+function decodeXmlEntities(value: string): string {
+  return value
+    .replace(/&quot;/g, '"')
+    .replace(/&apos;/g, "'")
+    .replace(/&lt;/g, '<')
+    .replace(/&gt;/g, '>')
+    .replace(/&amp;/g, '&');
 }
 
 /**
@@ -39,7 +51,7 @@ export function parseOPML(): ExtractedOutline[] {
     const attrRegex = /(\w+)="([^"]*)"/g;
     let attrMatch;
     while ((attrMatch = attrRegex.exec(attrString)) !== null) {
-      attrs[attrMatch[1]] = attrMatch[2];
+      attrs[attrMatch[1]] = decodeXmlEntities(attrMatch[2]);
     }
 
     // We only care about outline tags that have xmlUrl (which are our RSS feeds)
@@ -48,7 +60,9 @@ export function parseOPML(): ExtractedOutline[] {
         title: attrs.title || attrs.text || 'Unnamed Feed',
         xmlUrl: attrs.xmlUrl,
         htmlUrl: attrs.htmlUrl || '',
-        type: attrs.type || 'rss'
+        type: attrs.type || 'rss',
+        category: attrs.category || undefined,
+        retired: attrs.retired === 'true' ? true : undefined,
       });
     }
   }
@@ -64,23 +78,62 @@ export async function syncFeedSourcesFromOPML() {
   console.log(`Parsed ${sources.length} feed sources from OPML.`);
 
   for (const source of sources) {
+    if (source.retired) {
+      // Mute curated rows for dead feeds so sync stops fetching them; user-added feeds are left alone.
+      await prisma.feedSource.updateMany({
+        where: { url: source.xmlUrl, userId: null },
+        data: { isMuted: true },
+      });
+      continue;
+    }
+
     await prisma.feedSource.upsert({
       where: { url: source.xmlUrl },
-      update: { name: source.title, type: source.type },
+      update: { name: source.title, type: source.type, ...(source.category ? { category: source.category } : {}) },
       create: {
         name: source.title,
         url: source.xmlUrl,
-        type: source.type
+        type: source.type,
+        category: source.category ?? null,
       }
     });
   }
 }
 
+export interface SyncOptions {
+  /** Stop starting new work once this many milliseconds have elapsed. */
+  deadlineMs?: number;
+  /** How many feed sources to fetch at once. */
+  concurrency?: number;
+}
+
+/**
+ * Runs `worker` over `items` with at most `limit` in flight at a time.
+ */
+async function runWithConcurrency<T>(items: T[], limit: number, worker: (item: T) => Promise<void>): Promise<void> {
+  let next = 0;
+  const runners = Array.from({ length: Math.min(limit, items.length) }, async () => {
+    while (next < items.length) {
+      const item = items[next++];
+      await worker(item);
+    }
+  });
+  await Promise.all(runners);
+}
+
 /**
  * Fetches the latest articles from all sources, scrapes clean text using r.jina.ai,
  * and extracts trend keywords using Gemini.
+ *
+ * Sources are fetched in parallel. When a deadline is given, no new source or article is
+ * started after it passes, so request-path callers stay inside the hosting proxy timeout;
+ * anything skipped is picked up by the next sync. Articles whose trend extraction fails are
+ * not saved, so they are retried next time rather than stored with no trends.
  */
-export async function syncArticlesAndTrends(limitPerFeed = 2, force = false) {
+export async function syncArticlesAndTrends(limitPerFeed = 2, force = false, options: SyncOptions = {}) {
+  const deadline = options.deadlineMs ? Date.now() + options.deadlineMs : Number.POSITIVE_INFINITY;
+  const pastDeadline = () => Date.now() > deadline;
+
   // Ensure we have sources in the database
   await syncFeedSourcesFromOPML();
 
@@ -95,21 +148,13 @@ export async function syncArticlesAndTrends(limitPerFeed = 2, force = false) {
     }
   }
 
-  // Purge any trend articles that failed to extract trends previously (due to API model name issues) to allow reprocessing
-  await prisma.trendArticle.deleteMany({
-    where: {
-      extractedTrends: {
-        equals: []
-      }
-    }
-  });
-
   const sources = await prisma.feedSource.findMany({
     where: { isMuted: false }
   });
   console.log(`Syncing articles for ${sources.length} sources...`);
 
-  for (const source of sources) {
+  await runWithConcurrency(sources, options.concurrency ?? 6, async (source) => {
+    if (pastDeadline()) return;
     try {
       console.log(`Fetching feed: ${source.name} (${source.url}) [Type: ${source.type}]`);
 
@@ -132,15 +177,17 @@ export async function syncArticlesAndTrends(limitPerFeed = 2, force = false) {
             }
           });
         }
-        continue;
+        return;
       }
 
       const feed = await parser.parseURL(source.url);
-      
+
       // Get the latest N items
       const items = feed.items.slice(0, limitPerFeed);
 
       for (const item of items) {
+        if (pastDeadline()) return;
+
         const link = item.link || '';
         const title = item.title || 'Untitled Article';
         const pubDate = item.pubDate ? new Date(item.pubDate) : new Date();
@@ -152,19 +199,15 @@ export async function syncArticlesAndTrends(limitPerFeed = 2, force = false) {
           where: { sourceUrl: link }
         });
 
-        if (existing) {
-          console.log(`Skipping existing article: ${title}`);
-          continue;
-        }
+        if (existing) continue;
 
         console.log(`Parsing new article: ${title}`);
-        
+
         let cleanText = item.contentSnippet || item.content || '';
-        
+
         // If it's a web link, try to use Jina Reader for clean Markdown extraction
         if (link.startsWith('http') && !source.url.includes('youtube.com')) {
           try {
-            console.log(`Fetching clean markdown from Jina Reader for: ${link}`);
             const jinaUrl = `https://r.jina.ai/${link}`;
             const res = await fetch(jinaUrl, {
               headers: {
@@ -184,12 +227,14 @@ export async function syncArticlesAndTrends(limitPerFeed = 2, force = false) {
           }
         }
 
-        // Use Gemini to extract key trends from the article body
-        console.log(`Running Gemini trend extraction on: ${title}`);
-        const trends = await extractTrendsFromContent(title, cleanText);
-        console.log(`Extracted trends for "${title}":`, trends);
+        let trends: string[];
+        try {
+          trends = await extractTrendsFromContent(title, cleanText);
+        } catch (aiErr) {
+          console.error(`Gemini trend extraction failed for "${title}"; will retry on next sync:`, aiErr);
+          continue;
+        }
 
-        // Save to Database
         await prisma.trendArticle.create({
           data: {
             sourceUrl: link,
@@ -204,6 +249,7 @@ export async function syncArticlesAndTrends(limitPerFeed = 2, force = false) {
     } catch (err) {
       console.error(`Failed to sync source ${source.name}:`, err);
     }
-  }
-  console.log('Feed sync complete.');
+  });
+
+  console.log(pastDeadline() ? 'Feed sync stopped at its time budget; remaining sources will sync next time.' : 'Feed sync complete.');
 }

@@ -1,6 +1,6 @@
 import sharp from 'sharp';
 import { prisma } from './db';
-import { getAi, MODEL_NAME, safeParseGeminiJson } from './gemini';
+import { getAi, MODEL_NAME, safeParseGeminiJson, withGeminiRetry } from './gemini';
 import { syncArticlesAndTrends } from './feed';
 import { uploadImage } from './storage';
 import { sendWhatsNewEmailDigest } from './email';
@@ -20,6 +20,58 @@ export interface WhatsNewData {
   posts: WhatsNewPost[];
 }
 
+/** Womenswear-specific garments that must never appear in a menswear-only stream. */
+export const WOMENSWEAR_TERMS = [
+  'dress', 'dresses', 'gown', 'gowns', 'skirt', 'skirts', 'blouse', 'blouses',
+  'bra', 'bras', 'lingerie', 'bikini', 'swimsuit', 'high heels', 'stilettos',
+  'womenswear', 'maternity',
+];
+
+const MENSWEAR_TERMS = ['men', "men's", 'menswear', 'mens', 'male'];
+
+/** Stock-photo agencies whose images are watermarked and licensed; never re-host these. */
+const BLOCKED_IMAGE_HOSTS = [
+  'gettyimages', 'istockphoto', 'shutterstock', 'alamy', 'dreamstime',
+  'depositphotos', 'stock.adobe', 'ftcdn.net', 'bigstockphoto', '123rf', 'agefotostock',
+];
+
+function escapeRegExp(value: string): string {
+  return value.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+}
+
+/**
+ * Whole-word, case-insensitive match. Substring matching misfires badly on fashion copy:
+ * "bra" matches "brand" and "vibrant", "dress" matches "well-dressed", "men" matches "women".
+ */
+export function containsAnyWord(text: string, words: string[]): boolean {
+  return words.some((w) => new RegExp(`(^|[^a-z])${escapeRegExp(w.toLowerCase())}($|[^a-z])`).test(text.toLowerCase()));
+}
+
+/** Menswear phrases that contain an otherwise-forbidden word. */
+const MENSWEAR_SAFE_PHRASES = [
+  'dress shirt', 'dress shirts', 'dress shoe', 'dress shoes', 'dress boot', 'dress boots',
+  'dress trousers', 'dress pants', 'dress code', 'dress watch', 'dress down', 'dress up',
+  'dressing gown', 'dressing gowns',
+];
+
+/** True if the text describes womenswear garments, ignoring menswear phrases like "dress shirt". */
+export function mentionsWomenswear(text: string): boolean {
+  let cleaned = text.toLowerCase();
+  for (const phrase of MENSWEAR_SAFE_PHRASES) {
+    cleaned = cleaned.split(phrase).join(' ');
+  }
+  return containsAnyWord(cleaned, WOMENSWEAR_TERMS);
+}
+
+export function isBlockedImageUrl(url: string): boolean {
+  try {
+    const host = new URL(url).hostname.toLowerCase();
+    return BLOCKED_IMAGE_HOSTS.some((blocked) => host.includes(blocked));
+  } catch {
+    return true;
+  }
+}
+
 /**
  * Downloads an external image over HTTP, validates it through Sharp,
  * converts to WebP, and stores it permanently via uploadImage (GCS/local).
@@ -27,7 +79,7 @@ export interface WhatsNewData {
  */
 async function downloadAndStoreImage(imageUrl: string, filenamePrefix: string): Promise<string | null> {
   try {
-    if (!imageUrl || !imageUrl.startsWith('http')) {
+    if (!imageUrl || !imageUrl.startsWith('http') || isBlockedImageUrl(imageUrl)) {
       return null;
     }
 
@@ -87,7 +139,7 @@ async function searchAndSaveEditorialImage(
   }
 
   try {
-    const searchQuery = `${query} ${genderModifier} fashion editorial runway street style high resolution`.trim();
+    const searchQuery = `${query} ${genderModifier} fashion editorial runway street style -site:gettyimages.com -site:shutterstock.com -site:alamy.com`.trim();
 
     const res = await fetch('https://api.tavily.com/search', {
       method: 'POST',
@@ -99,13 +151,14 @@ async function searchAndSaveEditorialImage(
         include_images: true,
         max_results: 3,
       }),
+      signal: AbortSignal.timeout(8000),
     });
 
     if (res.ok) {
       const data = await res.json();
       if (Array.isArray(data.images) && data.images.length > 0) {
         for (const candidateUrl of data.images) {
-          if (typeof candidateUrl === 'string' && candidateUrl.startsWith('http')) {
+          if (typeof candidateUrl === 'string' && candidateUrl.startsWith('http') && !isBlockedImageUrl(candidateUrl)) {
             const saved = await downloadAndStoreImage(candidateUrl, prefix);
             if (saved) return saved;
           }
@@ -117,28 +170,6 @@ async function searchAndSaveEditorialImage(
   }
 
   return null;
-}
-
-/**
- * Creates a clean, minimalist fallback WebP image and stores it locally/GCS
- * so that no post is ever left with a broken link.
- */
-async function createFallbackImage(isMale: boolean, prefix: string): Promise<string> {
-  const bg = isMale ? { r: 24, g: 26, b: 30 } : { r: 35, g: 30, b: 33 };
-
-  const buffer = await sharp({
-    create: {
-      width: 800,
-      height: 600,
-      channels: 4,
-      background: { ...bg, alpha: 1 },
-    },
-  })
-    .webp({ quality: 80 })
-    .toBuffer();
-
-  const filename = `${prefix}-fallback-${Date.now()}-${Math.floor(Math.random() * 1000)}.webp`;
-  return await uploadImage(buffer, filename);
 }
 
 /**
@@ -231,11 +262,22 @@ export async function generateAndSaveUserWhatsNew(
     },
   });
 
-  // 2. Sync feed sources to ensure recent articles exist in database
+  // 2. Top up recent articles. Not forced (skipped if synced in the last 15 minutes) and
+  // time-boxed so the whole request stays well inside Firebase Hosting's 60-second proxy limit.
+  // The deadline stops new work being started; the race below also stops this request waiting on
+  // scrapes/extractions already in flight, which finish in the background and help the next refresh.
+  let syncTimer: ReturnType<typeof setTimeout> | undefined;
   try {
-    await syncArticlesAndTrends(2, true);
+    await Promise.race([
+      syncArticlesAndTrends(2, false, { deadlineMs: 12000 }),
+      new Promise<void>((resolve) => {
+        syncTimer = setTimeout(resolve, 15000);
+      }),
+    ]);
   } catch (syncErr) {
     console.warn('Feed sync error during whats-new generation:', syncErr);
+  } finally {
+    clearTimeout(syncTimer);
   }
 
   // 3. Fetch latest trend articles from database
@@ -261,34 +303,9 @@ export async function generateAndSaveUserWhatsNew(
   // Filter articles for male users so Gemini is not primed with purely womenswear pieces
   let articles = allArticles;
   if (isMale) {
-    const femaleExclusiveKeywords = [
-      'dress',
-      'dresses',
-      'skirt',
-      'skirts',
-      'bra',
-      'lingerie',
-      'maternity',
-      'high heels',
-      'womenswear',
-      'bikini',
-      'swimsuit',
-      'blouse',
-    ];
     const filtered = allArticles.filter((a) => {
-      const text = `${a.title} ${a.extractedTrends.join(' ')}`.toLowerCase();
-      const hasFemale = femaleExclusiveKeywords.some((kw) => text.includes(kw));
-      const hasMaleOrUniversal =
-        text.includes('men') ||
-        text.includes('menswear') ||
-        text.includes('tailor') ||
-        text.includes('suit') ||
-        text.includes('coat') ||
-        text.includes('jacket') ||
-        text.includes('leather') ||
-        text.includes('denim') ||
-        text.includes('knit');
-      return !hasFemale || hasMaleOrUniversal;
+      const text = `${a.title} ${a.extractedTrends.join(' ')}`;
+      return !mentionsWomenswear(text) || containsAnyWord(text, MENSWEAR_TERMS);
     });
 
     if (filtered.length >= 3) {
@@ -406,77 +423,37 @@ Show clearly how runway trends from their inspiration feeds directly validate an
   let rawPosts: RawPost[] = [];
 
   try {
-    const response = await getAi().models.generateContent({
-      model: MODEL_NAME,
-      contents: prompt,
-      config: {
-        responseMimeType: 'application/json',
-      },
-    });
+    const response = await withGeminiRetry(() =>
+      getAi().models.generateContent({
+        model: MODEL_NAME,
+        contents: prompt,
+        config: {
+          responseMimeType: 'application/json',
+        },
+      })
+    );
 
     const text = response.text || '{}';
     const parsed = safeParseGeminiJson<{ posts?: RawPost[] }>(text);
-    rawPosts = parsed.posts || [];
+    rawPosts = (parsed.posts || []).filter((p) => p && p.title && p.summary);
   } catch (err) {
     console.error('Gemini editorial stream generation failed:', err);
+    throw new Error('The editorial stylist is temporarily unavailable. Please try again in a minute.');
   }
 
-  // Fallback if model output was empty
-  if (rawPosts.length === 0) {
-    rawPosts = [
-      {
-        title: isMale
-          ? 'Structural Tailoring & Heavyweight Wool'
-          : 'Architectural Cashmere & Fluid Silhouettes',
-        summary: isMale
-          ? 'Emphasize architectural shoulder lines with relaxed, pleated wide-leg trousers. Anchor neutral charcoal tones with clean minimalist leather footwear for a balanced luxury uniform.'
-          : 'Pair sculptural knitwear with tailored high-waisted trousers and sleek leather accents, echoing timeless European tailoring rules.',
-        source: allUserInspirationFeeds.length > 0 ? allUserInspirationFeeds[0] : 'Personal Inspiration Feed',
-        tags: isMale
-          ? ['Tailoring', 'Menswear', 'Heavy Wool', 'Pleated Trousers', 'Loafers']
-          : ['Cashmere', 'Tailoring', 'Fluid Silhouettes', 'Luxury', 'Minimalism'],
-        imageSearchQuery: isMale
-          ? 'men tailored charcoal wool coat minimalist street style'
-          : 'women luxury tailoring cashmere coat street style',
-      },
-    ];
-  }
-
-  // Post-processing: Sanitize any stray female terms if the user is male
+  // Drop (rather than rewrite) any post that slips womenswear into a menswear-only stream
   if (isMale) {
-    const forbiddenFemaleWords = [
-      'dress',
-      'dresses',
-      'skirt',
-      'skirts',
-      'blouse',
-      'blouses',
-      'female',
-      'womenswear',
-      'high heels',
-      'gown',
-      'gowns',
-      'bra',
-    ];
-    rawPosts = rawPosts.map((post) => {
-      const containsForbidden = forbiddenFemaleWords.some(
-        (w) =>
-          post.title.toLowerCase().includes(w) ||
-          post.summary.toLowerCase().includes(w) ||
-          post.tags.some((t) => t.toLowerCase().includes(w))
-      );
-      if (containsForbidden) {
-        return {
-          title: 'Architectural Tailoring & Structured Outerwear',
-          summary:
-            'Emphasize sharp shoulder lines and relaxed, pleated wool trousers. Anchor neutral charcoal and camel tones with clean leather footwear for a balanced luxury uniform.',
-          source: allUserInspirationFeeds.length > 0 ? allUserInspirationFeeds[0] : 'Curated Editorial',
-          tags: ['Tailoring', 'Menswear', 'Wool Coat', 'Pleated Trousers', 'Loafers'],
-          imageSearchQuery: 'men tailored charcoal wool coat minimalist street style fashion editorial',
-        };
-      }
-      return post;
-    });
+    const before = rawPosts.length;
+    rawPosts = rawPosts.filter(
+      (post) => !mentionsWomenswear(`${post.title} ${post.summary} ${(post.tags || []).join(' ')}`)
+    );
+    if (rawPosts.length < before) {
+      console.warn(`Dropped ${before - rawPosts.length} post(s) containing womenswear for a menswear stream.`);
+    }
+  }
+
+  if (rawPosts.length === 0) {
+    throw new Error('No new editorial posts could be generated this time. Please try again shortly.');
   }
 
   // Guarantee 3-6 descriptive tags for key items or concepts
@@ -497,44 +474,44 @@ Show clearly how runway trends from their inspiration feeds directly validate an
   const genderModifier = isMale ? 'men menswear' : isFemale ? 'women womenswear' : '';
   const newlyCreatedPosts: WhatsNewPost[] = [];
 
-  for (let i = 0; i < rawPosts.length; i++) {
-    const rp = rawPosts[i];
-    let resolvedImageUrl: string | null = null;
-
+  const resolveImage = async (rp: RawPost, i: number): Promise<string> => {
     // Check if matched to a user's uploaded visual inspiration
     if (
       typeof rp.matchedInspirationIndex === 'number' &&
       userInspirations[rp.matchedInspirationIndex]?.imageUrl
     ) {
-      resolvedImageUrl = userInspirations[rp.matchedInspirationIndex].imageUrl;
-    } else if (userInspirations.length > 0) {
-      // Check if tags match any inspiration
-      const matchedIns = userInspirations.find((ins) =>
-        ins.tags.some((t) => rp.tags.map((x) => x.toLowerCase()).includes(t.toLowerCase()))
-      );
+      return userInspirations[rp.matchedInspirationIndex].imageUrl;
+    }
+    if (userInspirations.length > 0) {
+      const postTags = rp.tags.map((x) => x.toLowerCase());
+      const matchedIns = userInspirations.find((ins) => ins.tags.some((t) => postTags.includes(t.toLowerCase())));
       if (matchedIns?.imageUrl) {
-        resolvedImageUrl = matchedIns.imageUrl;
+        return matchedIns.imageUrl;
       }
     }
 
-    // If not matched or needs search, query Tavily and download image
-    if (!resolvedImageUrl) {
-      resolvedImageUrl = await searchAndSaveEditorialImage(
-        rp.imageSearchQuery || rp.title,
-        genderModifier,
-        `editorial-${i + 1}`
-      );
+    // Cap the search + download attempts per post; a slow image host must not stall the refresh
+    let imageTimer: ReturnType<typeof setTimeout> | undefined;
+    const searched = await Promise.race([
+      searchAndSaveEditorialImage(rp.imageSearchQuery || rp.title, genderModifier, `editorial-${i + 1}`),
+      new Promise<null>((resolve) => {
+        imageTimer = setTimeout(() => resolve(null), 12000);
+      }),
+    ]).finally(() => clearTimeout(imageTimer));
+    if (searched) return searched;
+
+    if (userInspirations.length > 0) {
+      return userInspirations[i % userInspirations.length].imageUrl;
     }
 
-    // If still unresolved, use any available user inspiration image
-    if (!resolvedImageUrl && userInspirations.length > 0) {
-      resolvedImageUrl = userInspirations[i % userInspirations.length].imageUrl;
-    }
+    // No image: the UI renders a typographic header instead of a placeholder graphic
+    return '';
+  };
 
-    // Final fallback: generate a sleek local WebP asset
-    if (!resolvedImageUrl) {
-      resolvedImageUrl = await createFallbackImage(isMale, `editorial-${i + 1}`);
-    }
+  const resolvedImages = await Promise.all(rawPosts.map((rp, i) => resolveImage(rp, i)));
+
+  for (let i = 0; i < rawPosts.length; i++) {
+    const rp = rawPosts[i];
 
     // Save post to PostgreSQL (historical posts are preserved)
     const createdPost = await prisma.whatsNewPost.create({
@@ -544,7 +521,7 @@ Show clearly how runway trends from their inspiration feeds directly validate an
         summary: rp.summary || 'Editorial coordinates and styling breakdown.',
         source: rp.source || 'Curated Feed',
         tags: rp.tags || [],
-        imageUrl: resolvedImageUrl,
+        imageUrl: resolvedImages[i],
         createdAt: new Date(),
       },
     });

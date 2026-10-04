@@ -24,7 +24,7 @@ export async function seedDatabase() {
   // 3. Seed Feed Sources from OPML
   const feedSources = [
     { name: 'Magasin (Laura Reilly)', url: 'https://magasin.substack.com/feed', type: 'rss' },
-    { name: 'The Cereal Aisle (Leandra Medine Cohen)', url: 'https://thecerealaisle.substack.com/feed', type: 'rss' },
+    { name: 'The Cereal Aisle (Leandra Medine Cohen)', url: 'https://leandramcohen.substack.com/feed', type: 'rss' },
     { name: '5 Things You Should Buy (Becky Malinsky)', url: 'https://5thingsyoushouldbuy.substack.com/feed', type: 'rss' },
     { name: 'Loïc Prigent (YouTube)', url: 'https://www.youtube.com/feeds/videos.xml?channel_id=UCU5Z-qPL8Terv_te68esHOw', type: 'youtube' },
     { name: 'Who What Wear', url: 'https://www.whowhatwear.com/feeds.xml', type: 'rss' },
