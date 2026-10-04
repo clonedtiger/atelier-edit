@@ -7,6 +7,8 @@ import { CameraIcon, DeviceIcon } from '@/components/Icons';
 import { useConfirmDialog } from '@/components/ConfirmDialog';
 import { ProfileMenu } from '@/components/ProfileMenu';
 import { OnboardingChecklist } from '@/components/OnboardingChecklist';
+import { WhatsNewCard } from '@/components/WhatsNewCard';
+import { LandingHero, LandingFeatures } from '@/components/Landing';
 import { OutfitCard, type OutfitLook, type OutfitFeedbackAction } from '@/components/OutfitCard';
 import { GuidesCenter } from '@/components/GuidesCenter';
 
@@ -2185,21 +2187,30 @@ export default function AtelierEditDashboard() {
       {/* Main Content View */}
       <main className="main-container">
         {!user ? (
-          /* Unauthenticated view: Render the login/registration form directly */
-          <div className="auth-panel-wrapper">
+          /* Signed-out view: what the app does, beside the sign-in / sign-up card */
+          <>
+          <div className="landing-grid">
+          <LandingHero
+            onCreateAccount={() => {
+              setAuthMode('signup');
+              setSignupSecret2FA(null);
+              document.getElementById('auth-card')?.scrollIntoView({ behavior: 'smooth', block: 'start' });
+            }}
+          />
+          <div className="auth-panel-wrapper" id="auth-card">
             <div className="lookbook-panel">
               <div className="auth-tabs-row">
                 <button
                   onClick={() => { setAuthMode('login'); setSignupSecret2FA(null); }}
                   className={`auth-tab-btn ${authMode === 'login' ? 'active' : ''}`}
                 >
-                  Login
+                  Sign in
                 </button>
                 <button
                   onClick={() => { setAuthMode('signup'); setSignupSecret2FA(null); }}
                   className={`auth-tab-btn ${authMode === 'signup' ? 'active' : ''}`}
                 >
-                  Register
+                  Create account
                 </button>
               </div>
 
@@ -2214,7 +2225,7 @@ export default function AtelierEditDashboard() {
                       required
                       value={authEmail}
                       onChange={(e) => setAuthEmail(e.target.value)}
-                      placeholder="e.g. example@fashion.com"
+                      placeholder="you@example.com"
                     />
                   </div>
 
@@ -2230,7 +2241,7 @@ export default function AtelierEditDashboard() {
                   </div>
 
                   <button type="submit" className="accent-button">
-                    LOG IN
+                    SIGN IN
                   </button>
 
                   <div style={{ textAlign: 'center', marginTop: '1rem' }}>
@@ -2240,7 +2251,7 @@ export default function AtelierEditDashboard() {
                       className="nav-action"
                       style={{ fontSize: '0.8rem', color: 'var(--accent-gold)', background: 'none', border: 'none', cursor: 'pointer', textDecoration: 'underline' }}
                     >
-                      Forgot Password?
+                      Forgot your password?
                     </button>
                   </div>
                 </form>
@@ -2257,7 +2268,7 @@ export default function AtelierEditDashboard() {
                       required
                       value={authName}
                       onChange={(e) => setAuthName(e.target.value)}
-                      placeholder="e.g. Clara Oswald"
+                      placeholder="Your name"
                     />
                   </div>
 
@@ -2268,7 +2279,7 @@ export default function AtelierEditDashboard() {
                       required
                       value={authEmail}
                       onChange={(e) => setAuthEmail(e.target.value)}
-                      placeholder="clara@fashion.com"
+                      placeholder="you@example.com"
                     />
                   </div>
 
@@ -2291,12 +2302,12 @@ export default function AtelierEditDashboard() {
                       onChange={(e) => setAuthMfaEnabled(e.target.checked)}
                     />
                     <label htmlFor="mfaEnable" style={{ cursor: 'pointer' }}>
-                      Enable Multi-Factor Security (2FA)
+                      Use an authenticator app for sign-in (2FA)
                     </label>
                   </div>
 
                   <button type="submit" className="accent-button">
-                    REGISTER ACCOUNT
+                    CREATE ACCOUNT
                   </button>
                 </form>
               )}
@@ -2417,6 +2428,9 @@ export default function AtelierEditDashboard() {
               )}
             </div>
           </div>
+          </div>
+          <LandingFeatures />
+          </>
         ) : (
           /* Authenticated Dashboard View */
           <>
@@ -2675,82 +2689,7 @@ export default function AtelierEditDashboard() {
                 <p style={{ fontSize: '0.85rem' }}>Nothing here yet. Tap Refresh to read this season&apos;s trends against your wardrobe.</p>
               </div>
             ) : (
-              whatsNewPosts.map((post) => (
-                <article key={post.id} className="lookbook-panel" style={{ padding: 0, overflow: 'hidden', marginBottom: '2rem' }}>
-                  {post.imageUrl && (
-                    <div style={{ position: 'relative', width: '100%', height: '350px' }}>
-                      <Image
-                        src={post.imageUrl}
-                        alt={post.title}
-                        fill
-                        sizes="(max-width: 768px) 100vw, 600px"
-                        style={{ objectFit: 'cover' }}
-                      />
-                      <div style={{
-                        position: 'absolute',
-                        bottom: 0,
-                        left: 0,
-                        right: 0,
-                        padding: '1.5rem 1rem 1rem 1rem',
-                        background: 'linear-gradient(to top, rgba(0,0,0,0.8) 0%, rgba(0,0,0,0) 100%)',
-                        color: '#fff'
-                      }}>
-                        <span style={{ fontSize: '0.7rem', textTransform: 'uppercase', letterSpacing: '0.1em', background: 'rgba(255,255,255,0.2)', padding: '0.2rem 0.5rem', borderRadius: '3px' }}>
-                          {post.source}
-                        </span>
-                        <h3 style={{ fontSize: '1.6rem', marginTop: '0.5rem', fontWeight: 500, textShadow: '0 2px 4px rgba(0,0,0,0.5)' }}>
-                          {post.title}
-                        </h3>
-                      </div>
-                    </div>
-                  )}
-                  {!post.imageUrl && (
-                    <div style={{ padding: '2rem 1.5rem 0 1.5rem', borderTop: '3px solid var(--accent)' }}>
-                      <span style={{ fontSize: '0.7rem', textTransform: 'uppercase', letterSpacing: '0.14em', color: 'var(--text-muted)', fontWeight: 600 }}>
-                        {post.source}
-                      </span>
-                      <h3 style={{ fontSize: '1.75rem', marginTop: '0.5rem', fontWeight: 400, color: 'var(--text-primary)', lineHeight: 1.2 }}>
-                        {post.title}
-                      </h3>
-                    </div>
-                  )}
-                  
-                  <div style={{ padding: '1.5rem' }}>
-                    <p className="outfit-narrative" style={{ margin: 0, border: 'none', padding: 0, fontSize: '0.95rem', lineHeight: '1.6' }}>
-                      {post.summary}
-                    </p>
-                    
-                    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginTop: '1.25rem', flexWrap: 'wrap', gap: '0.5rem' }}>
-                      {post.tags && post.tags.length > 0 && (
-                        <div style={{ display: 'flex', gap: '0.4rem', flexWrap: 'wrap', alignItems: 'center' }}>
-                          {post.tags.map((tag) => (
-                            <span
-                              key={tag}
-                              style={{
-                                background: 'var(--accent-light)',
-                                border: '1px solid var(--border-color)',
-                                color: 'var(--accent)',
-                                fontSize: '0.75rem',
-                                fontWeight: '600',
-                                padding: '0.2rem 0.6rem',
-                                borderRadius: '16px',
-                                letterSpacing: '0.02em',
-                              }}
-                            >
-                              #{tag}
-                            </span>
-                          ))}
-                        </div>
-                      )}
-                      {post.createdAt && (
-                        <span style={{ fontSize: '0.7rem', color: 'var(--text-muted)', whiteSpace: 'nowrap' }}>
-                          {new Date(post.createdAt).toLocaleDateString('en-GB', { day: 'numeric', month: 'short', year: 'numeric' })}
-                        </span>
-                      )}
-                    </div>
-                  </div>
-                </article>
-              ))
+              whatsNewPosts.map((post) => <WhatsNewCard key={post.id} post={post} />)
             )}
           </div>
         )}

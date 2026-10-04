@@ -30,6 +30,9 @@ jest.mock('@/lib/db', () => ({
     inspirationImage: {
       findMany: jest.fn(),
     },
+    wardrobeItem: {
+      findMany: jest.fn().mockResolvedValue([]),
+    },
     trendArticle: {
       findMany: jest.fn(),
     },
@@ -243,8 +246,7 @@ describe('Personalized What\'s New Feed - Library and API Routes', () => {
       // Verify prompt includes male restrictions
       expect(mockGenerateContent).toHaveBeenCalled();
       const calledPrompt = mockGenerateContent.mock.calls[0][0].contents as string;
-      expect(calledPrompt).toContain('Biological Sex: Male');
-      expect(calledPrompt).toContain('Gender: Male');
+      expect(calledPrompt).toContain('DRESSES IN: MENSWEAR');
       expect(calledPrompt).toContain('100% EXCLUSIVELY MENSWEAR AND MASCULINE LUXURY');
       expect(calledPrompt).toContain('You are STRICTLY FORBIDDEN from generating, mentioning, or describing ANY womenswear, female clothing');
       expect(calledPrompt).toContain('Relaxed wool trousers with pleats');
@@ -265,12 +267,11 @@ describe('Personalized What\'s New Feed - Library and API Routes', () => {
       expect(result.posts[0].title).toBe('Architectural Pleated Trousers & Heavy Drape');
     });
 
-    it('downloads and stores images permanently if an external Tavily image is fetched', async () => {
-      process.env.TAVILY_API_KEY = 'test-tavily-key';
-
+    it("grounds each post in a real article and the person's own pieces", async () => {
       (prisma.user.findUnique as jest.Mock).mockResolvedValueOnce({
         id: mockUserId,
         name: 'Sarah',
+        email: 'sarah@example.com',
         sex: 'Female',
         gender: 'Female',
         styleAesthetic: 'Quiet Luxury',
@@ -280,83 +281,82 @@ describe('Personalized What\'s New Feed - Library and API Routes', () => {
         customFeeds: [],
         feedSubscriptions: [],
       });
-
       (prisma.inspirationImage.findMany as jest.Mock).mockResolvedValueOnce([]);
-      (prisma.trendArticle.findMany as jest.Mock).mockResolvedValueOnce([]);
+      (prisma.wardrobeItem.findMany as jest.Mock)
+        .mockResolvedValueOnce([
+          { id: 'piece-coat', category: 'Outerwear', brand: 'Toteme', color: ['Camel'], styleNotes: 'Oversized wool coat' },
+        ])
+        .mockResolvedValueOnce([
+          { id: 'piece-coat', imageUrl: '/uploads/coat.webp', brand: 'Toteme', styleNotes: 'Oversized wool coat', category: 'Outerwear' },
+        ]);
+      (prisma.trendArticle.findMany as jest.Mock).mockResolvedValueOnce([
+        {
+          sourceName: 'British Vogue',
+          sourceUrl: 'https://www.vogue.co.uk/article/camel-coats',
+          title: 'Camel coats are back',
+          extractedTrends: ['camel outerwear'],
+          content: 'Camel coats dominated the autumn shows.',
+        },
+      ]);
 
-      const mockAiOutput = {
+      const aiOutput = {
         posts: [
           {
-            title: 'Fluid Silk coordinates',
-            summary: 'Lustrous monochrome styling.',
-            source: 'Vogue',
-            tags: ['silk', 'luxury'],
-            imageSearchQuery: 'womenswear silk shirt street style',
-            matchedInspirationIndex: null,
+            title: 'The Camel Coat, Again',
+            summary: 'Camel is everywhere. Wear your Toteme coat over grey knitwear.',
+            source: 'Made-up Magazine',
+            sourceArticleIndex: 0,
+            wardrobeItemIds: ['piece-coat', 'invented-id'],
+            suggestedPiece: 'Grey cashmere crew-neck',
+            tags: ['#Camel', 'Wool'],
           },
         ],
       };
+      mockGenerateContent.mockResolvedValueOnce({ text: JSON.stringify(aiOutput) });
+      (safeParseGeminiJson as jest.Mock).mockReturnValueOnce(aiOutput);
 
-      mockGenerateContent.mockResolvedValueOnce({
-        text: JSON.stringify(mockAiOutput),
-      });
-      (safeParseGeminiJson as jest.Mock).mockReturnValueOnce(mockAiOutput);
-
-      // Generate a valid image buffer using sharp
-      const validImageBuffer = await sharp({
-        create: {
-          width: 200,
-          height: 200,
-          channels: 4,
-          background: { r: 100, g: 150, b: 200, alpha: 1 },
-        },
-      })
-        .jpeg()
-        .toBuffer();
-
-      // Mock Tavily search returning an image URL
-      (global.fetch as jest.Mock)
-        .mockResolvedValueOnce({
-          ok: true,
-          json: async () => ({ images: ['https://example.com/editorial-runway.jpg'] }),
-        })
-        // Mock image download response
-        .mockResolvedValueOnce({
-          ok: true,
-          headers: {
-            get: (key: string) => (key.toLowerCase() === 'content-type' ? 'image/jpeg' : null),
-          },
-          arrayBuffer: async () => validImageBuffer.buffer.slice(validImageBuffer.byteOffset, validImageBuffer.byteOffset + validImageBuffer.byteLength),
-        });
-
-      (prisma.whatsNewPost.create as jest.Mock).mockResolvedValueOnce({
-        id: 'new-post-2',
-        userId: mockUserId,
-        title: mockAiOutput.posts[0].title,
-        summary: mockAiOutput.posts[0].summary,
-        source: mockAiOutput.posts[0].source,
-        tags: mockAiOutput.posts[0].tags,
-        imageUrl: '/uploads/editorial-1-123.webp',
-        createdAt: mockDate,
+      // The article page exposes its preview image
+      (global.fetch as jest.Mock).mockResolvedValueOnce({
+        ok: true,
+        headers: { get: () => 'text/html; charset=utf-8' },
+        text: async () => '<html><head><meta property="og:image" content="https://media.vogue.co.uk/camel.jpg"></head></html>',
       });
 
       (prisma.whatsNewPost.findMany as jest.Mock).mockResolvedValueOnce([
         {
-          id: 'new-post-2',
-          title: mockAiOutput.posts[0].title,
-          summary: mockAiOutput.posts[0].summary,
-          source: mockAiOutput.posts[0].source,
-          tags: mockAiOutput.posts[0].tags,
-          imageUrl: '/uploads/editorial-1-123.webp',
+          id: 'mock-post-id',
+          title: aiOutput.posts[0].title,
+          summary: aiOutput.posts[0].summary,
+          source: 'British Vogue',
+          sourceUrl: 'https://www.vogue.co.uk/article/camel-coats',
+          suggestedPiece: 'Grey cashmere crew-neck',
+          wardrobeItemIds: ['piece-coat'],
+          tags: ['Camel', 'Wool'],
+          imageUrl: 'https://media.vogue.co.uk/camel.jpg',
           createdAt: mockDate,
         },
       ]);
 
       const result = await generateAndSaveUserWhatsNew(mockUserId, 'desc');
 
-      // Check that uploadImage was called to store the image locally/GCS
-      expect(uploadImage).toHaveBeenCalled();
-      expect(result.posts).toHaveLength(1);
+      expect(prisma.whatsNewPost.create).toHaveBeenCalledWith(
+        expect.objectContaining({
+          data: expect.objectContaining({
+            source: 'British Vogue', // from the article, not the model's attribution
+            sourceUrl: 'https://www.vogue.co.uk/article/camel-coats',
+            wardrobeItemIds: ['piece-coat'], // invented ID dropped
+            suggestedPiece: 'Grey cashmere crew-neck',
+            tags: ['Camel', 'Wool'],
+            imageUrl: 'https://media.vogue.co.uk/camel.jpg',
+          }),
+        })
+      );
+      // Article images are linked, never downloaded and re-hosted
+      expect(uploadImage).not.toHaveBeenCalled();
+
+      expect(result.posts[0].pieces).toEqual([
+        { id: 'piece-coat', imageUrl: '/uploads/coat.webp', label: 'Toteme · Oversized wool coat' },
+      ]);
     });
   });
 
@@ -534,5 +534,29 @@ describe('Personalized What\'s New Feed - Library and API Routes', () => {
       expect(isBlockedImageUrl('https://assets.vogue.com/photos/look.jpg')).toBe(false);
       expect(isBlockedImageUrl('not a url')).toBe(true);
     });
+  });
+});
+
+describe('fetchArticleImage()', () => {
+  beforeEach(() => {
+    global.fetch = jest.fn() as jest.Mock;
+  });
+
+  it('uses the video thumbnail for YouTube links without fetching the page', async () => {
+    const { fetchArticleImage } = await import('@/lib/whatsNew');
+    await expect(fetchArticleImage('https://www.youtube.com/shorts/muO3UkJnbhk')).resolves.toBe('https://i.ytimg.com/vi/muO3UkJnbhk/hqdefault.jpg');
+    await expect(fetchArticleImage('https://www.youtube.com/watch?v=dQw4w9WgXcQ&t=1')).resolves.toBe('https://i.ytimg.com/vi/dQw4w9WgXcQ/hqdefault.jpg');
+    expect(global.fetch).not.toHaveBeenCalled();
+  });
+
+  it('reads og:image in either attribute order and ignores stock-agency images', async () => {
+    const { fetchArticleImage } = await import('@/lib/whatsNew');
+    const page = (html: string) => ({ ok: true, headers: { get: () => 'text/html' }, text: async () => html });
+
+    (global.fetch as jest.Mock).mockResolvedValueOnce(page('<meta content="/img/look.jpg" property="og:image">'));
+    await expect(fetchArticleImage('https://www.anothermag.com/story')).resolves.toBe('https://www.anothermag.com/img/look.jpg');
+
+    (global.fetch as jest.Mock).mockResolvedValueOnce(page('<meta property="og:image" content="https://media.gettyimages.com/x.jpg">'));
+    await expect(fetchArticleImage('https://example.com/story')).resolves.toBeNull();
   });
 });

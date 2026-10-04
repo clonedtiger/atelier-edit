@@ -1,6 +1,6 @@
 'use client';
 
-import Image from 'next/image';
+import { SafeImage } from './SafeImage';
 import { useState } from 'react';
 
 export interface OutfitItem {
@@ -87,14 +87,19 @@ export function OutfitCard({ look, onFeedback, onDelete }: OutfitCardProps) {
           return (
             <li key={item.id} className="outfit-piece">
               <div className="outfit-piece-image">
-                {image ? (
-                  <Image src={image} alt={itemName(item)} fill sizes="(max-width: 768px) 40vw, 160px" style={{ objectFit: 'cover' }} />
-                ) : (
-                  <div className="outfit-piece-placeholder">
-                    {item.purchaseBrand && <span>{item.purchaseBrand}</span>}
-                    <strong>{item.purchaseName || item.wardrobeItemCategory || 'Piece'}</strong>
-                  </div>
-                )}
+                {(() => {
+                  const placeholder = (
+                    <div className="outfit-piece-placeholder">
+                      {item.purchaseBrand && <span>{item.purchaseBrand}</span>}
+                      <strong>{item.purchaseName || item.wardrobeItemCategory || 'Piece'}</strong>
+                    </div>
+                  );
+                  return image ? (
+                    <SafeImage src={image} alt={itemName(item)} fill sizes="(max-width: 768px) 40vw, 160px" style={{ objectFit: 'cover' }} fallback={placeholder} />
+                  ) : (
+                    placeholder
+                  );
+                })()}
               </div>
               <p className="outfit-piece-source">{item.wardrobeItemId ? 'Yours' : 'To buy'}</p>
               <p className="outfit-piece-name">{itemName(item)}</p>

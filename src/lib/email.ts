@@ -86,7 +86,7 @@ function generateDigestHtml(params: EmailDigestParams, appUrl: string): string {
         <div style="background-color: #FFFFFF; border: 1px solid #E7DFD3; border-radius: 6px; overflow: hidden; margin-bottom: 24px;">
           ${imageHtml}
           <div style="padding: 22px 24px;">
-            <div style="font-size: 10px; text-transform: uppercase; letter-spacing: 0.16em; color: #8E8D94; font-weight: 600; font-family: ${SANS};">
+            <div style="font-size: 10px; text-transform: uppercase; letter-spacing: 0.16em; color: #6E6D74; font-weight: 600; font-family: ${SANS};">
               ${escapeHtml(post.source || 'Editorial Feed')}
             </div>
             <h2 style="color: #18181A; font-size: 24px; font-weight: 400; margin: 8px 0 10px 0; line-height: 1.25; font-family: ${SERIF};">
@@ -95,7 +95,9 @@ function generateDigestHtml(params: EmailDigestParams, appUrl: string): string {
             <p style="color: #56565E; font-size: 14px; line-height: 1.65; margin: 0 0 14px 0; font-family: ${SANS};">
               ${escapeHtml(post.summary)}
             </p>
+            ${post.suggestedPiece ? `<p style="color: #18181A; font-size: 13px; margin: 0 0 14px 0; font-family: ${SANS};"><strong style="font-size: 10px; letter-spacing: 0.14em; text-transform: uppercase; color: #6E6D74;">Worth adding</strong>&nbsp; ${escapeHtml(post.suggestedPiece)}</p>` : ''}
             ${tagsHtml ? `<div>${tagsHtml}</div>` : ''}
+            ${post.sourceUrl && /^https?:\/\//.test(post.sourceUrl) ? `<p style="margin: 14px 0 0 0; font-family: ${SANS};"><a href="${escapeHtml(post.sourceUrl)}" style="color: #35443B; font-size: 13px; font-weight: 600; text-decoration: none;">Read at ${escapeHtml(post.source)} &rarr;</a></p>` : ''}
           </div>
         </div>
       `;
@@ -196,7 +198,8 @@ function generateDigestPlainText(params: EmailDigestParams, appUrl: string): str
   const postsText = posts
     .map((p, i) => {
       const tags = (p.tags || []).map((t) => `#${t.replace(/^#/, '')}`).join(' ');
-      return `[${i + 1}] ${p.title} (${p.source || 'Editorial Feed'})\n${p.summary}\n${tags}\n`;
+      const extra = [p.suggestedPiece ? `Worth adding: ${p.suggestedPiece}` : '', p.sourceUrl ? `Read: ${p.sourceUrl}` : ''].filter(Boolean).join('\n');
+      return `[${i + 1}] ${p.title} (${p.source || 'Editorial Feed'})\n${p.summary}\n${extra ? `${extra}\n` : ''}${tags}\n`;
     })
     .join('\n---\n\n');
 
