@@ -2,7 +2,7 @@ import { NextRequest, NextResponse } from 'next/server';
 import bcrypt from 'bcryptjs';
 import { prisma } from '@/lib/db';
 import { generateMfaSecret } from '@/lib/totp';
-import { setSessionCookie } from '@/lib/session';
+import { setSessionCookie, issueMfaChallenge } from '@/lib/session';
 
 export async function POST(req: NextRequest) {
   try {
@@ -54,8 +54,10 @@ export async function POST(req: NextRequest) {
         name: newUser.name,
         mfaEnabled: newUser.mfaEnabled,
       },
-      // Provide secret back during registration for app linkage
-      mfaSecret: mfaSecret, 
+      // Provide secret back during registration for app linkage, plus the challenge token
+      // needed to finish signing in with the first 6-digit code
+      mfaSecret: mfaSecret,
+      mfaToken: resolvedMfaEnabled ? issueMfaChallenge(newUser.id) : undefined,
     }, { status: 201 });
 
   } catch (error) {

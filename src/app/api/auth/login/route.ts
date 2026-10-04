@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import bcrypt from 'bcryptjs';
 import { prisma } from '@/lib/db';
-import { setSessionCookie } from '@/lib/session';
+import { setSessionCookie, issueMfaChallenge } from '@/lib/session';
 import { logUserActivity, startUserSession } from '@/lib/analytics';
 
 export async function POST(req: NextRequest) {
@@ -36,7 +36,7 @@ export async function POST(req: NextRequest) {
     if (user.mfaEnabled) {
       return NextResponse.json({
         mfaRequired: true,
-        userId: user.id,
+        mfaToken: issueMfaChallenge(user.id),
         message: 'MFA code verification required to complete sign-in',
       });
     }

@@ -3,7 +3,7 @@ import { prisma } from './db';
 /**
  * Logs a specific usage action to the database for analytics tracking.
  */
-export async function logUserActivity(userId: string, action: 'LOGIN' | 'UPLOAD_IMAGE' | 'GENERATE_OUTFIT' | 'REFRESH_WHATS_NEW' | 'GENERATE_CAPSULE' | 'ANALYZE_GAPS') {
+export async function logUserActivity(userId: string, action: 'LOGIN' | 'UPLOAD_IMAGE' | 'GENERATE_OUTFIT' | 'REFRESH_WHATS_NEW' | 'GENERATE_CAPSULE' | 'ANALYZE_GAPS' | 'MFA_FAILED') {
   try {
     await prisma.usageActivity.create({
       data: {

@@ -266,7 +266,7 @@ export default function AtelierEditDashboard() {
   const [authMfaEnabled, setAuthMfaEnabled] = useState(false);
   const [authMfaCode, setAuthMfaCode] = useState('');
   const [signupSecret2FA, setSignupSecret2FA] = useState<string | null>(null);
-  const [tempMfaUserId, setTempMfaUserId] = useState<string | null>(null);
+  const [tempMfaToken, setTempMfaToken] = useState<string | null>(null);
 
   // Profile Edit fields
   const [profName, setProfName] = useState('');
@@ -1285,7 +1285,7 @@ export default function AtelierEditDashboard() {
       if (res.ok) {
         if (data.mfaSecret) {
           setSignupSecret2FA(data.mfaSecret);
-          setTempMfaUserId(data.user.id);
+          setTempMfaToken(data.mfaToken);
           setAuthMode('mfa');
         } else {
           setUser(data.user);
@@ -1293,8 +1293,8 @@ export default function AtelierEditDashboard() {
             localStorage.setItem('atelier_user', JSON.stringify(data.user));
           }
           populateProfileFields(data.user);
-          setActiveTab('account');
-          showToast('Sign up successful!');
+          setActiveTab('feed');
+          showToast('Welcome to Atelier Edit.');
           fetchWardrobe();
           fetchRecommendations();
           triggerSilentFeedSync();
@@ -1323,7 +1323,7 @@ export default function AtelierEditDashboard() {
       const data = await res.json();
       if (res.ok) {
         if (data.mfaRequired) {
-          setTempMfaUserId(data.userId);
+          setTempMfaToken(data.mfaToken);
           setAuthMode('mfa');
         } else {
           setUser(data.user);
@@ -1353,7 +1353,7 @@ export default function AtelierEditDashboard() {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
-          userId: tempMfaUserId,
+          mfaToken: tempMfaToken,
           code: authMfaCode,
         }),
       });
@@ -1362,7 +1362,7 @@ export default function AtelierEditDashboard() {
       if (res.ok) {
         setAuthMfaCode('');
         setSignupSecret2FA(null);
-        setTempMfaUserId(null);
+        setTempMfaToken(null);
         setUser(data.user);
         if (typeof window !== 'undefined') {
           localStorage.setItem('atelier_user', JSON.stringify(data.user));

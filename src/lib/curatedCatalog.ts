@@ -11,11 +11,11 @@ export const CURATED_WARDROBE_CATALOG: CuratedGarment[] = [
   // Outerwear (6)
   {
     category: 'Outerwear',
-    color: ['Black', 'Gold'],
+    color: ['Forest Green', 'Gold'],
     brand: 'Zara Studio',
     styleNotes: 'Structured double-breasted tweed blazer with ornate gold button closures. Features defined shoulders reminiscent of classic Chanel.',
     detectedTags: ['tweed', 'blazer', 'double-breasted', 'gold-buttons', 'chanel-coded', 'tailoring'],
-    imageUrl: 'https://images.unsplash.com/photo-1591047139829-d91aecb6caea?q=80&w=800&auto=format&fit=crop',
+    imageUrl: 'https://images.unsplash.com/photo-1715765113469-63b2da1ff81c?q=80&w=800&auto=format&fit=crop',
   },
   {
     category: 'Outerwear',
@@ -23,7 +23,7 @@ export const CURATED_WARDROBE_CATALOG: CuratedGarment[] = [
     brand: 'Toteme',
     styleNotes: 'Signature oversized double-breasted coat in heavyweight double-faced wool. Features drop shoulders and wide lapels.',
     detectedTags: ['wool-coat', 'camel', 'oversized', 'double-breasted', 'minimalist', 'toteme-coded'],
-    imageUrl: 'https://images.unsplash.com/photo-1539533018447-63fcce667883?q=80&w=800&auto=format&fit=crop',
+    imageUrl: 'https://images.unsplash.com/photo-1740813003475-2b66acf1bc82?q=80&w=800&auto=format&fit=crop',
   },
   {
     category: 'Outerwear',
@@ -31,7 +31,7 @@ export const CURATED_WARDROBE_CATALOG: CuratedGarment[] = [
     brand: 'The Row',
     styleNotes: 'Minimalist single-breasted wool blazer with sharp peak lapels and clean bespoke darting.',
     detectedTags: ['blazer', 'charcoal', 'wool', 'quiet-luxury', 'tailored', 'the-row-coded'],
-    imageUrl: 'https://images.unsplash.com/photo-1548624149-f74b43346d0a?q=80&w=800&auto=format&fit=crop',
+    imageUrl: 'https://images.unsplash.com/photo-1779400201925-6c6048bee7e5?q=80&w=800&auto=format&fit=crop',
   },
   {
     category: 'Outerwear',
@@ -47,15 +47,15 @@ export const CURATED_WARDROBE_CATALOG: CuratedGarment[] = [
     brand: 'Max Mara',
     styleNotes: 'Classic double-breasted trench coat in water-repellent cotton gabardine with horn buttons and waist belt.',
     detectedTags: ['trench-coat', 'belted', 'sand', 'classic', 'timeless'],
-    imageUrl: 'https://images.unsplash.com/photo-1544441893-675973e31985?q=80&w=800&auto=format&fit=crop',
+    imageUrl: 'https://images.unsplash.com/photo-1633821879282-0c4e91f96232?q=80&w=800&auto=format&fit=crop',
   },
   {
     category: 'Outerwear',
-    color: ['Espresso', 'Cream'],
+    color: ['Cognac', 'Cream'],
     brand: 'Acne Studios',
-    styleNotes: 'Oversized aviator jacket crafted from crackled espresso leather with thick cream shearling lining and collar.',
+    styleNotes: 'Oversized aviator jacket crafted from crackled cognac leather with thick cream shearling lining and collar.',
     detectedTags: ['shearling', 'aviator', 'leather', 'winter', 'textured'],
-    imageUrl: 'https://images.unsplash.com/photo-1520975954732-35dd22299614?q=80&w=800&auto=format&fit=crop',
+    imageUrl: 'https://images.unsplash.com/photo-1611210109912-3df1116f4c80?q=80&w=800&auto=format&fit=crop',
   },
 
   // Tops (6)
@@ -65,7 +65,7 @@ export const CURATED_WARDROBE_CATALOG: CuratedGarment[] = [
     brand: 'Mango Capsule',
     styleNotes: 'Fine ribbed-knit sleeveless top in soft cream ivory. Features a draped cowl neck and an asymmetrical wrap-hem silhouette.',
     detectedTags: ['knit', 'draped', 'asymmetric', 'minimalist', 'ivory'],
-    imageUrl: 'https://images.unsplash.com/photo-1434389677669-e08b4cac3105?q=80&w=800&auto=format&fit=crop',
+    imageUrl: 'https://images.unsplash.com/photo-1784979195655-b0563683a389?q=80&w=800&auto=format&fit=crop',
   },
   {
     category: 'Tops',
@@ -73,7 +73,7 @@ export const CURATED_WARDROBE_CATALOG: CuratedGarment[] = [
     brand: 'Khaite',
     styleNotes: 'Sculpted sweetheart neckline bodysuit in matte ribbed knit with supportive architectural bust shaping.',
     detectedTags: ['bodysuit', 'sweetheart-neck', 'ribbed', 'sculptural', 'evening'],
-    imageUrl: 'https://images.unsplash.com/photo-1503342217505-b0a15ec3261c?q=80&w=800&auto=format&fit=crop',
+    imageUrl: 'https://images.unsplash.com/photo-1768818546657-8ac55c90d6c4?q=80&w=800&auto=format&fit=crop',
   },
   {
     category: 'Tops',
@@ -81,7 +81,7 @@ export const CURATED_WARDROBE_CATALOG: CuratedGarment[] = [
     brand: 'Loro Piana',
     styleNotes: 'Chunky cable-knit turtleneck sweater spun from pure Italian baby cashmere in a relaxed silhouette.',
     detectedTags: ['cashmere', 'cable-knit', 'turtleneck', 'quiet-luxury', 'cozy'],
-    imageUrl: 'https://images.unsplash.com/photo-1576566588028-4147f3842f27?q=80&w=800&auto=format&fit=crop',
+    imageUrl: 'https://images.unsplash.com/photo-1785333175546-1bcefb03ac28?q=80&w=800&auto=format&fit=crop',
   },
   {
     category: 'Tops',
@@ -97,7 +97,7 @@ export const CURATED_WARDROBE_CATALOG: CuratedGarment[] = [
     brand: 'Toteme',
     styleNotes: 'Organic cotton Breton striped long-sleeve tee with high boat neckline and straight side slits.',
     detectedTags: ['breton-stripes', 'boat-neck', 'nautical', 'casual-chic', 'french-aesthetic'],
-    imageUrl: 'https://images.unsplash.com/photo-1521572267360-ee0c2909d518?q=80&w=800&auto=format&fit=crop',
+    imageUrl: 'https://images.unsplash.com/photo-1611244717573-c2d53c7aee02?q=80&w=800&auto=format&fit=crop',
   },
   {
     category: 'Tops',
@@ -111,11 +111,11 @@ export const CURATED_WARDROBE_CATALOG: CuratedGarment[] = [
   // Bottoms (6)
   {
     category: 'Bottoms',
-    color: ['Black'],
+    color: ['Olive'],
     brand: 'COS',
     styleNotes: 'High-waisted tailored wide-leg trousers in wool blend with sharp front pleats and fluid drape.',
     detectedTags: ['wide-leg', 'pleated', 'high-waist', 'tailored-trousers', 'workwear'],
-    imageUrl: 'https://images.unsplash.com/photo-1509551388413-e18d0ac5d495?q=80&w=800&auto=format&fit=crop',
+    imageUrl: 'https://images.unsplash.com/photo-1687825515654-23620796760c?q=80&w=800&auto=format&fit=crop',
   },
   {
     category: 'Bottoms',
@@ -131,7 +131,7 @@ export const CURATED_WARDROBE_CATALOG: CuratedGarment[] = [
     brand: 'Toteme',
     styleNotes: 'Relaxed straight-leg wool slacks with invisible hook-and-bar closure and pressed front creases.',
     detectedTags: ['wool-slacks', 'camel', 'minimalist', 'relaxed-tailoring'],
-    imageUrl: 'https://images.unsplash.com/photo-1594633312681-425c7b97ccd1?q=80&w=800&auto=format&fit=crop',
+    imageUrl: 'https://images.unsplash.com/photo-1517445312882-bc9910d016b7?q=80&w=800&auto=format&fit=crop',
   },
   {
     category: 'Bottoms',
@@ -139,7 +139,7 @@ export const CURATED_WARDROBE_CATALOG: CuratedGarment[] = [
     brand: 'The Row',
     styleNotes: 'Fluid bias-cut silk satin midi skirt with elasticized waistband and soft asymmetric hem swing.',
     detectedTags: ['silk-skirt', 'slip-skirt', 'bias-cut', 'midi', 'evening-chic'],
-    imageUrl: 'https://images.unsplash.com/photo-1583496661160-fb5886a0aaaa?q=80&w=800&auto=format&fit=crop',
+    imageUrl: 'https://images.unsplash.com/photo-1742794572842-6836a8d0b11b?q=80&w=800&auto=format&fit=crop',
   },
   {
     category: 'Bottoms',
@@ -147,7 +147,7 @@ export const CURATED_WARDROBE_CATALOG: CuratedGarment[] = [
     brand: 'AllSaints',
     styleNotes: 'Straight-leg trousers cut from buttery matte lamb leather with raw cut ankles and five-pocket styling.',
     detectedTags: ['leather-trousers', 'matte-black', 'edgy', 'grunge-tailoring'],
-    imageUrl: 'https://images.unsplash.com/photo-1506630448388-4e683c67ddb0?q=80&w=800&auto=format&fit=crop',
+    imageUrl: 'https://images.unsplash.com/photo-1779398969004-a47a0de67a7f?q=80&w=800&auto=format&fit=crop',
   },
   {
     category: 'Bottoms',
@@ -161,11 +161,11 @@ export const CURATED_WARDROBE_CATALOG: CuratedGarment[] = [
   // Dresses (4)
   {
     category: 'Dresses',
-    color: ['Black'],
+    color: ['Silver'],
     brand: 'The Row',
     styleNotes: 'Minimalist 90s square-neck midi slip dress in heavyweight washed silk with delicate spaghetti straps.',
     detectedTags: ['slip-dress', 'minimalist', '90s-style', 'silk', 'cocktail'],
-    imageUrl: 'https://images.unsplash.com/photo-1496747611176-843222e1e57c?q=80&w=800&auto=format&fit=crop',
+    imageUrl: 'https://images.unsplash.com/photo-1790802243983-e6de0e275f59?q=80&w=800&auto=format&fit=crop',
   },
   {
     category: 'Dresses',
@@ -173,7 +173,7 @@ export const CURATED_WARDROBE_CATALOG: CuratedGarment[] = [
     brand: 'Toteme',
     styleNotes: 'Fine-ribbed knit midi dress with high mock neck, long slim sleeves, and flattering body-contouring seams.',
     detectedTags: ['knit-dress', 'mock-neck', 'charcoal', 'autumn-essential'],
-    imageUrl: 'https://images.unsplash.com/photo-1515886657613-9f3515b0c78f?q=80&w=800&auto=format&fit=crop',
+    imageUrl: 'https://images.unsplash.com/photo-1759229874810-26aa9a3dda92?q=80&w=800&auto=format&fit=crop',
   },
   {
     category: 'Dresses',
@@ -181,7 +181,7 @@ export const CURATED_WARDROBE_CATALOG: CuratedGarment[] = [
     brand: 'Chanel',
     styleNotes: 'Structured bouclé tweed shift mini dress with braided ribbon trims and faux pearl buttons.',
     detectedTags: ['tweed-dress', 'boucle', 'chanel-coded', 'heritage', 'structured'],
-    imageUrl: 'https://images.unsplash.com/photo-1539109136881-3be0616acf4b?q=80&w=800&auto=format&fit=crop',
+    imageUrl: 'https://images.unsplash.com/photo-1745218492001-c42adc04c4fe?q=80&w=800&auto=format&fit=crop',
   },
   {
     category: 'Dresses',
@@ -215,7 +215,7 @@ export const CURATED_WARDROBE_CATALOG: CuratedGarment[] = [
     brand: 'Khaite',
     styleNotes: 'Sculptural pointed-toe ankle boots in velvety Italian taupe suede with 50mm curved kitten heel.',
     detectedTags: ['ankle-boots', 'suede', 'kitten-heel', 'pointed-toe', 'sculptural'],
-    imageUrl: 'https://images.unsplash.com/photo-1543163521-1bf539c55dd2?q=80&w=800&auto=format&fit=crop',
+    imageUrl: 'https://images.unsplash.com/photo-1605733160314-4fc7dac4bb16?q=80&w=800&auto=format&fit=crop',
   },
   {
     category: 'Shoes',
@@ -223,7 +223,7 @@ export const CURATED_WARDROBE_CATALOG: CuratedGarment[] = [
     brand: 'Toteme',
     styleNotes: 'Square-toe glove ballet flats in supple nappa leather with elasticated throat line.',
     detectedTags: ['ballet-flats', 'square-toe', 'nappa-leather', 'everyday-chic'],
-    imageUrl: 'https://images.unsplash.com/photo-1560343090-f0409e92791a?q=80&w=800&auto=format&fit=crop',
+    imageUrl: 'https://images.unsplash.com/photo-1758542988664-49951c5b1999?q=80&w=800&auto=format&fit=crop',
   },
   {
     category: 'Shoes',
@@ -231,25 +231,25 @@ export const CURATED_WARDROBE_CATALOG: CuratedGarment[] = [
     brand: 'Common Projects',
     styleNotes: 'Original Achilles low sneakers in pristine Italian leather with gold foil serial number stamp on the heel counter.',
     detectedTags: ['sneakers', 'white-sneakers', 'leather', 'minimalist-footwear'],
-    imageUrl: 'https://images.unsplash.com/photo-1525966222134-fcfa99b8ae77?q=80&w=800&auto=format&fit=crop',
+    imageUrl: 'https://images.unsplash.com/photo-1596744288358-45428ce99fc4?q=80&w=800&auto=format&fit=crop',
   },
 
   // Bags & Accessories (5)
   {
     category: 'Accessories',
-    color: ['Forest Pine'],
+    color: ['Sand'],
     brand: 'Bottega Veneta',
     styleNotes: 'Padded Cassette shoulder bag in signature woven Intreccio calfskin with silver-tone triangle buckle.',
     detectedTags: ['handbag', 'intreccio', 'crossbody', 'forest-green', 'statement-bag'],
-    imageUrl: 'https://images.unsplash.com/photo-1548036328-c9fa89d128fa?q=80&w=800&auto=format&fit=crop',
+    imageUrl: 'https://images.unsplash.com/photo-1644908325834-3dfd46b1c629?q=80&w=800&auto=format&fit=crop',
   },
   {
     category: 'Accessories',
-    color: ['Espresso Brown'],
+    color: ['Tan'],
     brand: 'The Row',
     styleNotes: 'Slouchy half-moon hobo bag in velvety calf suede with wide ergonomic shoulder strap.',
     detectedTags: ['suede-bag', 'hobo', 'slouchy', 'espresso', 'minimalist-tote'],
-    imageUrl: 'https://images.unsplash.com/photo-1584917865442-de89df76afd3?q=80&w=800&auto=format&fit=crop',
+    imageUrl: 'https://images.unsplash.com/photo-1613482184972-f9c1022d0928?q=80&w=800&auto=format&fit=crop',
   },
   {
     category: 'Accessories',
@@ -257,7 +257,7 @@ export const CURATED_WARDROBE_CATALOG: CuratedGarment[] = [
     brand: 'Celine',
     styleNotes: 'Structured Triomphe box shoulder bag in polished shiny calfskin with gold metallic clasp.',
     detectedTags: ['box-bag', 'gold-hardware', 'triomphe', 'burgundy', 'luxury-heritage'],
-    imageUrl: 'https://images.unsplash.com/photo-1590874103328-eac38a683ce7?q=80&w=800&auto=format&fit=crop',
+    imageUrl: 'https://images.unsplash.com/photo-1575032617751-6ddec2089882?q=80&w=800&auto=format&fit=crop',
   },
   {
     category: 'Accessories',
@@ -269,10 +269,10 @@ export const CURATED_WARDROBE_CATALOG: CuratedGarment[] = [
   },
   {
     category: 'Accessories',
-    color: ['Camel', 'Ivory'],
+    color: ['Plum', 'Grey'],
     brand: 'Toteme',
     styleNotes: 'Oversized monogram jacquard blanket scarf spun from plush wool and cashmere blend with raw fringe edges.',
     detectedTags: ['blanket-scarf', 'wool-cashmere', 'camel', 'winter-layering', 'toteme-monogram'],
-    imageUrl: 'https://images.unsplash.com/photo-1601924994987-69e26d50dc26?q=80&w=800&auto=format&fit=crop',
+    imageUrl: 'https://images.unsplash.com/photo-1609803384069-19f3e5a70e75?q=80&w=800&auto=format&fit=crop',
   },
 ];

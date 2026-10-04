@@ -39,6 +39,10 @@ function getLegacyKeyForSecret(secret: string): Buffer {
  * Returns format: gcm:<ivHex>:<authTagHex>:<ciphertextHex>
  */
 export function encryptSession(payload: SessionPayload): string {
+  return sealPayload(payload);
+}
+
+function sealPayload(payload: object): string {
   const primarySecret = process.env.NEXTAUTH_SECRET || process.env.SESSION_SECRET || (isProduction() ? null : DEFAULT_SECRET);
   if (!primarySecret) {
     throw new Error('NEXTAUTH_SECRET must be set in production to issue sessions.');
@@ -58,6 +62,33 @@ export function encryptSession(payload: SessionPayload): string {
  * Supports both AES-256-GCM and legacy AES-256-CBC payloads with multi-secret fallback.
  */
 export function decryptSession(sessionStr: string): SessionPayload | null {
+  const payload = openPayload(sessionStr);
+  // Only plain session payloads count as a login; sealed tokens with a purpose (such as the
+  // short-lived 2FA challenge) must never be accepted as a session cookie.
+  if (!payload || typeof payload.userId !== 'string' || 'purpose' in payload) return null;
+  return { userId: payload.userId };
+}
+
+const MFA_CHALLENGE_TTL_MS = 10 * 60 * 1000;
+
+/**
+ * Issued after the password check when 2FA is on: proves the password step passed, so the
+ * 2FA step cannot be reached with a bare user ID. Valid for 10 minutes.
+ */
+export function issueMfaChallenge(userId: string): string {
+  return sealPayload({ userId, purpose: 'mfa', exp: Date.now() + MFA_CHALLENGE_TTL_MS });
+}
+
+/** Returns the user ID from a valid, unexpired 2FA challenge token, else null. */
+export function readMfaChallenge(token: unknown): string | null {
+  if (typeof token !== 'string') return null;
+  const payload = openPayload(token);
+  if (!payload || payload.purpose !== 'mfa' || typeof payload.userId !== 'string') return null;
+  if (typeof payload.exp !== 'number' || Date.now() > payload.exp) return null;
+  return payload.userId;
+}
+
+function openPayload(sessionStr: string): Record<string, unknown> | null {
   if (!sessionStr || typeof sessionStr !== 'string') return null;
 
   const candidateSecrets = getCandidateSecrets();
@@ -86,7 +117,7 @@ export function decryptSession(sessionStr: string): SessionPayload | null {
         let decrypted = decipher.update(cipherHex, 'hex', 'utf8');
         decrypted += decipher.final('utf8');
 
-        return JSON.parse(decrypted) as SessionPayload;
+        return JSON.parse(decrypted) as Record<string, unknown>;
       }
 
       // 2. Legacy AES-256-CBC Fallback (iv:ciphertext)
@@ -106,7 +137,7 @@ export function decryptSession(sessionStr: string): SessionPayload | null {
         let decrypted = decipher.update(encryptedText, undefined, 'utf8');
         decrypted += decipher.final('utf8');
 
-        return JSON.parse(decrypted) as SessionPayload;
+        return JSON.parse(decrypted) as Record<string, unknown>;
       }
     } catch {
       // Try next secret candidate
