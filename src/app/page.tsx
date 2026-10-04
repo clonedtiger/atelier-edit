@@ -5,6 +5,8 @@ import Image from 'next/image';
 import { WhatsNewPost } from '@/lib/whatsNew';
 import { CameraIcon, DeviceIcon } from '@/components/Icons';
 import { useConfirmDialog } from '@/components/ConfirmDialog';
+import { ProfileMenu } from '@/components/ProfileMenu';
+import { OnboardingChecklist } from '@/components/OnboardingChecklist';
 import { GuidesCenter } from '@/components/GuidesCenter';
 
 interface UserProfile {
@@ -158,6 +160,19 @@ interface FeedSource {
   createdAt: string;
 }
 
+type AppTab = 'feed' | 'closet' | 'capsule' | 'studio' | 'trends' | 'account' | 'whats-new' | 'guides';
+
+/** Three everyday sections; profile and help live in the account menu. */
+const NAV_SECTIONS: Array<{ id: string; label: string; tabs: Array<{ tab: AppTab; label: string }> }> = [
+  { id: 'today', label: 'Today', tabs: [{ tab: 'feed', label: 'Stylist' }, { tab: 'whats-new', label: "What's new" }] },
+  { id: 'wardrobe', label: 'Wardrobe', tabs: [{ tab: 'closet', label: 'Pieces' }, { tab: 'capsule', label: 'Capsules' }, { tab: 'studio', label: 'Studio' }] },
+  { id: 'inspiration', label: 'Inspiration', tabs: [{ tab: 'trends', label: 'Inspiration' }] },
+];
+
+function sectionForTab(tab: AppTab) {
+  return NAV_SECTIONS.find((section) => section.tabs.some((t) => t.tab === tab));
+}
+
 export const STYLE_ARCHETYPES = [
   { id: 'quiet-luxury', label: 'Minimalist Quiet Luxury', desc: 'Understated elegance, neutral palette, architectural tailoring (e.g. The Row, Toteme, Khaite, Loro Piana)' },
   { id: 'parisian-chic', label: 'Parisian Chic', desc: 'Effortless classic tailoring, bouclé jackets, breton stripes, refined denim, slingbacks' },
@@ -176,7 +191,16 @@ export interface BeforeInstallPromptEvent extends Event {
 
 export default function AtelierEditDashboard() {
   const { confirm: askConfirm, dialog: confirmDialog } = useConfirmDialog();
-  const [activeTab, setActiveTab] = useState<'feed' | 'closet' | 'capsule' | 'studio' | 'trends' | 'account' | 'whats-new' | 'guides'>('whats-new');
+  // Read once on the client; the checklist only renders after the user loads, so there is
+  // no server/client markup to mismatch.
+  const [onboardingDismissed, setOnboardingDismissed] = useState(() => {
+    try {
+      return typeof window !== 'undefined' && localStorage.getItem('atelier_onboarding_dismissed') === '1';
+    } catch {
+      return false;
+    }
+  });
+  const [activeTab, setActiveTab] = useState<AppTab>('feed');
   const [selectedGuideCategory, setSelectedGuideCategory] = useState<string>('all');
   const [user, setUser] = useState<UserProfile | null>(null);
   
@@ -1510,6 +1534,47 @@ export default function AtelierEditDashboard() {
     }
   };
 
+  const dismissOnboarding = () => {
+    setOnboardingDismissed(true);
+    try {
+      localStorage.setItem('atelier_onboarding_dismissed', '1');
+    } catch {
+      // Private browsing: the checklist simply reappears next visit
+    }
+  };
+
+  const saveOnboardingBasics = async (gender: string, styleAesthetic: string): Promise<boolean> => {
+    try {
+      const res = await fetch('/api/auth/me', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ gender, styleAesthetic }),
+      });
+      if (!res.ok) {
+        const data = await res.json().catch(() => ({}));
+        showToast(data.error || 'Could not save. Please try again.', 'error');
+        return false;
+      }
+      setProfGender(gender);
+      setProfStyleAesthetic(styleAesthetic);
+      await checkSession();
+      return true;
+    } catch {
+      showToast('Could not save. Please try again.', 'error');
+      return false;
+    }
+  };
+
+  // Navigates and loads the data each tab needs (what the old per-tab nav buttons did)
+  const openTab = (tab: AppTab) => {
+    setActiveTab(tab);
+    if (tab === 'whats-new') fetchWhatsNew(false);
+    if (tab === 'capsule') fetchCapsules();
+    if (tab === 'studio') fetchCollages();
+    if (tab === 'guides') setSelectedGuideCategory('all');
+    if (typeof window !== 'undefined') window.scrollTo({ top: 0, behavior: 'smooth' });
+  };
+
   const handleLogout = async () => {
     try {
       const res = await fetch('/api/auth/logout', { method: 'POST' });
@@ -2050,113 +2115,65 @@ export default function AtelierEditDashboard() {
         <h1 className="brand-logo">ATELIER EDIT</h1>
         <p className="brand-subtitle">The Personal Style Journal</p>
 
-        {/* Buttons in a single line underneath the logo */}
         {user && (
-          <nav className="nav-menu">
-            <button
-              onClick={() => setActiveTab('feed')}
-              className={`nav-link ${activeTab === 'feed' ? 'active' : ''}`}
-            >
-              Stylist
-            </button>
-            
-            <button
-              onClick={() => {
-                setActiveTab('whats-new');
-                fetchWhatsNew(false); // auto-fetch on tab click
-              }}
-              className={`nav-link ${activeTab === 'whats-new' ? 'active' : ''}`}
-            >
-              What&apos;s New
-            </button>
+          <>
+            <nav className="nav-menu" aria-label="Main">
+              {NAV_SECTIONS.map((section) => {
+                const isActive = sectionForTab(activeTab)?.id === section.id;
+                return (
+                  <button
+                    key={section.id}
+                    type="button"
+                    onClick={() => openTab(section.tabs[0].tab)}
+                    className={`nav-link ${isActive ? 'active' : ''}`}
+                    aria-current={isActive ? 'page' : undefined}
+                  >
+                    {section.label}
+                  </button>
+                );
+              })}
 
-            <button
-              onClick={() => setActiveTab('closet')}
-              className={`nav-link ${activeTab === 'closet' ? 'active' : ''}`}
-            >
-              Wardrobe
-            </button>
+              <button
+                type="button"
+                onClick={() => openCameraViewfinder('inspiration')}
+                className="header-snap-btn"
+                title="Snap street style, boutique racks, or magazine inspiration on the fly"
+              >
+                <CameraIcon size={14} />
+                Snap
+              </button>
 
-            <button
-              onClick={() => {
-                setActiveTab('capsule');
-                fetchCapsules();
-              }}
-              className={`nav-link ${activeTab === 'capsule' ? 'active' : ''}`}
-            >
-              Capsules
-            </button>
+              <ProfileMenu
+                name={user.name}
+                email={user.email}
+                isAdmin={user.role === 'admin'}
+                active={activeTab === 'account' || activeTab === 'guides'}
+                onProfile={() => openTab('account')}
+                onGuides={() => openTab('guides')}
+                onSignOut={handleLogout}
+              />
+            </nav>
 
-            <button
-              onClick={() => {
-                setActiveTab('studio');
-                fetchCollages();
-              }}
-              className={`nav-link ${activeTab === 'studio' ? 'active' : ''}`}
-            >
-              Studio
-            </button>
-            
-            <button
-              onClick={() => setActiveTab('trends')}
-              className={`nav-link ${activeTab === 'trends' ? 'active' : ''}`}
-            >
-              Inspirations
-            </button>
-
-            <span className="nav-divider">|</span>
-            
-            <button
-              onClick={() => setActiveTab('account')}
-              className={`nav-link ${activeTab === 'account' ? 'active' : ''}`}
-            >
-              My Profile
-            </button>
-
-            <button
-              onClick={() => {
-                setActiveTab('guides');
-                setSelectedGuideCategory('all');
-              }}
-              className={`nav-link ${activeTab === 'guides' ? 'active' : ''}`}
-            >
-              Guides
-            </button>
-
-            <button
-              type="button"
-              onClick={() => openCameraViewfinder('inspiration')}
-              className="header-snap-btn"
-              title="Snap street style, boutique racks, or magazine inspiration on the fly"
-            >
-              <CameraIcon size={14} />
-              Snap Inspiration
-            </button>
-
-            {user && user.role === 'admin' && (
-              <>
-                <span className="nav-divider">|</span>
-                <a
-                  href="/admin"
-                  className="nav-link"
-                  style={{ color: 'var(--accent-gold)' }}
-                >
-                  Admin
-                </a>
-              </>
-            )}
-
-            <span className="nav-divider">|</span>
-
-            <button
-              onClick={handleLogout}
-              className="nav-link"
-              style={{ color: 'var(--text-muted)' }}
-              title="Sign out of Atelier Edit"
-            >
-              Sign Out
-            </button>
-          </nav>
+            {(() => {
+              const section = sectionForTab(activeTab);
+              if (!section || section.tabs.length < 2) return null;
+              return (
+                <nav className="subnav" aria-label={section.label}>
+                  {section.tabs.map((t) => (
+                    <button
+                      key={t.tab}
+                      type="button"
+                      onClick={() => openTab(t.tab)}
+                      className={`subnav-link ${activeTab === t.tab ? 'active' : ''}`}
+                      aria-current={activeTab === t.tab ? 'page' : undefined}
+                    >
+                      {t.label}
+                    </button>
+                  ))}
+                </nav>
+              );
+            })()}
+          </>
         )}
       </header>
 
@@ -2422,6 +2439,21 @@ export default function AtelierEditDashboard() {
             {/* Style Feed tab */}
             {activeTab === 'feed' && (
           <div className="outfit-stream">
+            {!onboardingDismissed && !loadingWardrobe && !loadingRecommendations &&
+              !(user.gender && user.styleAesthetic && wardrobe.length >= 3 && recommendations.length > 0) && (
+              <OnboardingChecklist
+                gender={user.gender}
+                styleAesthetic={user.styleAesthetic}
+                styleOptions={STYLE_ARCHETYPES.filter((a) => a.id !== 'custom')}
+                wardrobeCount={wardrobe.length}
+                hasLooks={recommendations.length > 0}
+                isGenerating={isGenerating}
+                onSaveBasics={saveOnboardingBasics}
+                onAddPieces={() => openTab('closet')}
+                onStyleMe={() => triggerRecommendations()}
+                onDismiss={dismissOnboarding}
+              />
+            )}
             {/* Live Weather Status Bar */}
             {liveWeather && (
               <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '1.25rem', background: '#ffffff', padding: '0.75rem 1.25rem', borderRadius: '6px', border: '1px solid var(--border-color)', boxShadow: 'var(--shadow-sm)' }}>
@@ -2562,7 +2594,7 @@ export default function AtelierEditDashboard() {
               </div>
               {wardrobe.length === 0 && (
                 <p style={{ fontSize: '0.72rem', color: 'var(--accent-gold)', marginTop: '0.75rem', display: 'flex', alignItems: 'center', gap: '0.35rem' }}>
-                  <span>Add at least one piece to your <button type="button" onClick={() => setActiveTab('closet')} style={{ background: 'none', border: 'none', color: 'var(--accent-gold)', textDecoration: 'underline', cursor: 'pointer', padding: 0, font: 'inherit', fontWeight: 'bold' }}>Wardrobe</button> to get outfit ideas.</span>
+                  <span>Add at least one piece to your <button type="button" onClick={() => openTab('closet')} style={{ background: 'none', border: 'none', color: 'var(--accent-gold)', textDecoration: 'underline', cursor: 'pointer', padding: 0, font: 'inherit', fontWeight: 'bold' }}>Wardrobe</button> to get outfit ideas.</span>
                 </p>
               )}
             </div>
@@ -2857,7 +2889,7 @@ export default function AtelierEditDashboard() {
                   padding: '0.4rem 0.8rem',
                 }}
               >
-                Wardrobe Inventory ({wardrobe.length})
+                All pieces ({wardrobe.length})
               </button>
               <button
                 type="button"
@@ -5360,21 +5392,11 @@ export default function AtelierEditDashboard() {
           <GuidesCenter
             initialCategory={selectedGuideCategory}
             onNavigateTab={(tab) => {
-              if (tab === 'account') setActiveTab('account');
-              else if (tab === 'stylist') setActiveTab('feed');
-              else if (tab === 'wardrobe') setActiveTab('closet');
-              else if (tab === 'capsule') {
-                setActiveTab('capsule');
-                fetchCapsules();
-              } else if (tab === 'studio') {
-                setActiveTab('studio');
-                fetchCollages();
-              } else if (tab === 'whatsnew') {
-                setActiveTab('whats-new');
-                fetchWhatsNew(false);
-              } else if (tab === 'trends') {
-                setActiveTab('trends');
-              }
+              const map: Record<string, AppTab> = {
+                account: 'account', stylist: 'feed', wardrobe: 'closet', capsule: 'capsule',
+                studio: 'studio', whatsnew: 'whats-new', trends: 'trends',
+              };
+              if (map[tab]) openTab(map[tab]);
             }}
           />
         )}

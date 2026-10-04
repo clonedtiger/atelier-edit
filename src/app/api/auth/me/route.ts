@@ -5,6 +5,39 @@ import { updateActiveSession } from '@/lib/analytics';
 
 export const dynamic = 'force-dynamic';
 
+// Fields safe to send to the browser. Never return the full row: it includes the
+// password hash, MFA secret and reset codes.
+const PROFILE_SELECT = {
+  id: true,
+  email: true,
+  name: true,
+  role: true,
+  suspended: true,
+  sex: true,
+  gender: true,
+  phone: true,
+  height: true,
+  weight: true,
+  waistSize: true,
+  braSize: true,
+  shoeSize: true,
+  hatSize: true,
+  gloveSize: true,
+  clothingSize: true,
+  workLife: true,
+  inspirationNotes: true,
+  styleAesthetic: true,
+  favoriteBrands: true,
+  avoidedStyles: true,
+  colorPalette: true,
+  locationCity: true,
+  mfaEnabled: true,
+  marketingEmail: true,
+  marketingSms: true,
+  marketingPartners: true,
+  marketingConsentUpdatedAt: true,
+} as const;
+
 export async function GET(req: NextRequest) {
   try {
     const session = await getSession(req);
@@ -14,36 +47,7 @@ export async function GET(req: NextRequest) {
 
     const user = await prisma.user.findUnique({
       where: { id: session.userId },
-      select: {
-        id: true,
-        email: true,
-        name: true,
-        role: true,
-        suspended: true,
-        sex: true,
-        gender: true,
-        phone: true,
-        height: true,
-        weight: true,
-        waistSize: true,
-        braSize: true,
-        shoeSize: true,
-        hatSize: true,
-        gloveSize: true,
-        clothingSize: true,
-        workLife: true,
-        inspirationNotes: true,
-        styleAesthetic: true,
-        favoriteBrands: true,
-        avoidedStyles: true,
-        colorPalette: true,
-        locationCity: true,
-        mfaEnabled: true,
-        marketingEmail: true,
-        marketingSms: true,
-        marketingPartners: true,
-        marketingConsentUpdatedAt: true,
-      },
+      select: PROFILE_SELECT,
     });
 
     if (!user) {
@@ -130,12 +134,11 @@ export async function POST(req: NextRequest) {
     if (weight !== undefined) updateData.weight = weight;
     if (waistSize !== undefined) updateData.waistSize = waistSize;
     
-    // Bra size is only saved if sex is female (or default clear if changed)
-    if (sex === 'Female') {
-      if (braSize !== undefined) updateData.braSize = braSize;
-    } else {
-      updateData.braSize = null;
-    }
+    // Bra size is only kept for people who dress in womenswear. Only touch it when this
+    // request actually changes it or the styling preference, so partial updates keep it.
+    const dressesIn = gender ?? sex;
+    if (braSize !== undefined) updateData.braSize = braSize || null;
+    if (dressesIn !== undefined && dressesIn !== 'Female') updateData.braSize = null;
 
     if (shoeSize !== undefined) updateData.shoeSize = shoeSize;
     if (hatSize !== undefined) updateData.hatSize = hatSize;
@@ -161,6 +164,7 @@ export async function POST(req: NextRequest) {
     const updatedUser = await prisma.user.update({
       where: { id: session.userId },
       data: updateData,
+      select: PROFILE_SELECT,
     });
 
     return NextResponse.json({ success: true, user: updatedUser });
