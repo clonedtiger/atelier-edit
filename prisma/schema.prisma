@@ -71,6 +71,8 @@ model WardrobeItem {
   brand       String?
   styleNotes  String?  // Description of cut, fabric, texture
   detectedTags String[] // e.g. ["tweed", "structural", "asymmetric"]
+  wearCount   Int       @default(0) // Times marked worn via "Wore it" on an outfit
+  lastWornAt  DateTime?
   createdAt   DateTime @default(now())
 
   @@index([userId, createdAt])
@@ -128,6 +130,8 @@ model Recommendation {
   user        User     @relation(fields: [userId], references: [id], onDelete: Cascade)
   title       String   // e.g. "Classic Chanel meets McQueen Grunge"
   narrative   String   // Text explanation of the outfit styling choices
+  feedback    String?  // "loved" | "dismissed" — fed back into future suggestions
+  wornAt      DateTime? // Set when the person marks the whole look as worn
   createdAt   DateTime @default(now())
   outfitItems RecommendationItem[]
 
@@ -224,7 +228,10 @@ model WhatsNewPost {
   summary   String
   source    String
   tags      String[]
-  imageUrl  String   // Path or URL to stored WebP image
+  imageUrl  String   // Path or URL to an image ('' when the post is text-only)
+  sourceUrl String?  // Link to the original article the post is based on
+  wardrobeItemIds String[] @default([]) // The person's own pieces that fit this trend
+  suggestedPiece  String?  // One piece worth adding to complete the trend
   createdAt DateTime @default(now())
 
   @@index([userId, createdAt])

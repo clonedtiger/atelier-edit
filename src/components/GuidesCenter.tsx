@@ -331,13 +331,13 @@ export const GuidesCenter: React.FC<GuidesCenterProps> = ({
                             sec.callout.type === 'tip'
                               ? '1px solid rgba(138, 106, 59, 0.4)'
                               : sec.callout.type === 'important'
-                              ? '1px solid rgba(239, 68, 68, 0.4)'
+                              ? '1px solid rgba(180, 35, 24, 0.4)'
                               : '1px solid var(--border-color)',
                           background:
                             sec.callout.type === 'tip'
                               ? 'rgba(138, 106, 59, 0.06)'
                               : sec.callout.type === 'important'
-                              ? 'rgba(239, 68, 68, 0.06)'
+                              ? 'rgba(180, 35, 24, 0.06)'
                               : 'rgba(255, 255, 255, 0.02)'
                         }}
                       >

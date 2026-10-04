@@ -340,7 +340,7 @@ export default function AdminPortal() {
                               borderRadius: '3px',
                               fontWeight: 600,
                               background: u.suspended ? 'rgba(239,68,68,0.15)' : 'rgba(34,197,94,0.15)',
-                              color: u.suspended ? 'var(--accent-red)' : '#22c55e'
+                              color: u.suspended ? 'var(--accent-red)' : 'var(--accent)'
                             }}>
                               {u.suspended ? 'Suspended' : 'Active'}
                             </span>
@@ -368,7 +368,7 @@ export default function AdminPortal() {
                                 <button
                                   onClick={() => handleAction(u.id, 'unsuspend')}
                                   className="btn-secondary"
-                                  style={{ fontSize: '0.7rem', padding: '0.2rem 0.5rem', borderColor: '#22c55e', color: '#22c55e' }}
+                                  style={{ fontSize: '0.7rem', padding: '0.2rem 0.5rem', borderColor: 'var(--accent)', color: 'var(--accent)' }}
                                 >
                                   Activate
                                 </button>
@@ -450,7 +450,7 @@ export default function AdminPortal() {
               ) : (
                 stats?.activityLogs.map((log) => {
                   let badgeColor = 'var(--accent-gold)';
-                  if (log.action === 'UPLOAD_IMAGE') badgeColor = '#22c55e';
+                  if (log.action === 'UPLOAD_IMAGE') badgeColor = 'var(--accent)';
                   else if (log.action === 'GENERATE_OUTFIT') badgeColor = '#3b82f6';
                   
                   return (

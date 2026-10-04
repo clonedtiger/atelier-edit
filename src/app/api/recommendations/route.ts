@@ -1,6 +1,7 @@
 import { NextResponse } from 'next/server';
 import { prisma } from '@/lib/db';
 import { getSession } from '@/lib/session';
+import { pieceLabel } from '@/lib/pieceName';
 
 async function getActiveUserId() {
   const session = await getSession();
@@ -23,33 +24,33 @@ export async function GET() {
       orderBy: { createdAt: 'desc' },
     });
     
-    // For each item, resolve the wardrobeItem imageUrl if there is a wardrobeItemId linked
-    const enrichedRecommendations = await Promise.all(
-      recommendations.map(async (rec) => {
-        const enrichedItems = await Promise.all(
-          rec.outfitItems.map(async (item) => {
-            if (item.wardrobeItemId) {
-              const wItem = await prisma.wardrobeItem.findUnique({
-                where: { id: item.wardrobeItemId },
-                select: { imageUrl: true, category: true, detectedTags: true },
-              });
-              return {
-                ...item,
-                wardrobeItemImage: wItem?.imageUrl || null,
-                wardrobeItemCategory: wItem?.category || null,
-                wardrobeItemTags: wItem?.detectedTags || [],
-              };
-            }
-            return item;
-          })
-        );
-        return {
-          ...rec,
-          outfitItems: enrichedItems,
-        };
-      })
+    // Resolve every referenced wardrobe piece in one query (scoped to this user)
+    const wardrobeIds = Array.from(
+      new Set(recommendations.flatMap((rec) => rec.outfitItems.map((item) => item.wardrobeItemId).filter((id): id is string => Boolean(id))))
     );
-    
+    const wardrobeItems = wardrobeIds.length
+      ? await prisma.wardrobeItem.findMany({
+          where: { id: { in: wardrobeIds }, userId },
+          select: { id: true, imageUrl: true, category: true, detectedTags: true, brand: true, styleNotes: true, wearCount: true, lastWornAt: true },
+        })
+      : [];
+    const wardrobeById = new Map(wardrobeItems.map((w) => [w.id, w]));
+
+    const enrichedRecommendations = recommendations.map((rec) => ({
+      ...rec,
+      outfitItems: rec.outfitItems.map((item) => {
+        const wItem = item.wardrobeItemId ? wardrobeById.get(item.wardrobeItemId) : undefined;
+        if (!item.wardrobeItemId) return item;
+        return {
+          ...item,
+          wardrobeItemImage: wItem?.imageUrl || null,
+          wardrobeItemCategory: wItem?.category || null,
+          wardrobeItemTags: wItem?.detectedTags || [],
+          wardrobeItemLabel: wItem ? pieceLabel(wItem.brand, wItem.styleNotes, wItem.category) : null,
+        };
+      }),
+    }));
+
     return NextResponse.json(enrichedRecommendations);
   } catch (error) {
     const errorMessage = error instanceof Error ? error.message : 'Failed to fetch recommendations';
