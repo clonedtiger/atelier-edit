@@ -68,8 +68,7 @@ describe('Guides & Help Center Content & Structure Verification', () => {
       .map((s) => s.heading + ' ' + s.content.join(' ') + ' ' + (s.steps?.join(' ') || ''))
       .join(' ');
 
-    expect(sectionsText.toLowerCase()).toContain('10x10');
-    expect(sectionsText.toLowerCase()).toContain('5x4');
+    expect(sectionsText.toLowerCase()).toContain('luggage');
     expect(sectionsText.toLowerCase()).toContain('packing');
     expect(sectionsText.toLowerCase()).toContain('destination');
   });

@@ -279,3 +279,39 @@ export async function sendWhatsNewEmailDigest(params: EmailDigestParams): Promis
 
   return { success: true, simulated: true };
 }
+
+/**
+ * Emails a password reset code. Without SMTP configured the code cannot be delivered; in
+ * development it is logged so the flow can be tested, but never in production, where server
+ * logs must not contain working reset codes.
+ */
+export async function sendPasswordResetEmail(email: string, code: string): Promise<EmailDispatchResult> {
+  const transporter = getTransporter();
+  const fromAddress = process.env.EMAIL_FROM || 'Atelier Edit <digest@atelier-edit.com>';
+
+  if (!transporter) {
+    if (process.env.NODE_ENV === 'production') {
+      console.error('[PASSWORD RESET] SMTP is not configured, so the reset code could not be emailed.');
+      return { success: false, error: 'Email is not configured' };
+    }
+    console.log(`[PASSWORD RESET] (development) code for ${email}: ${code}`);
+    return { success: true, simulated: true };
+  }
+
+  try {
+    const info = await transporter.sendMail({
+      from: fromAddress,
+      to: email,
+      subject: 'Your Atelier Edit password reset code',
+      text: `Your password reset code is ${code}. It expires in 15 minutes.\n\nIf you did not ask to reset your password, you can ignore this email.`,
+      html: `<p style="font-family: ${SANS}; font-size: 15px; color: #18181A;">Your password reset code is</p>
+<p style="font-family: ${SERIF}; font-size: 32px; letter-spacing: 0.2em; color: #18181A; margin: 8px 0 16px;">${escapeHtml(code)}</p>
+<p style="font-family: ${SANS}; font-size: 13px; color: #56565E;">It expires in 15 minutes. If you did not ask to reset your password, you can ignore this email.</p>`,
+    });
+    return { success: true, messageId: info.messageId };
+  } catch (err) {
+    const errorMsg = err instanceof Error ? err.message : 'Unknown SMTP dispatch error';
+    console.error(`[PASSWORD RESET] Failed to send reset email: ${errorMsg}`);
+    return { success: false, error: errorMsg };
+  }
+}

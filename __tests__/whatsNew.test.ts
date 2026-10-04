@@ -6,7 +6,6 @@ import { syncArticlesAndTrends } from '@/lib/feed';
 import { uploadImage } from '@/lib/storage';
 import { getSession } from '@/lib/session';
 import { NextRequest } from 'next/server';
-import sharp from 'sharp';
 
 // Mock dependencies
 jest.mock('@/lib/db', () => ({
@@ -158,6 +157,7 @@ describe('Personalized What\'s New Feed - Library and API Routes', () => {
         favoriteBrands: 'Lemaire, The Row',
         avoidedStyles: 'Loud logos',
         inspirationNotes: 'Focus on relaxed silhouettes with heavy drape',
+        marketingEmail: true,
         customFeeds: [],
         feedSubscriptions: [],
       });
@@ -353,6 +353,9 @@ describe('Personalized What\'s New Feed - Library and API Routes', () => {
       );
       // Article images are linked, never downloaded and re-hosted
       expect(uploadImage).not.toHaveBeenCalled();
+      // Sarah has not opted in to email digests
+      const { sendWhatsNewEmailDigest } = await import('@/lib/email');
+      expect(sendWhatsNewEmailDigest).not.toHaveBeenCalled();
 
       expect(result.posts[0].pieces).toEqual([
         { id: 'piece-coat', imageUrl: '/uploads/coat.webp', label: 'Toteme · Oversized wool coat' },

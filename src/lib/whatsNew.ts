@@ -208,6 +208,7 @@ export async function generateAndSaveUserWhatsNew(
       favoriteBrands: true,
       avoidedStyles: true,
       inspirationNotes: true,
+      marketingEmail: true,
       customFeeds: {
         select: {
           id: true,
@@ -460,8 +461,8 @@ Focus on versatile, gender-neutral pieces and silhouettes.
     });
   }
 
-  // 7. Email digest (non-blocking)
-  if (user?.email && newlyCreatedPosts.length > 0) {
+  // 7. Email digest (non-blocking), only for people who opted in to email digests
+  if (user?.email && user.marketingEmail && newlyCreatedPosts.length > 0) {
     sendWhatsNewEmailDigest({
       email: user.email,
       name: user.name,

@@ -1,6 +1,15 @@
+import crypto from 'crypto';
 import { NextResponse } from 'next/server';
 import bcrypt from 'bcryptjs';
 import { prisma } from '@/lib/db';
+
+const MAX_ATTEMPTS = 5;
+
+function codesMatch(expected: string, given: string): boolean {
+  const a = Buffer.from(expected);
+  const b = Buffer.from(given);
+  return a.length === b.length && crypto.timingSafeEqual(a, b);
+}
 
 /**
  * Resets user password after validating recovery verification code.
@@ -21,28 +30,31 @@ export async function POST(req: Request) {
     const cleanIdentity = identity.trim();
     const cleanCode = code.trim();
 
-    // Query user by email OR phone number
-    const user = await prisma.user.findFirst({
-      where: {
-        OR: [
-          { email: cleanIdentity },
-          { phone: cleanIdentity },
-        ],
-      },
-    });
+    const user = await prisma.user.findUnique({ where: { email: cleanIdentity } });
+    const invalid = NextResponse.json({ error: 'That code is not valid. Check it, or request a new one.' }, { status: 401 });
 
-    if (!user) {
-      return NextResponse.json({ error: 'User not found' }, { status: 404 });
+    if (!user || !user.passwordResetCode || !user.passwordResetExpires) {
+      return invalid;
     }
 
-    // Verify recovery code exists and is matching
-    if (!user.passwordResetCode || user.passwordResetCode !== cleanCode) {
-      return NextResponse.json({ error: 'Invalid verification code' }, { status: 401 });
+    if (new Date() > user.passwordResetExpires) {
+      return NextResponse.json({ error: 'That code has expired. Please request a new one.' }, { status: 401 });
     }
 
-    // Verify recovery code has not expired
-    if (!user.passwordResetExpires || new Date() > user.passwordResetExpires) {
-      return NextResponse.json({ error: 'Verification code has expired' }, { status: 401 });
+    if (user.passwordResetAttempts >= MAX_ATTEMPTS) {
+      return NextResponse.json({ error: 'Too many attempts. Please request a new code.' }, { status: 429 });
+    }
+
+    if (!codesMatch(user.passwordResetCode, cleanCode)) {
+      const attempts = user.passwordResetAttempts + 1;
+      await prisma.user.update({
+        where: { id: user.id },
+        // Void the code once the attempt limit is reached so it can't be brute-forced
+        data: attempts >= MAX_ATTEMPTS
+          ? { passwordResetAttempts: attempts, passwordResetCode: null, passwordResetExpires: null }
+          : { passwordResetAttempts: attempts },
+      });
+      return invalid;
     }
 
     // Hash the new password securely
@@ -56,6 +68,7 @@ export async function POST(req: Request) {
         passwordHash: hash,
         passwordResetCode: null,
         passwordResetExpires: null,
+        passwordResetAttempts: 0,
       },
     });
 

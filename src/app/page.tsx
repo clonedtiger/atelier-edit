@@ -6,7 +6,7 @@ import { WhatsNewPost } from '@/lib/whatsNew';
 import { CameraIcon, DeviceIcon } from '@/components/Icons';
 import { useConfirmDialog } from '@/components/ConfirmDialog';
 import { ProfileMenu } from '@/components/ProfileMenu';
-import { OnboardingChecklist } from '@/components/OnboardingChecklist';
+import { OnboardingChecklist, DRESS_OPTIONS } from '@/components/OnboardingChecklist';
 import { WhatsNewCard } from '@/components/WhatsNewCard';
 import { LandingHero, LandingFeatures } from '@/components/Landing';
 import { OutfitCard, type OutfitLook, type OutfitFeedbackAction } from '@/components/OutfitCard';
@@ -270,9 +270,7 @@ export default function AtelierEditDashboard() {
 
   // Profile Edit fields
   const [profName, setProfName] = useState('');
-  const [profSex, setProfSex] = useState('Female');
   const [profGender, setProfGender] = useState('Female');
-  const [profPhone, setProfPhone] = useState('');
   const [profBra, setProfBra] = useState('');
   const [profWorkLife, setProfWorkLife] = useState('');
   const [profInspirations, setProfInspirations] = useState('');
@@ -412,9 +410,7 @@ export default function AtelierEditDashboard() {
 
   const populateProfileFields = useCallback((u: UserProfile) => {
     setProfName(u.name || '');
-    setProfSex(u.sex || 'Female');
     setProfGender(u.gender || u.sex || 'Female');
-    setProfPhone(u.phone || '');
 
     // Height Parser
     const h = u.height || '';
@@ -1638,9 +1634,7 @@ export default function AtelierEditDashboard() {
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
           name: profName,
-          sex: profSex,
           gender: profGender,
-          phone: profPhone,
           height: serializedHeight,
           weight: serializedWeight,
           waistSize: serializedWaist,
@@ -2108,8 +2102,8 @@ export default function AtelierEditDashboard() {
       return { outlinePath, headPath, leftCollarbone, rightCollarbone, centerLine, footY };
     };
 
-    const userCroquis = computeSilhouette(150, profSex, hCm, wKg, waistInches);
-    const avgCroquis = computeSilhouette(150, profSex, 168, 68, 30);
+    const userCroquis = computeSilhouette(150, profGender, hCm, wKg, waistInches);
+    const avgCroquis = computeSilhouette(150, profGender, 168, 68, 30);
 
     return { userCroquis, avgCroquis };
   };
@@ -2352,17 +2346,17 @@ export default function AtelierEditDashboard() {
                   {recoveryStep === 'request' ? (
                     <form onSubmit={handleForgotPasswordRequest} className="form-group-stack">
                       <p style={{ fontSize: '0.8rem', color: 'var(--text-muted)', marginBottom: '1rem' }}>
-                        Enter your registered email or phone number to receive a security verification code.
+                        Enter your account email and we&apos;ll send you a reset code.
                       </p>
                       
                       <div className="form-field">
-                        <label>Email or Phone Number</label>
+                        <label>Email address</label>
                         <input
                           type="text"
                           required
                           value={recoveryIdentity}
                           onChange={(e) => setRecoveryIdentity(e.target.value)}
-                          placeholder="e.g. clara@fashion.com or +123456789"
+                          placeholder="you@example.com"
                         />
                       </div>
 
@@ -2377,7 +2371,7 @@ export default function AtelierEditDashboard() {
                       </p>
 
                       <div className="form-field">
-                        <label>Identity (Email or Phone)</label>
+                        <label>Email address</label>
                         <input
                           type="text"
                           readOnly
@@ -4527,7 +4521,7 @@ export default function AtelierEditDashboard() {
                           </button>
                         </div>
                         <p style={{ fontSize: '0.75rem', color: 'var(--text-muted)' }}>
-                          Configure your measurements to customize Gemini outfit personalization.
+                          How you dress, your style, and the city your looks are styled for.
                         </p>
                       </div>
                     </div>
@@ -4537,7 +4531,7 @@ export default function AtelierEditDashboard() {
                       {/* Part 1 */}
                       <div className="form-group-stack" style={{ gap: '1rem' }}>
                         <h4 style={{ fontSize: '1.15rem', color: 'var(--accent)', borderBottom: '1px solid var(--border-color)', paddingBottom: '0.25rem' }}>
-                          1. Contact Details
+                          1. Account
                         </h4>
                         <div className="form-group-stack" style={{ gap: '1rem', maxWidth: '400px' }}>
                           <div className="form-field">
@@ -4558,49 +4552,37 @@ export default function AtelierEditDashboard() {
                               style={{ opacity: 0.6, cursor: 'not-allowed' }}
                             />
                           </div>
-                          <div className="form-field">
-                            <label>Phone / Mobile Number</label>
-                            <input
-                              type="text"
-                              value={profPhone}
-                              onChange={(e) => setProfPhone(e.target.value)}
-                              placeholder="e.g. +1 555-0199"
-                            />
-                          </div>
                         </div>
                       </div>
 
                       {/* Part 2 */}
                       <div className="form-group-stack" style={{ gap: '1.25rem', marginTop: '1.5rem' }}>
                         <h4 style={{ fontSize: '1.15rem', color: 'var(--accent)', borderBottom: '1px solid var(--border-color)', paddingBottom: '0.25rem' }}>
-                          2. Sizing &amp; Measurements
+                          2. How you dress &amp; fit
                         </h4>
 
                         <div className="form-group-stack" style={{ gap: '1.25rem', maxWidth: '400px' }}>
-                          
                           <div className="form-field">
-                            <label>Biological Sex</label>
+                            <label htmlFor="profile-dresses-in">I dress in</label>
                             <select
-                              value={profSex}
-                              onChange={(e) => setProfSex(e.target.value)}
-                            >
-                              <option value="Female">Female</option>
-                              <option value="Male">Male</option>
-                              <option value="Other">Other</option>
-                            </select>
-                          </div>
-
-                          <div className="form-field">
-                            <label>Gender</label>
-                            <select
+                              id="profile-dresses-in"
                               value={profGender}
                               onChange={(e) => setProfGender(e.target.value)}
                             >
-                              <option value="Male">Male</option>
-                              <option value="Female">Female</option>
-                              <option value="Other">Other</option>
+                              {DRESS_OPTIONS.map((option) => (
+                                <option key={option.value} value={option.value}>{option.label}</option>
+                              ))}
                             </select>
+                            <p className="field-help">Decides which clothes your stylist suggests. Nothing else about you is inferred from it.</p>
                           </div>
+                        </div>
+
+                        <details className="fit-details" open={Boolean(heightCm || heightFt || weightKg || weightLbs || weightStValue || waistVal || shoeVal || clothingVal || profBra)}>
+                          <summary>Fit details (optional)</summary>
+                          <p className="field-help">
+                            Only used to suggest the right size when a look includes something to buy. Fill in as much or as little as you like.
+                          </p>
+                        <div className="form-group-stack" style={{ gap: '1.25rem', maxWidth: '400px', marginTop: '1rem' }}>
 
                           {/* Height Unit */}
                           <div className="form-field">
@@ -4735,8 +4717,8 @@ export default function AtelierEditDashboard() {
                             />
                           </div>
 
-                          {/* Bra Size (Female only) */}
-                          {profSex === 'Female' && (
+                          {/* Bra Size (womenswear only) */}
+                          {profGender === 'Female' && (
                             <div className="form-field">
                               <label>Bra Size</label>
                               <input
@@ -4879,16 +4861,17 @@ export default function AtelierEditDashboard() {
                           </div>
 
                         </div>
+                        </details>
                       </div>
 
                       {/* Part 3: Style DNA & Aesthetic Archetype */}
                       <div className="form-group-stack" style={{ gap: '1.25rem', marginTop: '1.5rem' }}>
                         <div style={{ borderBottom: '1px solid var(--border-color)', paddingBottom: '0.5rem' }}>
                           <h4 style={{ fontSize: '1.15rem', color: 'var(--accent)', marginBottom: '0.25rem' }}>
-                            3. Style DNA &amp; Aesthetic Archetype
+                            3. Your style
                           </h4>
                           <p style={{ fontSize: '0.75rem', color: 'var(--text-muted)' }}>
-                            Define your unique styling philosophy, design rules, and brand universe so Gemini recommendations match your personal taste.
+                            Your taste, favourite brands and anything you avoid. Your stylist follows these closely.
                           </p>
                         </div>
 
@@ -5077,10 +5060,10 @@ export default function AtelierEditDashboard() {
                   {/* Marketing & Communication Preferences Panel */}
                   <div className="lookbook-panel" style={{ padding: '2rem', marginBottom: 0 }}>
                     <h3 style={{ fontSize: '1.25rem', marginBottom: '0.5rem', borderBottom: '1px solid var(--border-color)', paddingBottom: '0.5rem' }}>
-                      Marketing &amp; Communication Preferences
+                      Emails
                     </h3>
                     <p style={{ fontSize: '0.8rem', color: 'var(--text-muted)', marginBottom: '1.5rem' }}>
-                      Choose how you would like to receive personal styling updates, trend digests, and partner offers from Atelier Edit under UK DPA 2018.
+                      Choose what we email you. You can change this at any time, and we never share your data with other companies.
                     </p>
 
                     <form onSubmit={handleSaveMarketingConsent} className="form-group-stack">
@@ -5096,40 +5079,12 @@ export default function AtelierEditDashboard() {
                           <div>
                             <strong>Email digests</strong>
                             <span style={{ display: 'block', fontSize: '0.75rem', color: 'var(--text-muted)' }}>
-                              Receive weekly style stream trends, seasonal capsule lookbooks, and haute couture runway breakdowns.
+                              A copy of your What&apos;s new posts each time they refresh.
                             </span>
                           </div>
                         </label>
 
-                        <label style={{ display: 'flex', alignItems: 'center', gap: '0.75rem', cursor: 'pointer', fontSize: '0.85rem' }}>
-                          <input
-                            type="checkbox"
-                            checked={marketingSms}
-                            onChange={(e) => setMarketingSms(e.target.checked)}
-                            style={{ width: '18px', height: '18px', accentColor: 'var(--accent-gold)' }}
-                          />
-                          <div>
-                            <strong>Mobile &amp; SMS Notifications</strong>
-                            <span style={{ display: 'block', fontSize: '0.75rem', color: 'var(--text-muted)' }}>
-                              Text messages about new looks and stylist updates.
-                            </span>
-                          </div>
-                        </label>
 
-                        <label style={{ display: 'flex', alignItems: 'center', gap: '0.75rem', cursor: 'pointer', fontSize: '0.85rem' }}>
-                          <input
-                            type="checkbox"
-                            checked={marketingPartners}
-                            onChange={(e) => setMarketingPartners(e.target.checked)}
-                            style={{ width: '18px', height: '18px', accentColor: 'var(--accent-gold)' }}
-                          />
-                          <div>
-                            <strong>Carefully Selected Partners &amp; Collaborations</strong>
-                            <span style={{ display: 'block', fontSize: '0.75rem', color: 'var(--text-muted)' }}>
-                              Allow Atelier Edit to share non-sensitive aesthetic recommendations with carefully vetted luxury fashion houses.
-                            </span>
-                          </div>
-                        </label>
 
                       </div>
 
@@ -5150,7 +5105,7 @@ export default function AtelierEditDashboard() {
                   {/* Haute Couture Designer Sketch Card */}
                   <div className="croquis-responsive-card">
                     <h4 style={{ fontSize: '0.8rem', textTransform: 'uppercase', letterSpacing: '0.2em', marginBottom: '1.5rem', color: 'var(--accent)', borderBottom: '1px solid var(--border-color)', width: '100%', paddingBottom: '0.75rem' }}>
-                      Haute Couture Croquis
+                      Your silhouette
                     </h4>
                     
                     <div className="croquis-canvas-wrapper">
@@ -5191,7 +5146,7 @@ export default function AtelierEditDashboard() {
                       <div style={{ display: 'flex', flexDirection: 'column', gap: '0.35rem', fontSize: '0.65rem', textTransform: 'uppercase', letterSpacing: '0.08em', alignItems: 'center' }}>
                         <span style={{ color: '#1A1A1A', fontWeight: 'bold', display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
                           <span style={{ display: 'inline-block', width: '16px', height: '3px', backgroundColor: '#1A1A1A' }}></span>
-                          Your Personal Silhouette ({profSex === 'Male' ? 'Homme' : 'Femme'})
+                          Your silhouette
                         </span>
                         <span style={{ color: 'var(--text-muted)', display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
                           <span style={{ display: 'inline-block', width: '16px', height: '3px', backgroundColor: '#B5AFA6' }}></span>

@@ -636,12 +636,12 @@ export async function generateOutfitRecommendations(
 
   const sizingSummary = userProfile
     ? `
-    Client Physical Sizing & Fit Parameters:
-    - Sex: ${userProfile.sex || 'Not specified'}
+    Client Fit Details (optional; use only to suggest sizes):
+    - Dresses in: ${describeWearer(userProfile)}
     - Height: ${userProfile.height || 'Not specified'}
     - Weight: ${userProfile.weight || 'Not specified'}
     - Waist Size: ${userProfile.waistSize || 'Not specified'}
-    ${userProfile.sex === 'Female' ? `- Bra Size: ${userProfile.braSize || 'Not specified'}` : ''}
+    ${userProfile.braSize ? `- Bra Size: ${userProfile.braSize}` : ''}
     - Shoe Size: ${userProfile.shoeSize || 'Not specified'}
     - Hat Size: ${userProfile.hatSize || 'Not specified'}
     - Glove Size: ${userProfile.gloveSize || 'Not specified'}

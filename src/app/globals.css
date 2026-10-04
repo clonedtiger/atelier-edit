@@ -2919,3 +2919,28 @@ p {
     letter-spacing: 0.1em;
   }
 }
+
+/* Profile form helpers */
+.field-help {
+  font-size: 0.75rem;
+  color: var(--text-muted);
+  line-height: 1.5;
+  margin-top: 0.35rem;
+}
+
+.fit-details {
+  border: 1px solid var(--border-color);
+  border-radius: 6px;
+  padding: 0.85rem 1rem;
+  max-width: 440px;
+}
+
+.fit-details summary {
+  font-size: 0.8rem;
+  font-weight: 600;
+  color: var(--text-primary);
+  cursor: pointer;
+  min-height: 32px;
+  display: flex;
+  align-items: center;
+}

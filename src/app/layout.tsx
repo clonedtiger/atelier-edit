@@ -16,8 +16,8 @@ const inter = Inter({
 });
 
 export const metadata: Metadata = {
-  title: "Atelier Edit | The Personal Wardrobe Journal",
-  description: "A private, clean, luxury fashion editor blending structured tailoring with rebel hardware elements.",
+  title: "Atelier Edit · Your personal stylist",
+  description: "A personal stylist for the clothes you already own: outfits from your wardrobe, styled for the weather, your plans and this season's trends.",
 };
 
 export const viewport: Viewport = {

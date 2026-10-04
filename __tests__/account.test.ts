@@ -53,15 +53,41 @@ describe('User Account Management & Recovery Tests', () => {
       expect(dbUser?.passwordResetExpires).not.toBeNull();
     });
 
-    it('should generate a 6-digit recovery code for matching phone number', async () => {
-      const req = new Request('http://localhost/api/auth/forgot-password', {
+    it('gives the same reply for unknown accounts, so the form cannot reveal who has an account', async () => {
+      const known = await postForgotPassword(new Request('http://localhost/api/auth/forgot-password', {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ identity: testUser.phone }),
-      });
+        body: JSON.stringify({ identity: testUser.email }),
+      }));
+      const unknown = await postForgotPassword(new Request('http://localhost/api/auth/forgot-password', {
+        method: 'POST',
+        body: JSON.stringify({ identity: `nobody_${Date.now()}@test.com` }),
+      }));
 
-      const response = await postForgotPassword(req);
-      expect(response.status).toBe(200);
+      expect(unknown.status).toBe(known.status);
+      expect(await unknown.json()).toEqual(await known.json());
+    });
+
+    it('voids the code after five wrong guesses', async () => {
+      await postForgotPassword(new Request('http://localhost/api/auth/forgot-password', {
+        method: 'POST',
+        body: JSON.stringify({ identity: testUser.email }),
+      }));
+      const { passwordResetCode: realCode } = (await prisma.user.findUnique({ where: { id: testUser.id } }))!;
+      const wrong = realCode === '000000' ? '111111' : '000000';
+
+      const attempt = (code: string) =>
+        postResetPassword(new Request('http://localhost/api/auth/reset-password', {
+          method: 'POST',
+          body: JSON.stringify({ identity: testUser.email, code, newPassword: 'anotherPassword123' }),
+        }));
+
+      for (let i = 0; i < 5; i++) {
+        expect((await attempt(wrong)).status).toBe(401);
+      }
+      // Even the right code no longer works
+      expect((await attempt(realCode!)).status).not.toBe(200);
+      const after = await prisma.user.findUnique({ where: { id: testUser.id } });
+      expect(after?.passwordResetCode).toBeNull();
     });
 
     it('should reset password with correct code and allow sign in with new credentials', async () => {

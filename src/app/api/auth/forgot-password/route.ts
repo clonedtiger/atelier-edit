@@ -1,63 +1,46 @@
+import crypto from 'crypto';
 import { NextResponse } from 'next/server';
 import { prisma } from '@/lib/db';
+import { sendPasswordResetEmail } from '@/lib/email';
+
+// Same reply whether or not an account exists, so the form can't be used to discover accounts
+const GENERIC_REPLY = {
+  success: true,
+  message: "If an account exists for that email, we've sent it a reset code.",
+};
 
 /**
- * Initiates the password recovery flow.
- * Generates a verification code and registers it on the user record.
+ * Starts password recovery: issues a 6-digit code (valid 15 minutes) and emails it.
  */
 export async function POST(req: Request) {
   try {
     const body = await req.json().catch(() => ({}));
-    const { identity } = body;
+    const email = typeof body?.identity === 'string' ? body.identity.trim() : '';
 
-    if (!identity) {
-      return NextResponse.json({ error: 'Email or Phone Number is required' }, { status: 400 });
+    if (!email) {
+      return NextResponse.json({ error: 'Email address is required' }, { status: 400 });
     }
 
-    const cleanIdentity = identity.trim();
-
-    // Query user by matching email OR phone number
-    const user = await prisma.user.findFirst({
-      where: {
-        OR: [
-          { email: cleanIdentity },
-          { phone: cleanIdentity },
-        ],
-      },
-    });
-
+    const user = await prisma.user.findUnique({ where: { email } });
     if (!user) {
-      // Do not reveal user existence leaks in production, but for our requirements, 
-      // return 404 to guide the user during password resets.
-      return NextResponse.json({ error: 'No account matches the provided email or phone number' }, { status: 404 });
+      return NextResponse.json(GENERIC_REPLY);
     }
 
-    // Generate 6-digit random code
-    const resetCode = Math.floor(100000 + Math.random() * 900000).toString();
-    const expires = new Date();
-    expires.setMinutes(expires.getMinutes() + 15); // Valid for 15 minutes
+    const resetCode = crypto.randomInt(100000, 1000000).toString();
+    const expires = new Date(Date.now() + 15 * 60 * 1000);
 
-    // Save code & expiration to DB
     await prisma.user.update({
       where: { id: user.id },
       data: {
         passwordResetCode: resetCode,
         passwordResetExpires: expires,
+        passwordResetAttempts: 0,
       },
     });
 
-    // Mock dispatch (Log to console for test/eval access)
-    console.log(`\n==================================================`);
-    console.log(`[SECURITY DISPATCH] Password reset code for:`);
-    console.log(`User: ${user.name || 'User'} (${user.email})`);
-    console.log(`Verification Code: ${resetCode}`);
-    console.log(`Expires: ${expires.toLocaleTimeString()}`);
-    console.log(`==================================================\n`);
+    await sendPasswordResetEmail(user.email, resetCode);
 
-    return NextResponse.json({
-      success: true,
-      message: 'A security verification code has been dispatched to your email/mobile.',
-    });
+    return NextResponse.json(GENERIC_REPLY);
   } catch (error) {
     console.error('Forgot password API error:', error);
     return NextResponse.json(

@@ -28,475 +28,264 @@ export interface GuideCategory {
 }
 
 export const GUIDE_CATEGORIES: GuideCategory[] = [
-  {
-    id: 'all',
-    title: 'All Guides',
-    icon: '',
-    description: 'Browse the complete documentation and styling handbook.'
-  },
-  {
-    id: 'quickstart',
-    title: 'Quickstart & Navigation',
-    icon: '',
-    description: 'Essential overview of Atelier Edit navigation, mobile gestures, and core concepts.'
-  },
-  {
-    id: 'stylist',
-    title: 'Personal Stylist & Climate',
-    icon: '',
-    description: 'AI outfit consultations, live weather forecasts, hero garments, and gap analysis.'
-  },
-  {
-    id: 'wardrobe',
-    title: 'Wardrobe & Duplicates',
-    icon: '',
-    description: 'Garment cataloging, batch photo ingestion, auto-tagging, and duplicate merging.'
-  },
-  {
-    id: 'capsule',
-    title: 'Capsules & Travel Packing',
-    icon: '',
-    description: 'Interchangeable capsule wardrobes, 10x10 and 5x4 travel packing matrices.'
-  },
-  {
-    id: 'studio',
-    title: 'Studio (Flat-Lay Canvas)',
-    icon: '',
-    description: 'Interactive moodboard canvas, drag-and-drop outfit builder, layering, and export.'
-  },
-  {
-    id: 'inspirations',
-    title: 'Inspirations & Trend Feeds',
-    icon: '',
-    description: 'Visual moodboard clippings, Gemini aesthetic tag extraction, and RSS channels.'
-  },
-  {
-    id: 'profile',
-    title: 'Profile Guide',
-    icon: '',
-    description: 'Style DNA archetypes, international sizing systems, and password management.'
-  },
-  {
-    id: 'gdpr',
-    title: 'Privacy, GDPR & Security',
-    icon: '',
-    description: 'Article 20 data package exports, Right to be Forgotten, and Two-Factor Authentication.'
-  }
+  { id: 'all', title: 'All guides', icon: '', description: 'Everything in one place.' },
+  { id: 'quickstart', title: 'Getting started', icon: '', description: 'How the app is organised and the first three things to do.' },
+  { id: 'stylist', title: 'Stylist', icon: '', description: 'Daily looks, occasions, weather, and teaching your stylist what you like.' },
+  { id: 'wardrobe', title: 'Wardrobe', icon: '', description: 'Adding pieces, editing them, duplicates, insights and gaps.' },
+  { id: 'capsule', title: 'Travel capsules', icon: '', description: 'Packing a small set of pieces for a trip, with a look for every day.' },
+  { id: 'studio', title: 'Studio', icon: '', description: 'Arranging pieces into a flat-lay and saving it.' },
+  { id: 'inspirations', title: "Inspiration & What's new", icon: '', description: 'Inspiration photos, the sources you follow, and your trend briefing.' },
+  { id: 'profile', title: 'Profile & sizes', icon: '', description: 'How you dress, fit details, style, and your password.' },
+  { id: 'gdpr', title: 'Privacy & security', icon: '', description: 'Downloading or deleting your data, and two-factor sign-in.' },
 ];
 
 export const GUIDES_ARTICLES: GuideArticle[] = [
-  // 1. Quickstart
   {
     id: 'quickstart-overview',
     category: 'quickstart',
-    title: 'Welcome to Atelier Edit: The Personal Style Journal',
-    summary: 'A luxury digital wardrobe ecosystem combining your physical clothing inventory, live global weather forecasts, haute couture editorial feeds, and Gemini AI vision styling.',
-    readingTime: '3 min read',
-    badge: 'Essential',
+    title: 'Getting started with Atelier Edit',
+    summary: 'Atelier Edit suggests outfits from the clothes you already own. Here is how it is organised.',
+    readingTime: '2 min read',
+    badge: 'Start here',
     sections: [
       {
-        heading: 'What is Atelier Edit?',
+        heading: 'How the app is organised',
         content: [
-          'Atelier Edit is an intelligent personal styling platform engineered to bridge the gap between high-fashion runway inspiration and your real, everyday physical closet.',
-          'Instead of generic fashion advice, Atelier Edit creates personalized outfit compositions tailored to your unique measurements, aesthetic preferences, physical wardrobe items, and real-time destination weather.'
-        ]
+          'Today: your Stylist (daily looks) and What\'s new (this season\'s trends read against your wardrobe).',
+          'Wardrobe: your Pieces, travel Capsules and the flat-lay Studio.',
+          'Inspiration: photos you have saved and the sources you follow.',
+          'The Account menu (top right) holds your profile and sizes, these guides, and sign out. The Snap button (or the round camera button on a phone) saves an inspiration photo from anywhere.',
+        ],
       },
       {
-        heading: 'The Main Navigation Tabs',
-        content: [
-          'The editorial header allows you to switch seamlessly between the core areas of the platform:'
-        ],
+        heading: 'Your first three steps',
+        content: ['A short checklist on Today walks you through these the first time you sign in.'],
         steps: [
-          'Stylist: Request tailored outfit consultations for any occasion, city climate, or star anchor garment.',
-          'What\'s New: Browse automated daily editorial digests, trend forecasts, and runway analyses from leading fashion houses.',
-          'Wardrobe: Catalog your clothing pieces with photos, tags, materials, and automated duplicate item detection.',
-          'Capsules: Generate travel packing lists and interchangeable 10x10 or 5x4 capsule wardrobes.',
-          'Studio: Craft visual flat-lay outfit collages on an interactive drag-and-drop moodboard canvas.',
-          'Inspirations: Pin runway photos and magazine tearsheets for instant AI aesthetic extraction and subscribe to fashion feeds.',
-          'My Profile: Customize your Style DNA, physical sizing measurements, password, and UK DPA 2018 privacy preferences.'
-        ]
-      },
-      {
-        heading: 'Mobile PWA Experience',
-        content: [
-          'Atelier Edit is a Progressive Web App (PWA) optimized for mobile devices. You can install it directly to your home screen via your browser menu for instant offline access and native camera uploads.'
+          'Tell us how you dress (womenswear, menswear or both) and pick the style closest to yours.',
+          'Add at least three pieces in Wardrobe › Pieces. One photo can hold several items laid flat; they are separated automatically.',
+          'On Today › Stylist, press "Style me" for three looks built from your pieces.',
         ],
-        callout: {
-          type: 'tip',
-          text: 'Use the "Snap Inspiration" button in the header at any time to snap a photo on your mobile camera or upload an image directly into your wardrobe or moodboard.'
-        }
-      }
-    ]
+      },
+    ],
   },
-
-  // 2. Personal Stylist & Climate
   {
     id: 'stylist-consultation-guide',
     category: 'stylist',
-    title: 'How to Use the Personal Stylist Consultation Engine',
-    summary: 'Master the AI stylist: synthesize real wardrobe items with runway trends, apply live thermal weather forecasts, and lock hero anchor garments.',
-    readingTime: '5 min read',
-    badge: 'AI Styling',
-    sections: [
-      {
-        heading: 'How Consultation Works',
-        content: [
-          'When you request a consultation, the Gemini AI engine analyzes four key dimensions simultaneously:',
-          '1. Your physical wardrobe items (outerwear, tops, bottoms, shoes, accessories).',
-          '2. Your Style DNA & Sizing Profile (aesthetic archetype, color palette, fit rules).',
-          '3. Current fashion stream trends & runway aesthetics.',
-          '4. Real-time meteorological data (temperature, wind, precipitation) for your target city.'
-        ]
-      },
-      {
-        heading: 'Setting Occasion & Destination Weather',
-        content: [
-          'You can customize the destination climate and occasion for any consultation:'
-        ],
-        steps: [
-          'Select your destination city (e.g. London, Paris, Tokyo, New York) or click "Add Custom City" to enter any global location.',
-          'The climate panel immediately loads live temperature, precipitation forecast, and comfort advice (e.g., "16°C Mild Breeze — Mid-weight tailoring & lightweight layering").',
-          'In the Occasion / Destination field, describe your event (e.g., "Boardroom presentation in Mayfair", "Autumn gallery opening", "Casual brunch in Brooklyn").',
-          'Click "Advise Me" to generate tailored lookbook recommendations.'
-        ]
-      },
-      {
-        heading: 'Hero Anchor Garment Feature',
-        content: [
-          'Have a star piece you really want to wear today? You can lock it as the Hero Anchor Garment.',
-          'When an anchor item is selected, the AI Stylist guarantees that this specific item will be the centerpiece of every generated outfit, selecting coordinating items from your closet to complete the silhouette.'
-        ],
-        callout: {
-          type: 'tip',
-          text: 'To anchor an item, click "Set as Hero Anchor" on any garment card in your Wardrobe tab, then return to the Stylist tab.'
-        }
-      },
-      {
-        heading: 'Understanding Wardrobe Gap Analysis & Shopping Links',
-        content: [
-          'If your wardrobe is missing an essential piece to complete a high-fashion look (e.g., a structured trench coat or leather loafer), the Stylist identifies the gap and provides curated direct shopping links to premier luxury retailers including Net-a-Porter, SSENSE, Farfetch, COS, and Zara.'
-        ]
-      }
-    ],
-    faqs: [
-      {
-        question: 'Why is the Advise Me button disabled?',
-        answer: 'The Advise Me button requires at least one item in your digital wardrobe. If your closet is currently empty, click "Ingest Demo Wardrobe (30 Pieces)" on the Stylist tab or add your own clothing in the Wardrobe tab.'
-      },
-      {
-        question: 'How do I save a generated recommendation to my Lookbook?',
-        answer: 'Click the "Save to Personal Lookbook" button underneath any generated outfit card. You can view all saved outfits anytime in your Lookbook drawer.'
-      }
-    ]
-  },
-
-  // 3. Wardrobe & Duplicate Detection
-  {
-    id: 'wardrobe-management-guide',
-    category: 'wardrobe',
-    title: 'Wardrobe Management, Batch Uploads & Duplicate Merging',
-    summary: 'Learn how to catalog your clothing pieces, use Gemini Vision auto-tagging, search your closet, and merge duplicate records.',
-    readingTime: '4 min read',
-    sections: [
-      {
-        heading: 'Adding Clothes to Your Digital Wardrobe',
-        content: [
-          'Atelier Edit offers three fast ways to build your digital closet:'
-        ],
-        steps: [
-          'Single Item Upload: Click "+ Add New Piece", choose a photo or use your mobile camera, and input details.',
-          'Batch Multi-Photo Ingestion: Select multiple clothing photos at once. The system automatically processes each image through Gemini Vision in parallel.',
-          'CSV / Catalog Import: Upload a spreadsheet of your existing inventory for bulk catalog creation.'
-        ]
-      },
-      {
-        heading: 'Gemini Vision AI Auto-Tagging',
-        content: [
-          'When you upload a clothing photo, Gemini Vision inspects the garment and automatically predicts:',
-          '• Category (Outerwear, Tops, Bottoms, Dresses, Knitwear, Shoes, Bags, Accessories, Jewelry).',
-          '• Fabric Composition & Texture (e.g., 100% Wool, Heavy Silk, Brushed Cashmere, Matte Leather).',
-          '• Color Palette (Primary shade, undertones, and accent hues).',
-          '• Formality & Aesthetic Vibe (Black Tie, Smart Casual, Avant-Garde Tailoring, Minimalist Luxury).',
-          '• Designer / Brand (if recognizable tags or silhouettes are present).'
-        ]
-      },
-      {
-        heading: 'Using the Duplicate Item Detector & Merge Tool',
-        content: [
-          'If you accidentally upload the same garment twice or have similar items, Atelier Edit\'s intelligent duplicate detector identifies them based on image hash and metadata similarity.',
-          'Click "Scan for Duplicates" in the Wardrobe header to view potential duplicates and merge them into a single definitive record with one click.'
-        ],
-        callout: {
-          type: 'info',
-          text: 'Merging duplicates preserves all existing lookbook references and styling notes while cleaning up redundant cloud storage images.'
-        }
-      }
-    ]
-  },
-
-  // 4. Capsules & Travel Matrices
-  {
-    id: 'capsule-wardrobe-guide',
-    category: 'capsule',
-    title: 'Building Travel Capsules & 10x10 / 5x4 Packing Matrices',
-    summary: 'Create interchangeable capsule wardrobes that maximize outfit versatility with minimal luggage weight for weekend getaways and business trips.',
-    readingTime: '4 min read',
-    badge: 'Travel',
-    sections: [
-      {
-        heading: 'What is a Capsule Wardrobe?',
-        content: [
-          'A capsule wardrobe is a curated collection of versatile, complementary garments where almost every top pairs seamlessly with every bottom and outerwear layer.',
-          'This allows you to create dozens of distinct outfit combinations from as few as 8 to 14 total pieces.'
-        ]
-      },
-      {
-        heading: 'Creating a New Travel Capsule',
-        content: [
-          'To generate a customized trip capsule:'
-        ],
-        steps: [
-          'Navigate to the Capsules tab and click "+ Create New Capsule".',
-          'Enter your Destination City (e.g., "Milan", "Paris", "Zurich").',
-          'Set your Trip Duration in days (e.g., 3 days, 5 days, 7 days, 10 days).',
-          'Choose the Expected Climate (Warm, Mild, Rainy, Cold, Alpine Snow).',
-          'Select the Vibe & Dress Code (Business Executive, Casual Chic, Fashion Week, Gala Dinner).',
-          'Click "Generate Capsule Matrix".'
-        ]
-      },
-      {
-        heading: 'The 10x10 and 5x4 Packing Matrices',
-        content: [
-          'Atelier Edit uses mathematical permutation matrices to curate your packing list:',
-          '• 10x10 Matrix (10 Days, 10 Pieces): 2 outerwear, 3 tops, 2 bottoms, 1 dress/suit, 2 pairs of shoes = 10+ unique outfits.',
-          '• 5x4 Matrix (5 Days, 4 Categories): 1 coat, 2 tops, 1 trouser, 1 shoe = 5 day-to-night transitions.'
-        ],
-        callout: {
-          type: 'tip',
-          text: 'You can export your completed capsule as a printable packing checklist and daily outfit calendar directly to PDF.'
-        }
-      }
-    ]
-  },
-
-  // 5. Studio (Flat-Lay Canvas)
-  {
-    id: 'studio-flatlay-guide',
-    category: 'studio',
-    title: 'How to Use the Studio: Interactive Flat-Lay Outfit Canvas',
-    summary: 'Design editorial outfit moodboards and Polyvore-style collage compositions using drag-and-drop, layering, rotation, and custom styling notes.',
-    readingTime: '5 min read',
-    badge: 'Creative',
-    sections: [
-      {
-        heading: 'Overview of the Studio Canvas',
-        content: [
-          'The Studio is your digital atelier styling table. It provides an unconstrained, interactive canvas where you can freely arrange clothing items, accessories, and inspirational clippings to visualize complete outfits before putting them on.'
-        ]
-      },
-      {
-        heading: 'Adding Items to the Canvas',
-        content: [
-          'On the left drawer of the Studio, you will find your Wardrobe items and Inspiration clippings:',
-          '• Click or drag any garment card to place it onto the canvas.',
-          '• You can place multiple items (e.g., blazer + knitwear + tailored trousers + handbag + boots) onto a single board.'
-        ]
-      },
-      {
-        heading: 'Canvas Interactive Controls',
-        content: [
-          'Once an item is on the canvas, clicking it activates the transform bounding box:'
-        ],
-        steps: [
-          'Move / Reposition: Click and drag the item anywhere on the canvas.',
-          'Resize / Scale: Drag the corner control handles to enlarge or shrink the item.',
-          'Rotate: Drag the circular rotation handle to tilt items for dynamic editorial layouts.',
-          'Layer Hierarchy (Z-Index): Use the "Bring Forward" and "Send Backward" buttons to layer garments (e.g., placing a coat over a sweater).',
-          'Remove: Click the "Remove" button to delete an item from the canvas.'
-        ]
-      },
-      {
-        heading: 'Canvas Backgrounds & Styling Annotations',
-        content: [
-          'Customize the aesthetic mood of your canvas:',
-          '• Background Swatches: Choose between Atelier Linen (#FAF8F4), Obsidian Dark (#1A1A1A), Parisian Cream (#F3EFE6), or Warm Charcoal.',
-          '• Editorial Notes: Add custom text boxes for styling guidelines (e.g., "Roll up coat sleeves", "Wear with gold hoop earrings").'
-        ],
-        callout: {
-          type: 'tip',
-          text: 'Click "Save Flat-Lay Collage" to store the outfit composition in your personal Lookbook, or click "Export Image" to download a high-resolution PNG for Instagram or Pinterest.'
-        }
-      }
-    ]
-  },
-
-  // 6. Inspirations & Feeds
-  {
-    id: 'inspirations-feeds-guide',
-    category: 'inspirations',
-    title: 'Visual Moodboards, AI Aesthetic Extraction & Feed Subscriptions',
-    summary: 'Collect runway clippings, extract style keywords with Gemini Vision, and manage your automated fashion intelligence feeds.',
+    title: 'Getting looks from your stylist',
+    summary: 'Ask for looks for any occasion, build around a favourite piece, and teach the stylist what you like.',
     readingTime: '3 min read',
     sections: [
       {
-        heading: 'Uploading Visual Inspirations',
+        heading: 'Asking for looks',
         content: [
-          'Whenever you see an outfit you love—in a magazine, on social media, or on a runway livestream—upload it to your Inspirations board:',
-          '• Upload via file picker or use the "Snap Inspiration" quick camera tool in the header.',
-          '• Gemini Vision analyzes the photo in seconds, extracting aesthetic tags (e.g., "Old Money Minimalist", "Architectural Tailoring", "Monochrome Layering") and primary color palettes.'
-        ]
-      },
-      {
-        heading: 'Managing Fashion Intelligence Channels (RSS/OPML)',
-        content: [
-          'Atelier Edit continuously pulls editorial updates from curated fashion publications (Vogue, Harper\'s Bazaar, Who What Wear, Substack newsletters, and fashion YouTube channels):',
-          '• Click "Manage Channels" to subscribe to new RSS/Atom feeds.',
-          '• Click "Export OPML" to back up your fashion subscriptions.',
-          '• Click "Import OPML" to import your existing feed collection from Feedly or NetNewsWire.'
-        ]
-      }
-    ]
-  },
-
-  // 7. My Profile, Sizing & Passwords
-  {
-    id: 'profile-sizing-password-guide',
-    category: 'profile',
-    title: 'My Profile: Style DNA, Sizing Systems & Password Management',
-    summary: 'Configure international sizing conversions, define your personal Style DNA, change your account password, and recover forgotten credentials.',
-    readingTime: '5 min read',
-    badge: 'Account & Security',
-    sections: [
-      {
-        heading: '1. Defining Your Style DNA & Aesthetic Archetypes',
-        content: [
-          'Your Style DNA governs how Gemini personalizes outfit recommendations for you:',
-          '• Aesthetic Archetype: Select from Minimalist Quiet Luxury, Parisian Chic, Structural Avant-Garde / Rebel, Contemporary Streetwear, Old Money / Heritage Preppy, Modern Executive / Power Tailoring, or Bohemian Artisan.',
-          '• Favorite Brands & Designers: List the fashion houses whose tailoring and cuts you prefer (e.g., The Row, Toteme, Khaite, COS, Celine).',
-          '• Style Rules & Avoided Aesthetics: Explicitly exclude items you dislike (e.g., "No neon hues", "Avoid loud logos", "Avoid synthetic polyester").',
-          '• Signature Color Palette: Specify your go-to base colors (e.g., Black, Camel, Oatmeal, Charcoal, Forest Pine).'
-        ]
-      },
-      {
-        heading: '2. International Sizing & Measurement Systems',
-        content: [
-          'Atelier Edit supports global sizing conventions so recommendations match your exact physical fit:'
+          'Each request returns three looks built from your wardrobe. They take into account your style, the weather in your city, trends from the sources you follow, and anything you tell the stylist.',
         ],
         steps: [
-          'Height & Weight: Toggle seamlessly between Metric (cm / kg) and Imperial (feet/inches / lbs / stones).',
-          'Waist Measurement: Input in inches or centimeters.',
-          'Shoe Sizing System: Choose between European (EU 35–48), UK (UK 2–13), US Women (US 4–13), or US Men (US 6–15).',
-          'Clothing / Dress Sizing: Select United Kingdom (UK 4–20), European (EU 32–48), United States (US 0–16), or Generic Letter (XXS–XXL).',
-          'Hat Sizing: Metric (cm 40–70), US Imperial (6 1/2–7 3/4), or Generic (S/M/L/XL).',
-          'Glove Sizing: European Half-Inches (6–10) or Generic (S/M/L/XL).'
-        ]
+          'Go to Today › Stylist.',
+          'Optionally describe the occasion, e.g. "Dinner in Paris", "a rainy commute" or "a gallery opening".',
+          'Press "Style me".',
+        ],
       },
       {
-        heading: '3. Changing Your Password (Logged In)',
+        heading: 'Weather',
         content: [
-          'To change your password while signed in to your account:'
+          'The weather card shows conditions for your city. Use "Change Weather" to style for somewhere else, such as a destination you are travelling to. Set your home city in your profile.',
         ],
-        steps: [
-          'Navigate to the My Profile tab.',
-          'Scroll down to the "Change Password" field under Section 4 (Lifestyle & Context).',
-          'Enter your new secure password (minimum 6 characters).',
-          'Click the dark "SAVE STYLE DNA & PROFILE" button at the bottom.',
-          'Your password is immediately updated and encrypted using bcrypt.'
-        ],
-        callout: {
-          type: 'info',
-          text: 'If you do not wish to change your password when updating sizing measurements, simply leave the "Change Password" field blank.'
-        }
       },
       {
-        heading: '4. Resetting a Forgotten Password (Login Screen)',
-        content: [
-          'If you are logged out and have forgotten your password:'
-        ],
-        steps: [
-          'On the Login screen, click the "Forgot Password?" link below the login button.',
-          'Enter your registered email address or mobile phone number.',
-          'Click "Send Verification Code". A secure 6-digit one-time verification code is generated.',
-          'Enter the 6-digit code and your desired new password.',
-          'Click "Reset Password". You can now immediately sign in with your new credentials.'
-        ],
-        callout: {
-          type: 'important',
-          text: 'One-time verification codes expire automatically after 15 minutes for your account security.'
-        }
+        heading: 'Building a look around one piece',
+        content: ['In Wardrobe › Pieces, press "Build a look around this" on any piece. Your next looks will all include it.'],
       },
       {
-        heading: '5. Marketing & Communication Preferences',
+        heading: 'Teaching your stylist',
         content: [
-          'Under the UK Data Protection Act 2018 (DPA 2018), you have total granular control over communications:',
-          '• Email Newsletters & Editorial Digests: Weekly style stream trends and seasonal capsule breakdowns.',
-          '• Mobile & SMS Notifications: Urgent notifications for luxury drops and instant stylist consultations.',
-          '• Selected Partners & Collaborations: Non-sensitive aesthetic recommendations shared with vetted luxury fashion houses.',
-          'Check or uncheck your desired options and click "SAVE PREFERENCES".'
-        ]
-      }
-    ]
-  },
-
-  // 8. Privacy & GDPR Rights
-  {
-    id: 'gdpr-privacy-security-guide',
-    category: 'gdpr',
-    title: 'Data Privacy, GDPR Rights (UK DPA 2018) & Multi-Factor Auth (MFA)',
-    summary: 'Understand your privacy rights under GDPR/UK DPA 2018: export machine-readable data packages, exercise the Right to be Forgotten, and configure MFA.',
-    readingTime: '4 min read',
-    badge: 'Compliance & Security',
-    sections: [
-      {
-        heading: 'Our Privacy Philosophy',
-        content: [
-          'Atelier Edit operates under strict compliance with the General Data Protection Regulation (GDPR) and the UK Data Protection Act 2018.',
-          'We believe your style data, physical measurements, and wardrobe images belong exclusively to you. We do not sell your personal data to third-party ad brokers.'
-        ]
-      },
-      {
-        heading: 'Data Portability & Export (Article 20)',
-        content: [
-          'You can download a complete, machine-readable JSON data archive of everything stored in your account at any time.'
+          'Under each look: "Love" marks looks you like, "Not for me" hides a look and steers future suggestions away from it, and "Wore it" records that you wore it.',
+          'Pieces you wore in the last week are rotated out of new suggestions, and "Not worn lately" in Wardrobe › Insights uses what you have marked as worn.',
+          'Open "Why it works" on a look for the full styling notes. Pieces marked "To buy" link to a retailer.',
         ],
-        steps: [
-          'Navigate to the My Profile tab.',
-          'Scroll down to the "Data Privacy & GDPR Rights" panel on the left column.',
-          'Click the dark "DOWNLOAD MY DATA PACKAGE" button.',
-          'Your browser will download a structured `.json` package containing your profile details, physical sizing measurements, wardrobe items catalog, visual inspiration clippings, generated lookbooks, and consent logs.'
-        ]
       },
-      {
-        heading: 'Right to be Forgotten & Data Erasure (Article 17)',
-        content: [
-          'Under Article 17 of the GDPR, you have the right to request the total and permanent deletion of your account and all associated data.',
-          'When you execute this action:',
-          '• Your user account and authentication credentials are permanently purged from the PostgreSQL database.',
-          '• All uploaded wardrobe photos and moodboard clippings are permanently deleted from Google Cloud Storage buckets.',
-          '• All generated lookbooks, capsule itineraries, and consent logs are expunged.'
-        ],
-        callout: {
-          type: 'important',
-          text: 'Account deletion is immediate and non-reversible. Ensure you download your data package first if you wish to keep a backup of your wardrobe catalog.'
-        }
-      },
-      {
-        heading: 'Two-Factor Authentication (MFA / TOTP)',
-        content: [
-          'For enhanced security, Atelier Edit supports Time-based One-Time Passwords (TOTP) compatible with Google Authenticator, 1Password, Authy, and Apple Keychain.',
-          'When MFA is active, signing in requires both your password and a rolling 6-digit code from your authenticator device.'
-        ]
-      }
     ],
     faqs: [
       {
-        question: 'Where is my clothing imagery stored?',
-        answer: 'All uploaded images are securely stored in private Google Cloud Storage buckets located in the europe-west2 (London, UK) region, with encryption at rest and in transit.'
+        question: 'Why can\'t I press "Style me"?',
+        answer: 'It needs at least one piece in your wardrobe. Add pieces in Wardrobe › Pieces first.',
       },
       {
-        question: 'How do I contact the Data Protection Officer (DPO)?',
-        answer: 'You can reach our dedicated privacy team at privacy@atelieredit.com for any data subject access requests or GDPR compliance queries.'
-      }
-    ]
-  }
+        question: 'Do I need to save looks?',
+        answer: 'No. Every look is kept automatically on Today › Stylist until you delete it.',
+      },
+    ],
+  },
+  {
+    id: 'wardrobe-management-guide',
+    category: 'wardrobe',
+    title: 'Adding and managing your pieces',
+    summary: 'Photograph pieces, let the app tag them, then search, edit and tidy your wardrobe.',
+    readingTime: '3 min read',
+    sections: [
+      {
+        heading: 'Adding pieces',
+        content: [
+          'Each photo is analysed for category, colours, brand (if visible) and details. If "Auto-slice multi-item photos" is on, a photo of several items laid flat is split into separate pieces.',
+        ],
+        steps: [
+          'Go to Wardrobe › Pieces.',
+          'Choose "Take photo" or "Photo library" (you can select several photos).',
+          'Optionally add a brand or notes that apply to these photos.',
+          'Press "Add to wardrobe".',
+        ],
+      },
+      {
+        heading: 'Finding and editing pieces',
+        content: [
+          'Search by brand, tag, colour or notes, or filter by category. "Edit details" on a piece lets you correct anything the analysis got wrong. "Edit as a table" lets you change several pieces at once, including deleting them.',
+        ],
+      },
+      {
+        heading: 'Duplicates',
+        content: ['"Scan for duplicates" finds pieces added more than once and lets you merge them.'],
+      },
+      {
+        heading: 'Insights and gaps',
+        content: [
+          'The "Insights & gaps" tab shows your wardrobe by category and colour, and pieces you have not worn lately. "Find wardrobe gaps" suggests a few pieces that would work with much of what you already own.',
+        ],
+      },
+    ],
+  },
+  {
+    id: 'capsule-wardrobe-guide',
+    category: 'capsule',
+    title: 'Packing a travel capsule',
+    summary: 'Pick a small set of pieces that work together for a trip, with a day and evening look for each day.',
+    readingTime: '2 min read',
+    sections: [
+      {
+        heading: 'Planning a trip',
+        content: ['Capsules use only pieces from your wardrobe, chosen for the destination\'s weather and your plans.'],
+        steps: [
+          'Go to Wardrobe › Capsules and press "New Travel Capsule".',
+          'Enter the destination, start and end dates, and what the trip is for.',
+          'Choose your luggage: carry-on, checked bag or weekend duffle. This sets how many pieces are packed.',
+          'Add any packing notes, such as "need walking shoes", and press "Build capsule".',
+        ],
+      },
+      {
+        heading: 'What you get',
+        content: [
+          'A packing list of the chosen pieces and an itinerary with a day look and an evening look for each day (up to 14 days). Use "Print Packing List" to take it with you.',
+        ],
+      },
+    ],
+  },
+  {
+    id: 'studio-flatlay-guide',
+    category: 'studio',
+    title: 'Making a flat-lay in the Studio',
+    summary: 'Arrange pieces and inspiration photos on a canvas and save the layout.',
+    readingTime: '2 min read',
+    sections: [
+      {
+        heading: 'Building a flat-lay',
+        content: ['Open Wardrobe › Studio. Your pieces and inspiration photos are listed beside the canvas.'],
+        steps: [
+          'Press "Add to Canvas" on a piece or photo to place it.',
+          'Drag items to reposition them.',
+          'Select an item, then use Scale + / Scale −, Rotate, or "Bring to Front" to layer it over others.',
+          'Use "Remove Item" to take one item off, or "Clear Canvas" to start again.',
+        ],
+      },
+      {
+        heading: 'Saving',
+        content: ['Give the flat-lay a title and press "Save flat-lay". Saved flat-lays appear below the canvas; "Load to Stage" reopens one for editing.'],
+      },
+    ],
+  },
+  {
+    id: 'inspirations-feeds-guide',
+    category: 'inspirations',
+    title: "Inspiration, sources and What's new",
+    summary: 'Save photos that inspire you, choose the sources that shape your trend briefing, and read it.',
+    readingTime: '3 min read',
+    sections: [
+      {
+        heading: 'Inspiration photos',
+        content: [
+          'Save street style, shop windows or magazine pages with the Snap button or in Inspiration. Each photo is tagged with its style so your stylist and What\'s new can draw on it.',
+        ],
+      },
+      {
+        heading: 'Sources you follow',
+        content: [
+          'In Inspiration, "+ Subscribe" follows a starter source and "Mute" pauses it. "Add Feed Source" adds your own RSS feed, Substack, YouTube channel or Instagram account.',
+        ],
+      },
+      {
+        heading: "What's new",
+        content: [
+          'Today › What\'s new reads recent articles from your sources against your wardrobe. Each post explains a trend, names the pieces you own that fit it, suggests at most one piece worth adding, and links to the original article. Press "Refresh" for new posts.',
+        ],
+      },
+    ],
+  },
+  {
+    id: 'profile-sizing-password-guide',
+    category: 'profile',
+    title: 'Profile, sizes and password',
+    summary: 'How you dress, optional fit details, your style archetype, and changing or resetting your password.',
+    readingTime: '2 min read',
+    sections: [
+      {
+        heading: 'How you dress and fit details',
+        content: [
+          '"I dress in" decides which clothes are suggested. Fit details (height, waist, shoe and clothing sizing and so on) are optional and only used to suggest sizes for pieces to buy.',
+        ],
+      },
+      {
+        heading: 'Your style',
+        content: [
+          'Choose the style archetype closest to yours, or write your own. Favourite brands, things you avoid and your colour palette are followed closely. Your city sets the weather your looks are styled for.',
+        ],
+      },
+      {
+        heading: 'Changing your password',
+        content: ['Open Account › Profile & sizes, enter a new password (at least 6 characters) and save.'],
+      },
+      {
+        heading: 'Forgotten password',
+        steps: [
+          'On the sign-in screen, choose "Forgot your password?".',
+          'Enter your account email. We email you a 6-digit verification code, valid for 15 minutes.',
+          'Enter the code and a new password. After five wrong codes, request a new one.',
+        ],
+        content: [],
+      },
+    ],
+  },
+  {
+    id: 'gdpr-privacy-guide',
+    category: 'gdpr',
+    title: 'Your data, privacy and security',
+    summary: 'Download everything we hold about you, delete your account, and protect sign-in.',
+    readingTime: '2 min read',
+    sections: [
+      {
+        heading: 'Download your data (Article 20)',
+        content: ['In Account › Profile & sizes, use "Download my data package" to get your profile, wardrobe, inspirations and looks as a file.'],
+      },
+      {
+        heading: 'Delete your account (Article 17, the right to be forgotten)',
+        content: ['"Delete your account" permanently removes your account, wardrobe, photos and looks. This cannot be undone.'],
+        callout: { type: 'important', text: 'Download your data package first if you want a copy.' },
+      },
+      {
+        heading: 'Emails',
+        content: ['Choose whether to receive email digests in the consent settings on your profile. You can change this at any time.'],
+      },
+      {
+        heading: 'Two-factor sign-in',
+        content: ['When creating an account you can turn on an authenticator app. You will then enter a 6-digit code from the app each time you sign in.'],
+      },
+    ],
+  },
 ];

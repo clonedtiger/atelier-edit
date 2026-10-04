@@ -57,13 +57,13 @@ export const GuidesCenter: React.FC<GuidesCenterProps> = ({
       {/* Editorial Guides Hero Header */}
       <div className="lookbook-panel guides-hero-panel" style={{ padding: '2.5rem 2rem', marginBottom: '2rem', textAlign: 'center' }}>
         <span style={{ fontSize: '0.8rem', textTransform: 'uppercase', letterSpacing: '0.2em', color: 'var(--accent)', fontWeight: 600 }}>
-          Atelier Edit Knowledge &amp; Styling Handbook
+          Help
         </span>
         <h2 style={{ fontSize: '2.25rem', fontFamily: 'var(--font-serif)', margin: '0.5rem 0 1rem', color: 'var(--foreground)' }}>
-          Guides &amp; Feature Documentation
+          How Atelier Edit works
         </h2>
         <p style={{ maxWidth: '680px', margin: '0 auto 1.5rem', color: 'var(--text-muted)', fontSize: '0.95rem', lineHeight: '1.6' }}>
-          Explore step-by-step guides, best practices, and answers to common questions about tailoring consultations, flat-lay studio creation, capsule matrices, sizing systems, and GDPR privacy controls.
+          Short guides to each part of the app, with answers to common questions.
         </p>
 
         {/* Real-time Search Input */}
@@ -73,7 +73,7 @@ export const GuidesCenter: React.FC<GuidesCenterProps> = ({
             className="guides-search-input"
             value={searchQuery}
             onChange={(e) => setSearchQuery(e.target.value)}
-            placeholder="Search guides (e.g., 'password reset', 'studio canvas', 'sizing', 'hero anchor')..."
+            placeholder="Search guides, e.g. password, capsule, sizes"
             style={{
               width: '100%',
               padding: '0.85rem 1.25rem 0.85rem 2.85rem',
@@ -197,7 +197,7 @@ export const GuidesCenter: React.FC<GuidesCenterProps> = ({
                       </span>
                     )}
                     <span style={{ fontSize: '0.75rem', color: 'var(--text-muted)' }}>
-                      ⏱️ {article.readingTime}
+                      {article.readingTime}
                     </span>
                   </div>
 

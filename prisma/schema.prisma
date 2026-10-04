@@ -38,6 +38,7 @@ model User {
   suspended        Boolean          @default(false)
   passwordResetCode String?
   passwordResetExpires DateTime?
+  passwordResetAttempts Int     @default(0) // Wrong codes entered; the code is voided after 5
 
   // Marketing & GDPR Consent Preferences
   marketingEmail            Boolean          @default(false)
