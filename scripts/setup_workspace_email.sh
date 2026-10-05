@@ -62,10 +62,20 @@ ok "Signed in to Google Cloud as $ACCOUNT"
 
 [[ -d node_modules/nodemailer ]] || { fail "Run 'npm install' in $REPO_ROOT first"; exit 1; }
 
-printf '\n  Address emails should come from [hello@%s]: ' "$DOMAIN"
-read -r SENDER
-SENDER="${SENDER:-hello@$DOMAIN}"
-[[ "$SENDER" == *@"$DOMAIN" ]] || warn "$SENDER is not on $DOMAIN; that's fine if it is a Workspace account"
+while true; do
+  printf '\n  Address emails should come from [concierge@%s]: ' "$DOMAIN"
+  read -r SENDER
+  SENDER="${SENDER:-concierge@$DOMAIN}"
+  SENDER="${SENDER// /}"
+  if [[ "$SENDER" == *@"$DOMAIN" ]]; then
+    break
+  fi
+  warn "$SENDER is not an @$DOMAIN address. Check the spelling."
+  printf '  Use it anyway? [y/N]: '
+  read -r confirm
+  [[ "$confirm" =~ ^[Yy] ]] && break
+done
+ok "Sending from $SENDER"
 
 # ---------------------------------------------------------------------------
 bold "1. Create the Google Workspace account (in your browser)"
@@ -137,7 +147,7 @@ cat <<EOF
 EOF
 
 while true; do
-  printf '\n  Paste the app password (it will not be shown): '
+  printf '\n  App password for %s (it will not be shown): ' "$SENDER"
   read -rs APP_PASSWORD
   printf '\n'
   APP_PASSWORD="${APP_PASSWORD// /}"
