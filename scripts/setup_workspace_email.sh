@@ -176,7 +176,7 @@ while true; do
     ok "Test email sent to $TEST_TO (check your inbox, and spam the first time)"
     break
   fi
-  fail "Google rejected the login. Check the app password was created while signed in as $SENDER, and that 2-Step Verification is on."
+  fail "Google rejected the login for $SENDER. If that address is misspelt, press Ctrl+C and run the script again. Otherwise create a new app password in a private window signed in only as $SENDER."
 done
 
 # ---------------------------------------------------------------------------
